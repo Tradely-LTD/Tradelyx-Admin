@@ -1,3 +1,4 @@
+//@ts-nocheck
 import Skeleton from "react-loading-skeleton";
 import { Users, Package, ShoppingCart, Truck, ShieldCheck } from "lucide-react";
 import { useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";

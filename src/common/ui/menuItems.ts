@@ -1,4 +1,3 @@
-import { appPaths } from "@/utils/app-paths";
 import { BarChart2, FileText, LogOut, User } from "lucide-react";
 
 export const UserRoles = {

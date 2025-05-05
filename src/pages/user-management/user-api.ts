@@ -39,6 +39,20 @@ export const authApi = baseApi.injectEndpoints({
       }),
       providesTags: ["USERS"],
     }),
+    getSeller: builder.query<
+      {
+        data: SellerResponse;
+        success: boolean;
+      },
+      { id: string }
+    >({
+      query: ({ id }) => ({
+        url: `profile/seller/${id}`,
+        method: Methods.Get,
+      }),
+      providesTags: ["USERS"],
+    }),
+
     getUsers: builder.query<UsersResponse, GetUsersQueryParams>({
       query: (params) => {
         return {
@@ -108,5 +122,46 @@ export interface PasswordResetArgs {
 export interface ResetPasswordResponse {
   message: string;
 }
+export interface SellerResponse {
+  userId: string;
+  personalInfo: PersonalInfo;
+  companyInfo: CompanyInfo;
+  businessDetails: BusinessDetails;
+  documents: SellerDocuments;
+}
 
-export const { useGetUserQuery, useUpdateUserMutation, useGetUsersQuery } = authApi;
+export interface PersonalInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  country: string;
+  state: string | null;
+}
+
+export interface CompanyInfo {
+  name: string;
+  logo: string | null;
+  banner: string | null;
+  website: string | null;
+  overview: string | null;
+  incorporationDate: string | null;
+  registrationNumber: string | null;
+}
+
+export interface BusinessDetails {
+  totalStaff: string | null;
+  estimatedAnnualRevenue: string | null;
+  services: string[];
+  mainMarkets: string[];
+  languagesSpoken: string[];
+}
+
+export interface SellerDocuments {
+  registrationDocuments: string[];
+  exportLicenses: string | null;
+  identityDocuments: string[];
+  certifications: string[];
+}
+
+export const { useGetUserQuery, useUpdateUserMutation, useGetUsersQuery, useGetSellerQuery } =
+  authApi;

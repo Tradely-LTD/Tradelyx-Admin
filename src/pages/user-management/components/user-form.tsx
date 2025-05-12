@@ -4,7 +4,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Input from "@/common/input/input";
 import Button from "@/common/button/button";
-import { useGetUserQuery, useUpdateUserMutation } from "./user-api";
+import { useGetUserQuery, useUpdateUserMutation } from "../user-api";
 import { Loader } from "@/common/loader/loader";
 
 // Validation schema using Yup
@@ -280,6 +280,7 @@ function UserForm({ id, onClose }: { id: string; onClose?: () => void }) {
                       label="Operating Country"
                       error={errors.operatingCountry?.message}
                       value={value || ""}
+                      disabled
                       onChange={onChange}
                       {...field}
                     />

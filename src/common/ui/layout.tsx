@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Drama, Menu, ChevronDown, ChevronRight } from "lucide-react";

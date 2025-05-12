@@ -73,10 +73,6 @@ export interface LoginResponse {
 
 export type UserRole = "superadmin" | "admin" | "agent" | null;
 
-interface GetUsersParams {
-  role?: UserRole;
-}
-
 export interface AuthUser {
   id: string;
   firstName: string;

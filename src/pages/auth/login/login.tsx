@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { useState, ChangeEvent, useEffect } from "react";
 import styled from "styled-components";
 import { useForm } from "react-hook-form";

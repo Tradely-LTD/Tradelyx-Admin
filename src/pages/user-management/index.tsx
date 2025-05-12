@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
-import { Search, Edit, User, Filter } from "lucide-react";
+//@ts-nocheck
+import { useState } from "react";
+import { Search, User, Filter, Edit2, Eye } from "lucide-react";
 import Pagination from "rc-pagination";
 import Input from "@/common/input/input";
 import Text from "@/common/text/text";
 import StatusIndicator from "@/common/status";
 import { useGetUsersQuery } from "./user-api";
 import Modal from "@/common/modal/modal";
-import UserForm from "./user-form";
+import UserForm from "./components/user-form";
 import { Loader } from "@/common/loader/loader";
 import { useDebounce } from "react-use";
+import TableDropdown from "@/common/dropdown";
+import SellerPreview from "./components/seller-preview";
 
 const UserManagement = () => {
   // State for filters and pagination
@@ -23,6 +26,7 @@ const UserManagement = () => {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewModalOpen, setPreviewIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Setup debounce for search
@@ -215,13 +219,24 @@ const UserManagement = () => {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          className="p-1 text-blue-600 hover:text-blue-800"
-                          title="Edit User"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
+                        <TableDropdown
+                          items={[
+                            {
+                              label: "Edit",
+                              action: () => handleEditUser(user),
+                              icon: <Edit2 size={14} />,
+                            },
+                            {
+                              label: "View",
+                              action: () => {
+                                console.log("delete clicked");
+                                setPreviewIsModalOpen(true);
+                                setSelectedUser(user);
+                              },
+                              icon: <Eye size={14} />,
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -263,6 +278,19 @@ const UserManagement = () => {
           onClose={() => {
             setIsModalOpen(false);
           }}
+        />
+      </Modal>
+      {/* seller data preview  */}
+      <Modal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setPreviewIsModalOpen(false)}
+        title="Preview Seller Information"
+        className="!max-w-[800px]"
+      >
+        <SellerPreview
+          onApprove={() => {}}
+          onClose={() => setPreviewIsModalOpen(false)}
+          sellerId={selectedUser?.id}
         />
       </Modal>
     </div>

@@ -1,50 +1,40 @@
-//@ts-nocheck
 import { useState } from "react";
 import { X, ExternalLink, UserCheck, Loader, FileText, Download, Eye } from "lucide-react";
-import { useGetSellerQuery } from "../user-api";
+import { useGetSellerQuery, useUpdateUserMutation } from "../user-api";
 import Button from "@/common/button/button";
 
 interface SellerPreviewProps {
   sellerId: number;
   onClose: () => void;
-  onApprove: () => void;
 }
-export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPreviewProps) {
-  const [isApproving, setIsApproving] = useState(false);
+
+export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps) {
+  // const [isApproving, setIsApproving] = useState(false);
   const [activeDocument, setActiveDocument] = useState(null);
   const [documentLoading, setDocumentLoading] = useState(false);
   const { data, isLoading } = useGetSellerQuery({ id: sellerId });
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const seller = data?.data;
 
   const handleApprove = async () => {
     try {
-      setIsApproving(true);
       // Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      onApprove(seller?.userId);
-      setIsApproving(false);
+      updateUser({
+        id: seller?.userId,
+        data: { ...seller, isVerified: true },
+      })
+        .unwrap()
+        .then(() => {
+          onClose();
+        });
     } catch (error) {
       console.error("Failed to approve seller:", error);
-      setIsApproving(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString();
-  };
-
-  const openDocumentPreview = (docUrl: string) => {
-    setDocumentLoading(true);
-    setActiveDocument(docUrl);
-    // Simulate loading time for document
-    setTimeout(() => {
-      setDocumentLoading(false);
-    }, 1500);
-  };
-
-  const closeDocumentPreview = () => {
-    setActiveDocument(null);
   };
 
   const getFileType = (url) => {
@@ -66,6 +56,15 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
     }
   };
 
+  const openDocumentPreview = (docUrl) => {
+    setDocumentLoading(true);
+    setActiveDocument(docUrl);
+  };
+
+  const closeDocumentPreview = () => {
+    setActiveDocument(null);
+  };
+
   const renderDocumentLinks = (documents) => {
     if (!documents || documents.length === 0)
       return <span className="text-gray-400">No documents uploaded</span>;
@@ -76,7 +75,7 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
           const fileType = getFileType(doc);
           const fileName = doc.split("/").pop();
 
-          // Determine icon based on file type
+          // Determine icon and colors based on file type
           let Icon = FileText;
           let bgColor = "bg-blue-50";
           let textColor = "text-blue-600";
@@ -128,24 +127,24 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
           }
 
           return (
-            <button
-              key={index}
-              onClick={() => openDocumentPreview(doc)}
-              className={`flex items-center px-3 py-1 ${bgColor} ${textColor} rounded-md hover:opacity-80 transition-colors text-xs md:text-sm`}
-              title={fileName}
-            >
-              <Icon size={14} className="mr-1" />
-              <span className="truncate max-w-28">
-                {fileName.length > 15 ? fileName.substring(0, 12) + "..." : fileName}
-              </span>
-            </button>
+            <div key={index} className="relative">
+              <button
+                className={`flex items-center px-3 py-1 ${bgColor} ${textColor} rounded-md hover:opacity-80 transition-colors text-xs md:text-sm`}
+                title={fileName}
+                onClick={() => openDocumentPreview(doc)}
+              >
+                <Icon size={14} className="mr-1" />
+                <span className="truncate max-w-28">
+                  {fileName.length > 15 ? fileName.substring(0, 12) + "..." : fileName}
+                </span>
+              </button>
+            </div>
           );
         })}
       </div>
     );
   };
 
-  // Document Preview Modal
   const DocumentPreview = () => {
     if (!activeDocument) return null;
 
@@ -181,7 +180,6 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
         case "pdf":
           return (
             <div className="flex flex-col items-center w-full h-full">
-              {/* Browser-friendly PDF preview that doesn't rely on iframe */}
               <div className="bg-gray-50 border rounded-lg p-6 flex flex-col items-center justify-center w-full">
                 <div className="bg-red-50 p-8 rounded-full mb-4">
                   <svg
@@ -205,8 +203,7 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
                 </div>
                 <p className="text-gray-700 font-medium">{fileName}</p>
                 <p className="text-sm text-gray-500 mt-2 mb-6 text-center max-w-lg">
-                  PDF documents cannot be previewed directly in this interface due to browser
-                  security restrictions.
+                  PDF documents cannot be previewed directly in this interface.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 justify-center">
                   <a
@@ -214,8 +211,6 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
                     download={fileName}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
                     onClick={(e) => {
-                      // For specific file types, some browsers won't initiate a download from a cross-origin URL
-                      // In production, you might use a server-side proxy to handle this
                       e.preventDefault();
                       window.open(activeDocument, "_blank");
                     }}
@@ -237,10 +232,6 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
             </div>
           );
 
-        case "word":
-        case "spreadsheet":
-        case "presentation":
-        case "other":
         default:
           return (
             <div className="bg-gray-50 border rounded-lg p-6 flex flex-col items-center justify-center">
@@ -249,18 +240,12 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
               </div>
               <p className="text-gray-700 font-medium">{fileName}</p>
               <p className="text-sm text-gray-500 mt-2 mb-6 text-center max-w-lg">
-                {fileType !== "other"
-                  ? `This ${fileType} document cannot be previewed directly.`
-                  : "This document format cannot be previewed directly."}
-                <br />
-                Please use one of the options below to view the document.
+                This document format cannot be previewed directly.
               </p>
               <div className="mt-4 flex flex-wrap gap-3 justify-center">
                 <a
                   href={activeDocument}
                   onClick={(e) => {
-                    // For specific file types, some browsers won't initiate a download from a cross-origin URL
-                    // In production, you might use a server-side proxy to handle this
                     e.preventDefault();
                     window.open(activeDocument, "_blank");
                   }}
@@ -329,21 +314,19 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
 
   if (isLoading) {
     return (
-      <div className="">
-        <div className="p-6 flex flex-col items-center justify-center min-h-96">
-          <Loader size={40} className="text-blue-500 animate-spin" />
-          <p className="mt-4 text-gray-600">Loading seller information...</p>
-        </div>
+      <div className="p-6 flex flex-col items-center justify-center min-h-96">
+        <Loader size={40} className="text-blue-500 animate-spin" />
+        <p className="mt-4 text-gray-600">Loading seller information...</p>
       </div>
     );
   }
 
   return (
-    <div className="">
+    <div className="max-h-screen overflow-auto">
       {/* Content */}
-      <div className="p-6 space-y-6   max-h-screen">
+      <div className="p-6 space-y-6">
         {/* Banner and Logo */}
-        <div className="relative h-40 bg-gray-100 rounded-lg overflow-hidden">
+        <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
           {seller?.companyInfo.banner ? (
             <img
               src={seller?.companyInfo.banner}
@@ -370,7 +353,7 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
           </div>
         </div>
 
-        {/* Company and Personal Info */}
+        {/* Company and Contact Info */}
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-800">Company Information</h3>
@@ -469,7 +452,7 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
               </div>
               <div>
                 <p className="text-sm text-gray-500">Main Markets</p>
-                {seller?.businessDetails.mainMarkets?.length > 0 ? (
+                {seller?.businessDetails?.mainMarkets?.length > 0 ? (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {seller?.businessDetails.mainMarkets.map((market, idx) => (
                       <span
@@ -517,7 +500,7 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
       </div>
 
       {/* Footer */}
-      <div className="border-t p-4 flex justify-end gap-3">
+      <div className="border-t p-4 flex justify-end gap-3 bg-gray-50 sticky bottom-0">
         <button
           onClick={onClose}
           className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
@@ -526,12 +509,11 @@ export default function SellerPreview({ sellerId, onClose, onApprove }: SellerPr
         </button>
         <Button
           onClick={handleApprove}
-          //   disabled={isApproving}
-          disabled={true}
-          loading={isApproving}
+          disabled={isUpdating}
+          loading={isUpdating}
           leftIcon={<UserCheck size={18} className="mr-2" />}
         >
-          Approve Seller
+          Approve
         </Button>
       </div>
 

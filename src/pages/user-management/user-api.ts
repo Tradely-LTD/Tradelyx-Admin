@@ -28,7 +28,6 @@ export const authApi = baseApi.injectEndpoints({
     getUser: builder.query<
       {
         data: any;
-
         success: boolean;
       },
       { id: string }

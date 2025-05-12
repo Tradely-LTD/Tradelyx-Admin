@@ -1,6 +1,6 @@
 //@ts-nocheck
 import Skeleton from "react-loading-skeleton";
-import { Users, Package, ShoppingCart, Truck, ShieldCheck } from "lucide-react";
+import { Users, Package, ShoppingCart, Truck, ShieldCheck, User } from "lucide-react";
 import { useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";
 import {
   BarChart,
@@ -76,6 +76,23 @@ export default function AdminDashboard() {
               loading={statsLoading}
             />
 
+            <DashboardCard
+              title="Agent Users"
+              value={data?.data?.usersByRole?.agent || "0"}
+              icon={<User size={24} />}
+              color="#F44336"
+              description="Users with agent role"
+              loading={statsLoading}
+            />
+
+            <DashboardCard
+              title="Admin"
+              value={data?.data?.usersByRole?.admin || "0"}
+              icon={<Users size={24} />}
+              color="#F44336"
+              description="Users with admin role"
+              loading={statsLoading}
+            />
             <DashboardCard
               title="Unassigned Users"
               value={data?.data?.usersByRole?.null || "0"}

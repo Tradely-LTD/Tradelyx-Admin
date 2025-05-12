@@ -287,11 +287,7 @@ const UserManagement = () => {
         title="Preview Seller Information"
         className="!max-w-[800px]"
       >
-        <SellerPreview
-          onApprove={() => {}}
-          onClose={() => setPreviewIsModalOpen(false)}
-          sellerId={selectedUser?.id}
-        />
+        <SellerPreview onClose={() => setPreviewIsModalOpen(false)} sellerId={selectedUser?.id} />
       </Modal>
     </div>
   );

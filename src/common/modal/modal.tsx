@@ -16,12 +16,9 @@ const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, className }) 
     <div
       className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex justify-center items-center transition-opacity duration-300 ease-in-out"
       style={{ opacity: isOpen ? 1 : 0 }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <div
-        className={`bg-white rounded-md shadow-xl w-full max-w-lg mx-4 transition-transform duration-300 ease-in-out scale-100 ${className} }`}
+        className={`bg-white rounded-md shadow-xl w-full max-w-lg mx-4 transition-transform duration-300 ease-in-out scale-100 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

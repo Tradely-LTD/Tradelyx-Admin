@@ -160,6 +160,9 @@ const UserManagement = () => {
                   <Text>Company</Text>
                 </th>
                 <th className="px-4 py-4 font-medium">
+                  <Text>Country</Text>
+                </th>
+                <th className="px-4 py-4 font-medium">
                   <Text>KYC Status</Text>
                 </th>
                 <th className="px-4 py-4 font-medium">
@@ -205,6 +208,7 @@ const UserManagement = () => {
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator status={user.isCompany ? "company" : "individual"} />
                     </td>
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">{user.country}</td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator status={user.isKYCCompleted ? "completed" : "pending"} />
                     </td>

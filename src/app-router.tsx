@@ -5,6 +5,7 @@ import { appPaths } from "./utils/app-paths";
 import AdminDashboard from "./pages/dashboard";
 import Layout from "./common/ui/layout";
 import UserManagement from "./pages/user-management";
+import ProductManagement from "./pages/products";
 
 function AppRouter() {
   return (
@@ -15,6 +16,7 @@ function AppRouter() {
         <Route path={appPaths.dashboard} element={<Layout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="product" element={<ProductManagement />} />
         </Route>
       </Routes>
     </BrowserRouter>

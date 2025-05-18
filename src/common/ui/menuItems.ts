@@ -1,23 +1,31 @@
-import { BarChart2, FileText, LogOut, User } from "lucide-react";
+import { BarChart2, FileText, LogOut, Package, User } from "lucide-react";
+import { IoTimeSharp } from "react-icons/io5";
 
+// Define user roles as a constant enum-like object
 export const UserRoles = {
   AGENT: "agent",
   ADMIN: "admin",
   SUPER_ADMIN: "superadmin",
 } as const;
 
+// Type for user role keys
+type UserRoleType = keyof typeof UserRoles;
+
+// Interface for submenu items
 interface SubmenuItem {
   label: string;
   path: string;
   icon: typeof FileText;
+  color?: string; // Optional color for submenu items
 }
 
+// Interface for menu items
 interface MenuItem {
-  icon: typeof FileText;
+  icon: typeof FileText | typeof IoTimeSharp;
   label: string;
   path: string;
   description: string;
-  // privilege: (typeof UserRoles)[UserRoleType][];
+  privilege?: UserRoleType[]; // Optional roles that can access this menu
   hasSubmenu?: boolean;
   submenuItems?: SubmenuItem[];
 }
@@ -28,28 +36,25 @@ export const getMenuItems = (): MenuItem[] => {
       icon: BarChart2,
       label: "Dashboard",
       path: "/",
-      description: "Overview of key metrics and performance",
+      description: "Overview of key metrics and performance indicators",
     },
-
     {
       icon: User,
       label: "User Management",
       path: "/users",
-      description: "System and user monitoring",
-      // privilege: [UserRoles.ADMIN, UserRoles.SUPER_ADMIN],
+      description: "Manage and monitor system users",
     },
-    // {
-    //   icon: PieChart,
-    //   label: "Commission Tracker",
-    //   path: "/commission",
-    //   description: "Track and manage delivery commissions",
-    //   privilege: [UserRoles.ADMIN, UserRoles.SUPER_ADMIN],
-    // },
+    {
+      icon: Package,
+      label: "Product",
+      path: "/product",
+      description: "Manage product inventory and details",
+    },
     {
       icon: LogOut,
       label: "Logout",
       path: "/login",
-      description: "Logout",
+      description: "Sign out of the application",
     },
   ];
 };

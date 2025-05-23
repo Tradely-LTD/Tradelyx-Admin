@@ -310,7 +310,7 @@ const UserManagement = () => {
       <Modal
         isOpen={isPreviewModalOpen}
         onClose={() => setPreviewIsModalOpen(false)}
-        title="Preview Seller Information"
+        title="Preview Information"
         className="!max-w-[800px]"
       >
         <SellerPreview onClose={() => setPreviewIsModalOpen(false)} sellerId={selectedUser?.id} />

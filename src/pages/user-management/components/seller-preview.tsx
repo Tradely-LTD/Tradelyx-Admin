@@ -1,12 +1,9 @@
-import { useState } from "react";
+//@ts-nocheck
 import {
-  X,
-  ExternalLink,
   UserCheck,
   Loader,
   FileText,
-  Download,
-  Eye,
+  ExternalLink,
   Globe,
   Mail,
   Calendar,
@@ -19,7 +16,7 @@ import {
   Image,
   FileX,
 } from "lucide-react";
-import { useGetSellerQuery, useUpdateUserMutation } from "../user-api";
+import { useGetUserQuery, useUpdateUserMutation } from "../user-api";
 import Button from "@/common/button/button";
 
 interface SellerPreviewProps {
@@ -28,22 +25,17 @@ interface SellerPreviewProps {
 }
 
 export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps) {
-  const [activeDocument, setActiveDocument] = useState(null);
-  const [documentLoading, setDocumentLoading] = useState(false);
-  const { data, isLoading } = useGetSellerQuery({ id: sellerId });
+  const { data, isLoading } = useGetUserQuery({ id: sellerId });
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const seller = data?.data;
 
   const handleApprove = async () => {
     try {
-      updateUser({
+      await updateUser({
         id: seller?.userId,
         data: { ...seller, isVerified: true },
-      })
-        .unwrap()
-        .then(() => {
-          onClose();
-        });
+      }).unwrap();
+      onClose();
     } catch (error) {
       console.error("Failed to approve seller:", error);
     }
@@ -61,71 +53,59 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
   const getFileType = (url) => {
     if (!url) return "unknown";
     const extension = url.split(".").pop().toLowerCase();
-
-    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(extension)) {
-      return "image";
-    } else if (extension === "pdf") {
-      return "pdf";
-    } else if (["doc", "docx"].includes(extension)) {
-      return "word";
-    } else if (["xls", "xlsx", "csv"].includes(extension)) {
-      return "spreadsheet";
-    } else if (["ppt", "pptx"].includes(extension)) {
-      return "presentation";
-    } else {
-      return "other";
-    }
+    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(extension)) return "image";
+    if (extension === "pdf") return "pdf";
+    if (["doc", "docx"].includes(extension)) return "word";
+    if (["xls", "xlsx", "csv"].includes(extension)) return "spreadsheet";
+    if (["ppt", "pptx"].includes(extension)) return "presentation";
+    return "other";
   };
 
-  const openDocumentPreview = (docUrl) => {
-    setDocumentLoading(true);
-    setActiveDocument(docUrl);
-  };
-
-  const closeDocumentPreview = () => {
-    setActiveDocument(null);
-    setDocumentLoading(false);
-  };
   const renderDocumentLinks = (documents) => {
-    if (!documents || documents.length === 0)
+    // Convert single string to array if necessary
+    const docArray = Array.isArray(documents) ? documents : documents ? [documents] : [];
+
+    if (!docArray || docArray.length === 0) {
       return (
-        <div className="flex items-center justify-center py-8 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed">
+        <div className="flex items-center justify-center py-6 text-gray-500 bg-gray-100 rounded-lg border border-gray-200">
           <div className="text-center">
-            <FileX size={32} className="mx-auto mb-2 opacity-50" />
+            <FileX size={24} className="mx-auto mb-2 opacity-50" />
             <p className="text-sm">No documents uploaded</p>
           </div>
         </div>
       );
+    }
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {documents.map((doc, index) => {
+        {docArray.map((doc, index) => {
           const fileType = getFileType(doc);
           const fileName = doc.split("/").pop();
-
           let Icon = FileText;
-          let bgColor = "bg-gradient-to-r from-blue-50 to-indigo-50";
-          let textColor = "text-blue-700";
-          let borderColor = "border-blue-200";
+          let bgColor = "bg-gray-50";
+          let textColor = "text-gray-700";
+          let borderColor = "border-gray-200";
 
           if (fileType === "image") {
             Icon = Image;
-            bgColor = "bg-gradient-to-r from-green-50 to-emerald-50";
-            textColor = "text-green-700";
-            borderColor = "border-green-200";
+            bgColor = "bg-blue-50";
+            textColor = "text-blue-700";
+            borderColor = "border-blue-200";
           } else if (fileType === "pdf") {
             Icon = FileText;
-            bgColor = "bg-gradient-to-r from-red-50 to-rose-50";
+            bgColor = "bg-red-50";
             textColor = "text-red-700";
             borderColor = "border-red-200";
           }
 
           return (
-            <button
+            <a
               key={index}
-              className={`group relative flex items-center p-3 ${bgColor} ${textColor} ${borderColor} rounded-xl border hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200`}
+              href={doc}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center p-3 ${bgColor} ${textColor} ${borderColor} rounded-lg border hover:bg-gray-100 transition-colors`}
               title={fileName}
-              onClick={() => openDocumentPreview(doc)}
             >
               <div className="flex-shrink-0 mr-3">
                 <Icon size={18} />
@@ -134,119 +114,30 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                 <p className="text-sm font-medium truncate">
                   {fileName.length > 20 ? fileName.substring(0, 17) + "..." : fileName}
                 </p>
-                <p className="text-xs opacity-70 capitalize">{fileType} file</p>
+                <p className="text-xs capitalize">{fileType} file</p>
               </div>
-              <Eye
-                size={16}
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-2"
-              />
-            </button>
+              <ExternalLink size={16} className="opacity-70" />
+            </a>
           );
         })}
       </div>
     );
   };
 
-  const DocumentPreview = () => {
-    if (!activeDocument) return null;
-
-    const fileName = activeDocument.split("/").pop();
-
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl w-full max-w-7xl h-[95vh] flex flex-col shadow-2xl">
-          <div className="flex items-center justify-between p-6 border-b bg-gray-50 rounded-t-2xl">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Eye size={20} className="text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Document Preview</h3>
-                <p className="text-sm text-gray-500 truncate max-w-md">{fileName}</p>
-              </div>
-            </div>
-            <button
-              onClick={closeDocumentPreview}
-              className="p-2 rounded-xl hover:bg-gray-200 transition-colors"
-              aria-label="Close preview"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="flex-1 p-4 bg-gray-50">
-            {documentLoading ? (
-              <div className="flex flex-col items-center justify-center h-full bg-white rounded-xl">
-                <div className="p-4 bg-blue-50 rounded-full mb-4">
-                  <Loader size={32} className="text-blue-500 animate-spin" />
-                </div>
-                <p className="text-gray-600 font-medium">Loading document...</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Please wait while we prepare your document
-                </p>
-              </div>
-            ) : (
-              <iframe
-                src={activeDocument}
-                title={fileName}
-                className="w-full h-full border-0 rounded-xl shadow-inner bg-white"
-                onLoad={() => setDocumentLoading(false)}
-                onError={() => setDocumentLoading(false)}
-              />
-            )}
-          </div>
-
-          <div className="border-t p-6 bg-gray-50 rounded-b-2xl">
-            <div className="flex justify-between items-center">
-              <div className="flex gap-3">
-                <a
-                  href={activeDocument}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 bg-blue-600 text-white rounded-xl flex items-center hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
-                >
-                  <ExternalLink size={16} className="mr-2" />
-                  Open in New Tab
-                </a>
-                <a
-                  href={activeDocument}
-                  download={fileName}
-                  className="px-4 py-2.5 bg-green-600 text-white rounded-xl flex items-center hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
-                >
-                  <Download size={16} className="mr-2" />
-                  Download
-                </a>
-              </div>
-              <button
-                onClick={closeDocumentPreview}
-                className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-white transition-colors shadow-sm"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   if (isLoading) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-96">
-        <div className="p-4 bg-blue-50 rounded-full mb-4">
-          <Loader size={40} className="text-blue-500 animate-spin" />
-        </div>
-        <p className="text-lg font-medium text-gray-700">Loading seller information...</p>
-        <p className="text-sm text-gray-500 mt-1">Please wait while we fetch the details</p>
+      <div className="p-6 flex flex-col items-center justify-center min-h-96 bg-gray-50">
+        <Loader size={32} className="text-gray-600 animate-spin mb-2" />
+        <p className="text-gray-600">Loading seller information...</p>
       </div>
     );
   }
 
   return (
     <div className="max-h-screen overflow-auto bg-gray-50">
-      <div className="p-8 space-y-8">
+      <div className="p-6 space-y-6">
         {/* Header Banner Section */}
-        <div className="relative h-48 bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl overflow-hidden shadow-lg">
+        <div className="relative h-40 bg-gray-200 rounded-lg overflow-hidden">
           {seller?.companyInfo.banner ? (
             <img
               src={seller?.companyInfo.banner}
@@ -254,16 +145,12 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800">
-              <div className="absolute inset-0 bg-black/20"></div>
-              <div className="flex items-center justify-center h-full text-white/80">
-                <Building2 size={48} />
-              </div>
+            <div className="absolute inset-0 bg-gray-300 flex items-center justify-center">
+              <Building2 size={32} className="text-gray-500" />
             </div>
           )}
 
-          {/* Company Logo */}
-          <div className="absolute bottom-6 left-6 h-20 w-20 bg-white rounded-2xl shadow-xl overflow-hidden flex items-center justify-center border-4 border-white">
+          <div className="absolute bottom-4 left-4 h-16 w-16 bg-white rounded-lg shadow-md flex items-center justify-center border border-gray-200">
             {seller?.companyInfo.logo ? (
               <img
                 src={seller?.companyInfo.logo}
@@ -271,88 +158,76 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                 className="w-full h-full object-contain"
               />
             ) : (
-              <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl font-bold">
+              <div className="flex items-center justify-center h-full w-full bg-gray-200 text-gray-600 text-lg font-bold">
                 {seller?.companyInfo.name?.charAt(0) || "C"}
               </div>
             )}
           </div>
 
-          {/* Company Name Overlay */}
-          <div className="absolute bottom-6 left-32 text-white">
-            <h1 className="text-2xl font-bold drop-shadow-lg">
-              {seller?.companyInfo.name || "Company Name"}
-            </h1>
-            <p className="text-white/90 text-sm mt-1">
-              {seller?.personalInfo.country || "Location not specified"}
-            </p>
+          <div className="absolute bottom-4 left-24 text-gray-900">
+            <h1 className="text-xl font-semibold">{seller?.companyInfo.name || "Company Name"}</h1>
+            <p className="text-sm text-gray-600">{seller?.personalInfo.country || "N/A"}</p>
           </div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Company Information */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-6">
-              <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                <Building2 size={20} className="text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800">Company Information</h3>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center mb-4">
+              <Building2 size={20} className="text-gray-600 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Company Information</h3>
             </div>
 
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm font-medium text-gray-500 mb-1">Company Name</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {seller?.companyInfo.name || "N/A"}
-                </p>
+            <div className="space-y-3">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500">Company Name</p>
+                <p className="font-medium text-gray-900">{seller?.companyInfo.name || "N/A"}</p>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm font-medium text-gray-500 mb-2">Company Overview</p>
-                <p className="text-gray-700 leading-relaxed">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500">Company Overview</p>
+                <p className="text-gray-700">
                   {seller?.companyInfo.overview || "No overview provided"}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-                  <div className="flex items-center mb-2">
-                    <Shield size={16} className="text-blue-600 mr-2" />
-                    <p className="text-sm font-medium text-blue-800">Registration #</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center mb-1">
+                    <Shield size={16} className="text-gray-600 mr-2" />
+                    <p className="text-sm text-gray-500">Registration #</p>
                   </div>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-medium text-gray-900">
                     {seller?.companyInfo.registrationNumber || "N/A"}
                   </p>
                 </div>
 
-                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
-                  <div className="flex items-center mb-2">
-                    <Calendar size={16} className="text-green-600 mr-2" />
-                    <p className="text-sm font-medium text-green-800">Incorporated</p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center mb-1">
+                    <Calendar size={16} className="text-gray-600 mr-2" />
+                    <p className="text-sm text-gray-500">Incorporated</p>
                   </div>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-medium text-gray-900">
                     {formatDate(seller?.companyInfo.incorporationDate)}
                   </p>
                 </div>
               </div>
 
               {seller?.companyInfo.website && (
-                <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-                  <div className="flex items-center mb-2">
-                    <Globe size={16} className="text-purple-600 mr-2" />
-                    <p className="text-sm font-medium text-purple-800">Website</p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center mb-1">
+                    <Globe size={16} className="text-gray-600 mr-2" />
+                    <p className="text-sm text-gray-500">Website</p>
                   </div>
                   <a
                     href={seller?.companyInfo.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-700 hover:text-purple-900 font-medium flex items-center group"
+                    className="text-blue-600 hover:underline flex items-center"
                   >
                     {seller?.companyInfo.website}
-                    <ExternalLink
-                      size={14}
-                      className="ml-2 group-hover:translate-x-0.5 transition-transform"
-                    />
+                    <ExternalLink size={14} className="ml-1" />
                   </a>
                 </div>
               )}
@@ -360,49 +235,45 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
           </div>
 
           {/* Contact Information */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-6">
-              <div className="p-2 bg-green-100 rounded-lg mr-3">
-                <Mail size={20} className="text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800">Contact Information</h3>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center mb-4">
+              <Mail size={20} className="text-gray-600 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
             </div>
 
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm font-medium text-gray-500 mb-1">Representative</p>
-                <p className="text-lg font-semibold text-gray-900">
+            <div className="space-y-3">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500">Representative</p>
+                <p className="font-medium text-gray-900">
                   {`${seller?.personalInfo.firstName} ${seller?.personalInfo.lastName}`}
                 </p>
               </div>
 
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-100">
-                <div className="flex items-center mb-2">
-                  <Mail size={16} className="text-blue-600 mr-2" />
-                  <p className="text-sm font-medium text-blue-800">Email Address</p>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center mb-1">
+                  <Mail size={16} className="text-gray-600 mr-2" />
+                  <p className="text-sm text-gray-500">Email Address</p>
                 </div>
                 <p className="font-medium text-gray-900">{seller?.personalInfo.email}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
-                  <div className="flex items-center mb-2">
-                    <MapPin size={16} className="text-orange-600 mr-2" />
-                    <p className="text-sm font-medium text-orange-800">Country</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center mb-1">
+                    <MapPin size={16} className="text-gray-600 mr-2" />
+                    <p className="text-sm text-gray-500">Country</p>
                   </div>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-medium text-gray-900">
                     {seller?.personalInfo.country || "N/A"}
                   </p>
                 </div>
 
-                <div className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-100">
-                  <div className="flex items-center mb-2">
-                    <MapPin size={16} className="text-teal-600 mr-2" />
-                    <p className="text-sm font-medium text-teal-800">State/Region</p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center mb-1">
+                    <MapPin size={16} className="text-gray-600 mr-2" />
+                    <p className="text-sm text-gray-500">State/Region</p>
                   </div>
-                  <p className="font-semibold text-gray-900">
-                    {seller?.personalInfo.state || "N/A"}
-                  </p>
+                  <p className="font-medium text-gray-900">{seller?.personalInfo.state || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -410,133 +281,118 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
         </div>
 
         {/* Business Details */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-6">
-            <div className="p-2 bg-purple-100 rounded-lg mr-3">
-              <Users size={20} className="text-purple-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-800">Business Details</h3>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center mb-4">
+            <Users size={20} className="text-gray-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Business Details</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 text-center">
-              <Users size={24} className="text-blue-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-blue-800 mb-1">Total Staff</p>
-              <p className="text-2xl font-bold text-gray-900">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-3 bg-gray-50 rounded-lg text-center">
+              <Users size={20} className="text-gray-600 mx-auto mb-1" />
+              <p className="text-sm text-gray-500">Total Staff</p>
+              <p className="font-medium text-gray-900">
                 {seller?.businessDetails.totalStaff || "N/A"}
               </p>
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100 text-center">
-              <DollarSign size={24} className="text-green-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-green-800 mb-1">Annual Revenue</p>
-              <p className="text-lg font-bold text-gray-900">
+            <div className="p-3 bg-gray-50 rounded-lg text-center">
+              <DollarSign size={20} className="text-gray-600 mx-auto mb-1" />
+              <p className="text-sm text-gray-500">Annual Revenue</p>
+              <p className="font-medium text-gray-900">
                 {seller?.businessDetails.estimatedAnnualRevenue || "N/A"}
               </p>
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-              <div className="flex items-center mb-3">
-                <Award size={16} className="text-purple-600 mr-2" />
-                <p className="text-sm font-medium text-purple-800">Services</p>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center mb-1">
+                <Award size={16} className="text-gray-600 mr-2" />
+                <p className="text-sm text-gray-500">Services</p>
               </div>
               {seller?.businessDetails?.services?.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2">
                   {seller?.businessDetails.services.slice(0, 3).map((service, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium"
+                      className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full"
                     >
                       {service}
                     </span>
                   ))}
                   {seller?.businessDetails?.services?.length > 3 && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
                       +{seller?.businessDetails?.services?.length - 3} more
                     </span>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-400 text-sm">None specified</p>
+                <p className="text-gray-500 text-sm">None specified</p>
               )}
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
-              <div className="flex items-center mb-3">
-                <Globe size={16} className="text-orange-600 mr-2" />
-                <p className="text-sm font-medium text-orange-800">Main Markets</p>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center mb-1">
+                <Globe size={16} className="text-gray-600 mr-2" />
+                <p className="text-sm text-gray-500">Main Markets</p>
               </div>
               {seller?.businessDetails?.mainMarkets?.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2">
                   {seller?.businessDetails.mainMarkets.slice(0, 3).map((market, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium"
+                      className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full"
                     >
                       {market}
                     </span>
                   ))}
                   {seller?.businessDetails.mainMarkets.length > 3 && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
                       +{seller?.businessDetails.mainMarkets.length - 3} more
                     </span>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-400 text-sm">None specified</p>
+                <p className="text-gray-500 text-sm">None specified</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Documents & Certifications */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-6">
-            <div className="p-2 bg-indigo-100 rounded-lg mr-3">
-              <Shield size={20} className="text-indigo-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-800">Documents & Certifications</h3>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center mb-4">
+            <Shield size={20} className="text-gray-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Documents & Certifications</h3>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
-                <FileText size={18} className="mr-2 text-blue-600" />
+              <h4 className="text-base font-medium text-gray-700 mb-3 flex items-center">
+                <FileText size={16} className="text-gray-600 mr-2" />
                 Registration Documents
               </h4>
               {renderDocumentLinks(seller?.documents.registrationDocuments)}
             </div>
 
             <div>
-              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
-                <Shield size={18} className="mr-2 text-green-600" />
+              <h4 className="text-base font-medium text-gray-700 mb-3 flex items-center">
+                <Shield size={16} className="text-gray-600 mr-2" />
                 Export Licenses
               </h4>
-              {seller?.documents.exportLicenses ? (
-                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-                  <p className="text-green-800 font-medium">{seller?.documents.exportLicenses}</p>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-8 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed">
-                  <div className="text-center">
-                    <FileX size={32} className="mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No export licenses</p>
-                  </div>
-                </div>
-              )}
+              {renderDocumentLinks(seller?.documents.exportLicenses)}
             </div>
 
             <div>
-              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
-                <Users size={18} className="mr-2 text-purple-600" />
+              <h4 className="text-base font-medium text-gray-700 mb-3 flex items-center">
+                <Users size={16} className="text-gray-600 mr-2" />
                 Identity Documents
               </h4>
               {renderDocumentLinks(seller?.documents.identityDocuments)}
             </div>
 
             <div>
-              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
-                <Award size={18} className="mr-2 text-orange-600" />
+              <h4 className="text-base font-medium text-gray-700 mb-3 flex items-center">
+                <Award size={16} className="text-gray-600 mr-2" />
                 Certifications
               </h4>
               {renderDocumentLinks(seller?.documents.certifications)}
@@ -546,11 +402,11 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
       </div>
 
       {/* Sticky Footer */}
-      <div className="border-t bg-white/95 backdrop-blur-sm p-6 sticky bottom-0 shadow-lg">
-        <div className="flex justify-end gap-4">
+      <div className="border-t bg-white p-4 sticky bottom-0 shadow">
+        <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
           >
             Close
           </button>
@@ -558,15 +414,13 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
             onClick={handleApprove}
             disabled={isUpdating}
             loading={isUpdating}
-            leftIcon={<UserCheck size={18} className="mr-2" />}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
+            leftIcon={<UserCheck size={16} className="mr-2" />}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
             {isUpdating ? "Approving..." : "Approve Seller"}
           </Button>
         </div>
       </div>
-
-      <DocumentPreview />
     </div>
   );
 }

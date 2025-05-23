@@ -1,4 +1,5 @@
 //@ts-nocheck
+import { format } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -8,7 +9,7 @@ import { Save } from "lucide-react";
 import { useMemo } from "react";
 import FileUploader from "@/common/files-uploader";
 import {
-  useGetSellerQuery,
+  useGetUserQuery,
   useCreateSellerProfileMutation,
   useUpdateSellerProfileMutation,
 } from "../user-api";
@@ -101,7 +102,7 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
   const isEditMode = !!id;
   const [createSellerProfile, { isLoading: isCreating }] = useCreateSellerProfileMutation();
   const [updateSellerProfile, { isLoading: isUpdating }] = useUpdateSellerProfileMutation();
-  const { data, isLoading: isLoadingProfile } = useGetSellerQuery({ id }, { skip: !id });
+  const { data, isLoading: isLoadingProfile } = useGetUserQuery({ id }, { skip: !id });
   const [uploadsFile] = useUploadsFileMutation();
 
   // Map nested API response to flat SellerProfile structure
@@ -132,13 +133,22 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
   }, [data?.data]);
 
   // Define default values for the form
-  const defaultValues = useMemo<SellerProfile>(
-    () => ({
+  const defaultValues = useMemo<SellerProfile>(() => {
+    let formattedDate = null;
+
+    if (profileData?.dateOfIncorporation) {
+      const date = new Date(profileData.dateOfIncorporation);
+      if (!isNaN(date.getTime())) {
+        formattedDate = format(date, "yyyy-MM-dd");
+      }
+    }
+
+    return {
       id: profileData?.id,
       companyName: profileData?.companyName || "",
       companyWebsite: profileData?.companyWebsite || null,
       businessOverview: profileData?.businessOverview || "",
-      dateOfIncorporation: profileData?.dateOfIncorporation || null,
+      dateOfIncorporation: formattedDate,
       registrationNumber: profileData?.registrationNumber || null,
       totalStaff: profileData?.totalStaff || null,
       estAnnualRevenue: profileData?.estAnnualRevenue || null,
@@ -152,9 +162,8 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
       languageSpoken: profileData?.languageSpoken || [],
       certificationDocuments: profileData?.certificationDocuments || [],
       companyVerified: profileData?.companyVerified || false,
-    }),
-    [profileData]
-  );
+    };
+  }, [profileData]);
 
   const {
     control,

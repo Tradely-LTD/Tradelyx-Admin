@@ -80,7 +80,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
       providesTags: ["USERS"],
     }),
-    getSeller: builder.query<
+    getUser: builder.query<
       {
         data: SellerResponse;
         success: boolean;
@@ -88,7 +88,7 @@ export const authApi = baseApi.injectEndpoints({
       { id: string }
     >({
       query: ({ id }) => ({
-        url: `profile/seller/${id}`,
+        url: `profile/user/${id}`,
         method: Methods.Get,
       }),
       providesTags: ["USERS"],
@@ -230,5 +230,5 @@ export const {
   useUpdateSellerProfileMutation,
   useUpdateUserMutation,
   useGetUsersQuery,
-  useGetSellerQuery,
+  useGetUserQuery,
 } = authApi;

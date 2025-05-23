@@ -1,5 +1,24 @@
 import { useState } from "react";
-import { X, ExternalLink, UserCheck, Loader, FileText, Download, Eye } from "lucide-react";
+import {
+  X,
+  ExternalLink,
+  UserCheck,
+  Loader,
+  FileText,
+  Download,
+  Eye,
+  Globe,
+  Mail,
+  Calendar,
+  Users,
+  DollarSign,
+  MapPin,
+  Building2,
+  Shield,
+  Award,
+  Image,
+  FileX,
+} from "lucide-react";
 import { useGetSellerQuery, useUpdateUserMutation } from "../user-api";
 import Button from "@/common/button/button";
 
@@ -9,7 +28,6 @@ interface SellerPreviewProps {
 }
 
 export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps) {
-  // const [isApproving, setIsApproving] = useState(false);
   const [activeDocument, setActiveDocument] = useState(null);
   const [documentLoading, setDocumentLoading] = useState(false);
   const { data, isLoading } = useGetSellerQuery({ id: sellerId });
@@ -18,7 +36,6 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
 
   const handleApprove = async () => {
     try {
-      // Replace with actual API call
       updateUser({
         id: seller?.userId,
         data: { ...seller, isVerified: true },
@@ -34,7 +51,11 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   const getFileType = (url) => {
@@ -63,82 +84,63 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
 
   const closeDocumentPreview = () => {
     setActiveDocument(null);
+    setDocumentLoading(false);
   };
-
   const renderDocumentLinks = (documents) => {
     if (!documents || documents.length === 0)
-      return <span className="text-gray-400">No documents uploaded</span>;
+      return (
+        <div className="flex items-center justify-center py-8 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed">
+          <div className="text-center">
+            <FileX size={32} className="mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No documents uploaded</p>
+          </div>
+        </div>
+      );
 
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {documents.map((doc, index) => {
           const fileType = getFileType(doc);
           const fileName = doc.split("/").pop();
 
-          // Determine icon and colors based on file type
           let Icon = FileText;
-          let bgColor = "bg-blue-50";
-          let textColor = "text-blue-600";
+          let bgColor = "bg-gradient-to-r from-blue-50 to-indigo-50";
+          let textColor = "text-blue-700";
+          let borderColor = "border-blue-200";
 
           if (fileType === "image") {
-            Icon = () => (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            );
-            bgColor = "bg-green-50";
-            textColor = "text-green-600";
+            Icon = Image;
+            bgColor = "bg-gradient-to-r from-green-50 to-emerald-50";
+            textColor = "text-green-700";
+            borderColor = "border-green-200";
           } else if (fileType === "pdf") {
-            Icon = () => (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="9" y1="15" x2="15" y2="15" />
-                <line x1="9" y1="11" x2="15" y2="11" />
-                <line x1="9" y1="19" x2="10" y2="19" />
-              </svg>
-            );
-            bgColor = "bg-red-50";
-            textColor = "text-red-600";
+            Icon = FileText;
+            bgColor = "bg-gradient-to-r from-red-50 to-rose-50";
+            textColor = "text-red-700";
+            borderColor = "border-red-200";
           }
 
           return (
-            <div key={index} className="relative">
-              <button
-                className={`flex items-center px-3 py-1 ${bgColor} ${textColor} rounded-md hover:opacity-80 transition-colors text-xs md:text-sm`}
-                title={fileName}
-                onClick={() => openDocumentPreview(doc)}
-              >
-                <Icon size={14} className="mr-1" />
-                <span className="truncate max-w-28">
-                  {fileName.length > 15 ? fileName.substring(0, 12) + "..." : fileName}
-                </span>
-              </button>
-            </div>
+            <button
+              key={index}
+              className={`group relative flex items-center p-3 ${bgColor} ${textColor} ${borderColor} rounded-xl border hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200`}
+              title={fileName}
+              onClick={() => openDocumentPreview(doc)}
+            >
+              <div className="flex-shrink-0 mr-3">
+                <Icon size={18} />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {fileName.length > 20 ? fileName.substring(0, 17) + "..." : fileName}
+                </p>
+                <p className="text-xs opacity-70 capitalize">{fileType} file</p>
+              </div>
+              <Eye
+                size={16}
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+              />
+            </button>
           );
         })}
       </div>
@@ -148,164 +150,80 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
   const DocumentPreview = () => {
     if (!activeDocument) return null;
 
-    const fileType = getFileType(activeDocument);
     const fileName = activeDocument.split("/").pop();
-    const [previewError, setPreviewError] = useState(false);
-
-    const renderDocumentContent = () => {
-      switch (fileType) {
-        case "image":
-          return (
-            <div className="flex flex-col items-center justify-center">
-              <img
-                src={activeDocument}
-                alt="Document preview"
-                className="max-w-full max-h-screen object-contain border shadow-sm rounded"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/api/placeholder/300/400";
-                  e.target.className += " border-red-300";
-                  setPreviewError(true);
-                }}
-              />
-              {previewError && (
-                <div className="mt-2 text-red-600 text-sm">
-                  Could not load this image. It may be due to browser security restrictions.
-                </div>
-              )}
-              <p className="mt-3 text-gray-700">{fileName}</p>
-            </div>
-          );
-
-        case "pdf":
-          return (
-            <div className="flex flex-col items-center w-full h-full">
-              <div className="bg-gray-50 border rounded-lg p-6 flex flex-col items-center justify-center w-full">
-                <div className="bg-red-50 p-8 rounded-full mb-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-red-500"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="9" y1="15" x2="15" y2="15" />
-                    <line x1="9" y1="11" x2="15" y2="11" />
-                    <line x1="9" y1="19" x2="10" y2="19" />
-                  </svg>
-                </div>
-                <p className="text-gray-700 font-medium">{fileName}</p>
-                <p className="text-sm text-gray-500 mt-2 mb-6 text-center max-w-lg">
-                  PDF documents cannot be previewed directly in this interface.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                  <a
-                    href={activeDocument}
-                    download={fileName}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(activeDocument, "_blank");
-                    }}
-                  >
-                    <Download size={16} className="mr-2" />
-                    Download PDF
-                  </a>
-                  <a
-                    href={activeDocument}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center hover:bg-gray-700 transition-colors"
-                  >
-                    <Eye size={16} className="mr-2" />
-                    View in Browser
-                  </a>
-                </div>
-              </div>
-            </div>
-          );
-
-        default:
-          return (
-            <div className="bg-gray-50 border rounded-lg p-6 flex flex-col items-center justify-center">
-              <div className="bg-gray-100 p-8 rounded-full mb-4">
-                <FileText size={48} className="text-gray-500" />
-              </div>
-              <p className="text-gray-700 font-medium">{fileName}</p>
-              <p className="text-sm text-gray-500 mt-2 mb-6 text-center max-w-lg">
-                This document format cannot be previewed directly.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                <a
-                  href={activeDocument}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(activeDocument, "_blank");
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
-                >
-                  <Download size={16} className="mr-2" />
-                  Download File
-                </a>
-                <a
-                  href={activeDocument}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center hover:bg-gray-700 transition-colors"
-                >
-                  <Eye size={16} className="mr-2" />
-                  Open in Browser
-                </a>
-              </div>
-            </div>
-          );
-      }
-    };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center">
-              <h3 className="font-medium">Document Preview</h3>
-              <span className="ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full capitalize">
-                {fileType}
-              </span>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl w-full max-w-7xl h-[95vh] flex flex-col shadow-2xl">
+          <div className="flex items-center justify-between p-6 border-b bg-gray-50 rounded-t-2xl">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Eye size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Document Preview</h3>
+                <p className="text-sm text-gray-500 truncate max-w-md">{fileName}</p>
+              </div>
             </div>
             <button
               onClick={closeDocumentPreview}
-              className="p-1 rounded-full hover:bg-gray-100"
+              className="p-2 rounded-xl hover:bg-gray-200 transition-colors"
               aria-label="Close preview"
             >
               <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 p-4 overflow-auto">
+          <div className="flex-1 p-4 bg-gray-50">
             {documentLoading ? (
-              <div className="flex flex-col items-center justify-center h-96">
-                <Loader size={40} className="text-blue-500 animate-spin" />
-                <p className="mt-4 text-gray-600">Loading document...</p>
+              <div className="flex flex-col items-center justify-center h-full bg-white rounded-xl">
+                <div className="p-4 bg-blue-50 rounded-full mb-4">
+                  <Loader size={32} className="text-blue-500 animate-spin" />
+                </div>
+                <p className="text-gray-600 font-medium">Loading document...</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Please wait while we prepare your document
+                </p>
               </div>
             ) : (
-              <div className="min-h-96">{renderDocumentContent()}</div>
+              <iframe
+                src={activeDocument}
+                title={fileName}
+                className="w-full h-full border-0 rounded-xl shadow-inner bg-white"
+                onLoad={() => setDocumentLoading(false)}
+                onError={() => setDocumentLoading(false)}
+              />
             )}
           </div>
 
-          <div className="border-t p-3 flex justify-end">
-            <button
-              onClick={closeDocumentPreview}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              Close
-            </button>
+          <div className="border-t p-6 bg-gray-50 rounded-b-2xl">
+            <div className="flex justify-between items-center">
+              <div className="flex gap-3">
+                <a
+                  href={activeDocument}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-xl flex items-center hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+                >
+                  <ExternalLink size={16} className="mr-2" />
+                  Open in New Tab
+                </a>
+                <a
+                  href={activeDocument}
+                  download={fileName}
+                  className="px-4 py-2.5 bg-green-600 text-white rounded-xl flex items-center hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+                >
+                  <Download size={16} className="mr-2" />
+                  Download
+                </a>
+              </div>
+              <button
+                onClick={closeDocumentPreview}
+                className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-white transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -314,19 +232,21 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
 
   if (isLoading) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-96">
-        <Loader size={40} className="text-blue-500 animate-spin" />
-        <p className="mt-4 text-gray-600">Loading seller information...</p>
+      <div className="p-8 flex flex-col items-center justify-center min-h-96">
+        <div className="p-4 bg-blue-50 rounded-full mb-4">
+          <Loader size={40} className="text-blue-500 animate-spin" />
+        </div>
+        <p className="text-lg font-medium text-gray-700">Loading seller information...</p>
+        <p className="text-sm text-gray-500 mt-1">Please wait while we fetch the details</p>
       </div>
     );
   }
 
   return (
-    <div className="max-h-screen overflow-auto">
-      {/* Content */}
-      <div className="p-6 space-y-6">
-        {/* Banner and Logo */}
-        <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
+    <div className="max-h-screen overflow-auto bg-gray-50">
+      <div className="p-8 space-y-8">
+        {/* Header Banner Section */}
+        <div className="relative h-48 bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl overflow-hidden shadow-lg">
           {seller?.companyInfo.banner ? (
             <img
               src={seller?.companyInfo.banner}
@@ -334,11 +254,16 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              No banner image
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800">
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="flex items-center justify-center h-full text-white/80">
+                <Building2 size={48} />
+              </div>
             </div>
           )}
-          <div className="absolute bottom-4 left-4 h-16 w-16 bg-white rounded-lg shadow-md overflow-hidden flex items-center justify-center">
+
+          {/* Company Logo */}
+          <div className="absolute bottom-6 left-6 h-20 w-20 bg-white rounded-2xl shadow-xl overflow-hidden flex items-center justify-center border-4 border-white">
             {seller?.companyInfo.logo ? (
               <img
                 src={seller?.companyInfo.logo}
@@ -346,72 +271,138 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                 className="w-full h-full object-contain"
               />
             ) : (
-              <div className="flex items-center justify-center h-full w-full bg-gray-200 text-gray-500 text-xl font-bold">
+              <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl font-bold">
                 {seller?.companyInfo.name?.charAt(0) || "C"}
               </div>
             )}
           </div>
+
+          {/* Company Name Overlay */}
+          <div className="absolute bottom-6 left-32 text-white">
+            <h1 className="text-2xl font-bold drop-shadow-lg">
+              {seller?.companyInfo.name || "Company Name"}
+            </h1>
+            <p className="text-white/90 text-sm mt-1">
+              {seller?.personalInfo.country || "Location not specified"}
+            </p>
+          </div>
         </div>
 
-        {/* Company and Contact Info */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-800">Company Information</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Company Name</p>
-                <p className="font-medium">{seller?.companyInfo.name || "N/A"}</p>
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Company Information */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div className="flex items-center mb-6">
+              <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                <Building2 size={20} className="text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Overview</p>
-                <p className="text-sm">{seller?.companyInfo.overview || "No overview provided"}</p>
+              <h3 className="text-xl font-semibold text-gray-800">Company Information</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm font-medium text-gray-500 mb-1">Company Name</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {seller?.companyInfo.name || "N/A"}
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-sm text-gray-500">Registration Number</p>
-                  <p>{seller?.companyInfo.registrationNumber || "N/A"}</p>
+
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm font-medium text-gray-500 mb-2">Company Overview</p>
+                <p className="text-gray-700 leading-relaxed">
+                  {seller?.companyInfo.overview || "No overview provided"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                  <div className="flex items-center mb-2">
+                    <Shield size={16} className="text-blue-600 mr-2" />
+                    <p className="text-sm font-medium text-blue-800">Registration #</p>
+                  </div>
+                  <p className="font-semibold text-gray-900">
+                    {seller?.companyInfo.registrationNumber || "N/A"}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Incorporation Date</p>
-                  <p>{formatDate(seller?.companyInfo.incorporationDate)}</p>
+
+                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                  <div className="flex items-center mb-2">
+                    <Calendar size={16} className="text-green-600 mr-2" />
+                    <p className="text-sm font-medium text-green-800">Incorporated</p>
+                  </div>
+                  <p className="font-semibold text-gray-900">
+                    {formatDate(seller?.companyInfo.incorporationDate)}
+                  </p>
                 </div>
               </div>
+
               {seller?.companyInfo.website && (
-                <div>
-                  <p className="text-sm text-gray-500">Website</p>
+                <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                  <div className="flex items-center mb-2">
+                    <Globe size={16} className="text-purple-600 mr-2" />
+                    <p className="text-sm font-medium text-purple-800">Website</p>
+                  </div>
                   <a
                     href={seller?.companyInfo.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline flex items-center"
+                    className="text-purple-700 hover:text-purple-900 font-medium flex items-center group"
                   >
                     {seller?.companyInfo.website}
-                    <ExternalLink size={14} className="ml-1" />
+                    <ExternalLink
+                      size={14}
+                      className="ml-2 group-hover:translate-x-0.5 transition-transform"
+                    />
                   </a>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-800">Contact Information</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Representative</p>
-                <p className="font-medium">{`${seller?.personalInfo.firstName} ${seller?.personalInfo.lastName}`}</p>
+          {/* Contact Information */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+            <div className="flex items-center mb-6">
+              <div className="p-2 bg-green-100 rounded-lg mr-3">
+                <Mail size={20} className="text-green-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Email Address</p>
-                <p>{seller?.personalInfo.email}</p>
+              <h3 className="text-xl font-semibold text-gray-800">Contact Information</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm font-medium text-gray-500 mb-1">Representative</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {`${seller?.personalInfo.firstName} ${seller?.personalInfo.lastName}`}
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-sm text-gray-500">Country</p>
-                  <p>{seller?.personalInfo.country || "N/A"}</p>
+
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-100">
+                <div className="flex items-center mb-2">
+                  <Mail size={16} className="text-blue-600 mr-2" />
+                  <p className="text-sm font-medium text-blue-800">Email Address</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">State/Region</p>
-                  <p>{seller?.personalInfo.state || "N/A"}</p>
+                <p className="font-medium text-gray-900">{seller?.personalInfo.email}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
+                  <div className="flex items-center mb-2">
+                    <MapPin size={16} className="text-orange-600 mr-2" />
+                    <p className="text-sm font-medium text-orange-800">Country</p>
+                  </div>
+                  <p className="font-semibold text-gray-900">
+                    {seller?.personalInfo.country || "N/A"}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-100">
+                  <div className="flex items-center mb-2">
+                    <MapPin size={16} className="text-teal-600 mr-2" />
+                    <p className="text-sm font-medium text-teal-800">State/Region</p>
+                  </div>
+                  <p className="font-semibold text-gray-900">
+                    {seller?.personalInfo.state || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -419,105 +410,162 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
         </div>
 
         {/* Business Details */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">Business Details</h3>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Total Staff</p>
-                <p className="font-medium">{seller?.businessDetails.totalStaff || "N/A"}</p>
+        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div className="flex items-center mb-6">
+            <div className="p-2 bg-purple-100 rounded-lg mr-3">
+              <Users size={20} className="text-purple-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800">Business Details</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 text-center">
+              <Users size={24} className="text-blue-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-blue-800 mb-1">Total Staff</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {seller?.businessDetails.totalStaff || "N/A"}
+              </p>
+            </div>
+
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100 text-center">
+              <DollarSign size={24} className="text-green-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-green-800 mb-1">Annual Revenue</p>
+              <p className="text-lg font-bold text-gray-900">
+                {seller?.businessDetails.estimatedAnnualRevenue || "N/A"}
+              </p>
+            </div>
+
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+              <div className="flex items-center mb-3">
+                <Award size={16} className="text-purple-600 mr-2" />
+                <p className="text-sm font-medium text-purple-800">Services</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Annual Revenue</p>
-                <p className="font-medium">
-                  {seller?.businessDetails.estimatedAnnualRevenue || "N/A"}
-                </p>
+              {seller?.businessDetails?.services?.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {seller?.businessDetails.services.slice(0, 3).map((service, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium"
+                    >
+                      {service}
+                    </span>
+                  ))}
+                  {seller?.businessDetails?.services?.length > 3 && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                      +{seller?.businessDetails?.services?.length - 3} more
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">None specified</p>
+              )}
+            </div>
+
+            <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
+              <div className="flex items-center mb-3">
+                <Globe size={16} className="text-orange-600 mr-2" />
+                <p className="text-sm font-medium text-orange-800">Main Markets</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Services</p>
-                {seller?.businessDetails.services?.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {seller?.businessDetails.services.map((service, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full"
-                      >
-                        {service}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm">None specified</p>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Main Markets</p>
-                {seller?.businessDetails?.mainMarkets?.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {seller?.businessDetails.mainMarkets.map((market, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full"
-                      >
-                        {market}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm">None specified</p>
-                )}
-              </div>
+              {seller?.businessDetails?.mainMarkets?.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {seller?.businessDetails.mainMarkets.slice(0, 3).map((market, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium"
+                    >
+                      {market}
+                    </span>
+                  ))}
+                  {seller?.businessDetails.mainMarkets.length > 3 && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                      +{seller?.businessDetails.mainMarkets.length - 3} more
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">None specified</p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Documents */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">Documents & Certifications</h3>
-          <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Documents & Certifications */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div className="flex items-center mb-6">
+            <div className="p-2 bg-indigo-100 rounded-lg mr-3">
+              <Shield size={20} className="text-indigo-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800">Documents & Certifications</h3>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              <p className="text-sm text-gray-500 mb-2">Registration Documents</p>
+              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                <FileText size={18} className="mr-2 text-blue-600" />
+                Registration Documents
+              </h4>
               {renderDocumentLinks(seller?.documents.registrationDocuments)}
             </div>
+
             <div>
-              <p className="text-sm text-gray-500 mb-2">Export Licenses</p>
+              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                <Shield size={18} className="mr-2 text-green-600" />
+                Export Licenses
+              </h4>
               {seller?.documents.exportLicenses ? (
-                <p>{seller?.documents.exportLicenses}</p>
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                  <p className="text-green-800 font-medium">{seller?.documents.exportLicenses}</p>
+                </div>
               ) : (
-                <span className="text-gray-400">No export licenses</span>
+                <div className="flex items-center justify-center py-8 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed">
+                  <div className="text-center">
+                    <FileX size={32} className="mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No export licenses</p>
+                  </div>
+                </div>
               )}
             </div>
+
             <div>
-              <p className="text-sm text-gray-500 mb-2">Identity Documents</p>
+              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                <Users size={18} className="mr-2 text-purple-600" />
+                Identity Documents
+              </h4>
               {renderDocumentLinks(seller?.documents.identityDocuments)}
             </div>
+
             <div>
-              <p className="text-sm text-gray-500 mb-2">Certifications</p>
+              <h4 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                <Award size={18} className="mr-2 text-orange-600" />
+                Certifications
+              </h4>
               {renderDocumentLinks(seller?.documents.certifications)}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t p-4 flex justify-end gap-3 bg-gray-50 sticky bottom-0">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          Close
-        </button>
-        <Button
-          onClick={handleApprove}
-          disabled={isUpdating}
-          loading={isUpdating}
-          leftIcon={<UserCheck size={18} className="mr-2" />}
-        >
-          Approve
-        </Button>
+      {/* Sticky Footer */}
+      <div className="border-t bg-white/95 backdrop-blur-sm p-6 sticky bottom-0 shadow-lg">
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+          >
+            Close
+          </button>
+          <Button
+            onClick={handleApprove}
+            disabled={isUpdating}
+            loading={isUpdating}
+            leftIcon={<UserCheck size={18} className="mr-2" />}
+            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
+          >
+            {isUpdating ? "Approving..." : "Approve Seller"}
+          </Button>
+        </div>
       </div>
 
-      {/* Document Preview Modal */}
       <DocumentPreview />
     </div>
   );

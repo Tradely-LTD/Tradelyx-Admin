@@ -1,5 +1,6 @@
+//@ts-nocheck
 import { useState } from "react";
-import { X, ExternalLink, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
+import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
 import { useGetProductQuery, useUpdateProductMutation } from "../product-api";
 

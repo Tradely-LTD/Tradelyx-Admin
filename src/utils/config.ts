@@ -23,3 +23,6 @@ const urls = config[currentEnv];
 // const urls = config[process.env.REACT_APP_ENV ?? process.env.NODE_ENV ?? "development"];
 
 export default urls;
+
+// 12 - 200k
+// 50 client - 10 shared

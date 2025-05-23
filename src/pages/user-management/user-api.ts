@@ -25,7 +25,49 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
     }),
-    getUser: builder.query<
+    createSellerProfile: builder.mutation<any, any>({
+      query: ({ data }) => ({
+        url: `/profile/seller`,
+        method: Methods.Post,
+        body: data,
+      }),
+      invalidatesTags: ["USERS"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("Seller Create Successfully", {
+            position: "top-right",
+          });
+        } catch (err: any) {
+          const errorMessage = err?.error?.data?.error || err?.error || "Failed to create ";
+          toast.error(errorMessage, {
+            position: "top-right",
+          });
+        }
+      },
+    }),
+    updateSellerProfile: builder.mutation<any, any>({
+      query: ({ data }) => ({
+        url: `/profile/seller/complete`,
+        method: Methods.Put,
+        body: data,
+      }),
+      invalidatesTags: ["USERS"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("Updated Successfully", {
+            position: "top-right",
+          });
+        } catch (err: any) {
+          const errorMessage = err?.error?.data?.error || err?.error || "Failed to update ";
+          toast.error(errorMessage, {
+            position: "top-right",
+          });
+        }
+      },
+    }),
+    getUserProfile: builder.query<
       {
         data: any;
         success: boolean;
@@ -33,7 +75,7 @@ export const authApi = baseApi.injectEndpoints({
       { id: string }
     >({
       query: ({ id }) => ({
-        url: `profile/${id}`,
+        url: `profile/profile/${id}`,
         method: Methods.Get,
       }),
       providesTags: ["USERS"],
@@ -162,5 +204,31 @@ export interface SellerDocuments {
   certifications: string[];
 }
 
-export const { useGetUserQuery, useUpdateUserMutation, useGetUsersQuery, useGetSellerQuery } =
-  authApi;
+export interface SellerProfile {
+  id?: string;
+  companyName: string;
+  companyLogo: string | null;
+  companyBanner: string | null;
+  companyWebsite: string | null;
+  businessOverview: string;
+  dateOfIncorporation: string | null;
+  registrationNumber: string | null;
+  totalStaff: string | null;
+  estAnnualRevenue: string | null;
+  companyRegistrationDoc: string[];
+  exportLicenses: string | null;
+  identityDoctype: string[];
+  businessServices: string[];
+  mainMarkets: string[];
+  languageSpoken: string[];
+  certificationDocuments: string[];
+  companyVerified: boolean;
+}
+export const {
+  useGetUserProfileQuery,
+  useCreateSellerProfileMutation,
+  useUpdateSellerProfileMutation,
+  useUpdateUserMutation,
+  useGetUsersQuery,
+  useGetSellerQuery,
+} = authApi;

@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Methods } from "@/utils/enums";
 import { baseApi } from "./baseApi";
 

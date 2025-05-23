@@ -1,6 +1,6 @@
 //@ts-nocheck
 import { useState } from "react";
-import { Search, User, Filter, Edit2, Eye } from "lucide-react";
+import { Search, User, Filter, Edit2, Eye, HandHelping } from "lucide-react";
 import Pagination from "rc-pagination";
 import Input from "@/common/input/input";
 import Text from "@/common/text/text";
@@ -12,6 +12,7 @@ import { Loader } from "@/common/loader/loader";
 import { useDebounce } from "react-use";
 import TableDropdown from "@/common/dropdown";
 import SellerPreview from "./components/seller-preview";
+import SellerProfileForm from "./components/seller-form";
 
 const UserManagement = () => {
   // State for filters and pagination
@@ -27,6 +28,7 @@ const UserManagement = () => {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewModalOpen, setPreviewIsModalOpen] = useState(false);
+  const [isOnboradModalOpen, setIsOnboardIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Setup debounce for search
@@ -166,6 +168,9 @@ const UserManagement = () => {
                   <Text>KYC Status</Text>
                 </th>
                 <th className="px-4 py-4 font-medium">
+                  <Text>Company</Text>
+                </th>
+                <th className="px-4 py-4 font-medium">
                   <Text>Role</Text>
                 </th>
                 <th className="px-4 py-4 font-medium">
@@ -212,9 +217,15 @@ const UserManagement = () => {
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator status={user.isKYCCompleted ? "completed" : "pending"} />
                     </td>
+
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <StatusIndicator status={user.companyVerified ? "verified" : "not verify"} />
+                    </td>
+
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator status={user?.role == null ? "null" : user.role} />
                     </td>
+
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator status={user.status ? "verified" : "not verify"} />
                     </td>
@@ -233,12 +244,23 @@ const UserManagement = () => {
                             {
                               label: "View",
                               action: () => {
-                                console.log("delete clicked");
                                 setPreviewIsModalOpen(true);
                                 setSelectedUser(user);
                               },
                               icon: <Eye size={14} />,
                             },
+                            ...(user.role === "seller"
+                              ? [
+                                  {
+                                    label: "Onboard Seller",
+                                    action: () => {
+                                      setIsOnboardIsModalOpen(true);
+                                      setSelectedUser(user);
+                                    },
+                                    icon: <HandHelping size={14} />,
+                                  },
+                                ]
+                              : []),
                           ]}
                         />
                       </div>
@@ -292,6 +314,14 @@ const UserManagement = () => {
         className="!max-w-[800px]"
       >
         <SellerPreview onClose={() => setPreviewIsModalOpen(false)} sellerId={selectedUser?.id} />
+      </Modal>
+      <Modal
+        isOpen={isOnboradModalOpen}
+        onClose={() => setIsOnboardIsModalOpen(false)}
+        title="Onboard Seller"
+        className="!max-w-[800px]"
+      >
+        <SellerProfileForm onClose={() => setIsOnboardIsModalOpen(false)} id={selectedUser?.id} />
       </Modal>
     </div>
   );

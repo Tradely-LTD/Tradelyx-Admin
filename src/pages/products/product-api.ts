@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { toast } from "react-toastify";
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";

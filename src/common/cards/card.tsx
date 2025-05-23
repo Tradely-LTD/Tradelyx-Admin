@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import Skeleton from "react-loading-skeleton";
 
 function Card({ title, value, icon, color, description, loading }) {

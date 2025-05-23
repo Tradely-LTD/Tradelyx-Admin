@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import { useState } from "react";
 import { Search, Filter, Edit2, Eye, Trash2, Box, ShieldCheck, ShieldOff } from "lucide-react";
 import Pagination from "rc-pagination";

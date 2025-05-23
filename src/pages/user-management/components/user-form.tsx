@@ -4,7 +4,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Input from "@/common/input/input";
 import Button from "@/common/button/button";
-import { useGetUserQuery, useUpdateUserMutation } from "../user-api";
+import { useGetUserProfileQuery, useUpdateUserMutation } from "../user-api";
 import { Loader } from "@/common/loader/loader";
 
 // Validation schema using Yup
@@ -31,7 +31,7 @@ const validationSchema = yup.object({
 
 function UserForm({ id, onClose }: { id: string; onClose?: () => void }) {
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
-  const { data, isLoading: isLoadingUser } = useGetUserQuery({ id }, { skip: !id });
+  const { data, isLoading: isLoadingUser } = useGetUserProfileQuery({ id }, { skip: !id });
   const userData = data?.data;
 
   const defaultValues = {

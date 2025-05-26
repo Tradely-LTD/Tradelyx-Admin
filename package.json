@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev-linode": "vite",
     "prod" : "NODE_ENV=production vite",
-    "dev-linode-admin": "vite",
+    "dev-linode-admin": "NODE_ENV=production vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

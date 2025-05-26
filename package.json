@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev-linode": "vite",
+    "prod" : "NODE_ENV=production vite",
+    "dev-linode-admin": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

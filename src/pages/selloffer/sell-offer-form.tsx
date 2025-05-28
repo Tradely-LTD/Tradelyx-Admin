@@ -112,7 +112,7 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
   const offerData = data?.data;
   const { loginResponse } = useUserSlice();
   const adminId = loginResponse?.user.id;
-  const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500 });
+  const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500, role: "seller" });
   const [uploadsFile] = useUploadsFileMutation();
   const defaultValues = useMemo(
     () => ({
@@ -275,7 +275,7 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                           isLoading={loadingUsers}
                           error={errors.creatorId?.value?.message}
                           options={users?.data.map((seller) => ({
-                            label: seller.firstName,
+                            label: `${seller.firstName} ${seller.lastName} `,
                             value: seller.id,
                           }))}
                           required

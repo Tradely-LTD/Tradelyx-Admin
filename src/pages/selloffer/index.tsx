@@ -137,14 +137,14 @@ const SellOfferManagement: React.FC = () => {
           description="All inactive offers"
           loading={loadingStats}
         />
-        {/* <Card
+        <Card
           title="Recent Offers"
           value={recordsStats?.recentOffers}
           icon={<Box size={24} />}
           color="#143085"
           description="Recent sell offers"
           loading={loadingStats}
-        /> */}
+        />
       </div>
 
       {/* Filter Controls */}

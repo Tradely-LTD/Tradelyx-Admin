@@ -16,6 +16,7 @@ import {
 import Card from "@/common/cards/card";
 import SellOfferForm from "./sell-offer-form";
 import SellOfferPreview from "./sellOffer-preview";
+import { formatDate } from "@/utils/helper";
 
 interface SellOffer {
   id: string;
@@ -101,16 +102,6 @@ const SellOfferManagement: React.FC = () => {
   const handlePreviewOffer = (offer: SellOffer) => {
     setSelectedOffer(offer);
     setPreviewIsModalOpen(true);
-  };
-
-  // Format date function
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return (
-      date.toLocaleDateString() +
-      " " +
-      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    );
   };
 
   return (
@@ -367,7 +358,7 @@ const SellOfferManagement: React.FC = () => {
       >
         <SellOfferPreview
           onClose={() => setPreviewIsModalOpen(false)}
-          offerId={selectedOffer?.id}
+          offerId={selectedOffer?.id ?? ""}
         />
       </Modal>
     </div>

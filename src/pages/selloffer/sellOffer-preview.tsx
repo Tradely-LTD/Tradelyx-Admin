@@ -21,7 +21,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
     try {
       await updateSellOffer({
         id: offerId,
-        data: { ...offer, status },
+        data: { ...offer, isActive: status },
       })
         .unwrap()
         .then(() => {
@@ -483,20 +483,20 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
           Close
         </button>
         <Button
-          onClick={() => handleStatusToggle(!offer?.status)}
+          onClick={() => handleStatusToggle(!offer?.isActive)}
           disabled={updatingOffer}
           leftIcon={
-            offer?.status ? (
+            offer?.isActive ? (
               <X size={18} className="mr-2" />
             ) : (
               <CheckCircle size={18} className="mr-2" />
             )
           }
           className={
-            offer?.status ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
+            offer?.isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
           }
         >
-          {offer?.status ? "Unapprove Offer" : "Approve Offer"}
+          {offer?.isActive ? "Unapprove Offer" : "Approve Offer"}
         </Button>
       </div>
 

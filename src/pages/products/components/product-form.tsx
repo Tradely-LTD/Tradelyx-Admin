@@ -562,7 +562,7 @@ function ProductForm({ id, onClose }: ProductFormProps) {
               isMultiple={true}
               maxFiles={3}
               label="Relevant Documents (Maximum 3)"
-              accept="image/*"
+              accept="/*"
             />
           </div>
 
@@ -609,3 +609,9 @@ function ProductForm({ id, onClose }: ProductFormProps) {
 }
 
 export default ProductForm;
+/* 
+  todo : product owner name + company 
+  todo : selloffer owner name + company 
+  todo : update sell offer after selecting seller populate name + company 
+
+*/

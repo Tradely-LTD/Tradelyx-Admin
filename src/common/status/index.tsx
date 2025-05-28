@@ -4,6 +4,8 @@ import styled from "styled-components";
 
 export type StatusType =
   | "active"
+  | "approved"
+  | "not approved"
   | "verified"
   | "not verify"
   | "inactive"
@@ -65,6 +67,7 @@ const StatusPill = styled.div<{
     switch (status) {
       case "completed":
       case "active":
+      case "approved":
       case "verified":
         return `
           background: ${pale ? "#E6F7F2" : "#ECF9F6"};
@@ -74,6 +77,7 @@ const StatusPill = styled.div<{
 
       case "inactive":
       case "not verify":
+      case "not approved":
         return `
           background: ${pale ? "#FEEAEE" : "#FEE7EB"};
           color: #E11D48;

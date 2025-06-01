@@ -4,7 +4,7 @@ import { FetchBaseQueryError } from "@reduxjs/toolkit/dist/query";
 
 // Default tags used by the cacher helpers
 
-const defaultTags = ["AUTH", "USERS", "PRODUCTS"] as const;
+const defaultTags = ["AUTH", "USERS", "PRODUCTS", "SELLOFFER", "NOTIFICATIONS"] as const;
 type DefaultTags = (typeof defaultTags)[number];
 
 function concatErrorCache<T, ID>(

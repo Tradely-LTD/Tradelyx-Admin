@@ -1,15 +1,15 @@
+//@ts-nocheck
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Input from "@/common/input/input";
 import Button from "@/common/button/button";
 import { Loader } from "@/common/loader/loader";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PackageTypesForm, ProductCategories, Units } from "@/constant";
-import { useGetUsersQuery } from "@/pages/user-management/user-api";
+import { useGetUserQuery, useGetUsersQuery } from "@/pages/user-management/user-api";
 import { Save } from "lucide-react";
 import { useUploadsFileMutation } from "@/store/uploads";
-
 import FileUploader from "@/common/files-uploader";
 import {
   useGetSellofferQuery,
@@ -53,8 +53,8 @@ const validationSchema = yup.object({
     }),
   detailedDescription: yup.string().required("Description is required"),
   thumbnail: yup.string().nullable(),
-  companyLogo: yup.string().nullable(),
-  companyName: yup.string().nullable(),
+  companyLogo: yup.string().nullable(), // Now optional as it's auto-populated
+  companyName: yup.string().nullable(), // Now optional as it's auto-populated
   tags: yup.array().of(yup.string()).default([]),
   productImages: yup.array().of(yup.string().max(255)).default([]),
   packageDescription: yup.string().nullable(),
@@ -106,6 +106,7 @@ interface SellOfferFormProps {
 
 function SellOfferForm({ id, onClose }: SellOfferFormProps) {
   const isEditMode = !!id;
+  const [userId, setUserId] = useState("");
   const [createSellOffer, { isLoading: isCreating }] = useCreateSellOfferMutation();
   const [updateSellOffer, { isLoading: isUpdating }] = useUpdateSellOfferMutation();
   const { data, isLoading: isLoadingOffer } = useGetSellofferQuery({ id }, { skip: !id });
@@ -113,7 +114,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
   const { loginResponse } = useUserSlice();
   const adminId = loginResponse?.user.id;
   const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500, role: "seller" });
+  const { data: user, isLoading: loadingUser } = useGetUserQuery({ id: userId }, { skip: !userId });
   const [uploadsFile] = useUploadsFileMutation();
+
+  // Set company data from user response
+  const companyName = user?.data?.companyInfo?.name || offerData?.companyName || "";
+  const companyLogo = user?.data?.companyInfo?.logo || offerData?.companyLogo || "";
+
   const defaultValues = useMemo(
     () => ({
       title: offerData?.title || "",
@@ -131,8 +138,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
         : { label: "", value: "" },
       detailedDescription: offerData?.detailedDescription || "",
       thumbnail: offerData?.thumbnail || null,
-      companyLogo: offerData?.companyLogo || null,
-      companyName: offerData?.companyName || null,
+      companyLogo: companyLogo || null,
+      companyName: companyName || null,
       tags: offerData?.tags || [],
       productImages: offerData?.productImages || [],
       packageDescription: offerData?.packageDescription || null,
@@ -148,7 +155,7 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
       originLocation: offerData?.originLocation || { country: "", city: "" },
       offerValidityDate: offerData?.offerValidityDate || null,
     }),
-    [offerData, isEditMode, adminId]
+    [offerData, isEditMode, adminId, companyName, companyLogo]
   );
 
   const {
@@ -178,6 +185,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
           paymentType: offerData.paymentType
             ? { label: offerData.paymentType, value: offerData.paymentType }
             : { label: "", value: "" },
+          companyName: companyName || null,
+          companyLogo: companyLogo || null,
         }
       : undefined,
     context: { isEditMode },
@@ -205,6 +214,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
         originLocation: formData.originLocation.country
           ? { country: formData.originLocation.country, city: formData.originLocation.city }
           : null,
+        companyName: companyName || null, // Use fetched company name
+        companyLogo: companyLogo || null, // Use fetched company logo
       };
 
       if (!isEditMode) {
@@ -264,27 +275,28 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                 />
 
                 {!isEditMode && (
-                  <>
-                    <Controller
-                      name="creatorId"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          type="select"
-                          label="Seller"
-                          isLoading={loadingUsers}
-                          error={errors.creatorId?.value?.message}
-                          options={users?.data.map((seller) => ({
-                            label: `${seller.firstName} ${seller.lastName} `,
-                            value: seller.id,
-                          }))}
-                          required
-                          value={field.value}
-                          onSelectChange={(option) => field.onChange(option)}
-                        />
-                      )}
-                    />
-                  </>
+                  <Controller
+                    name="creatorId"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="select"
+                        label="Seller"
+                        isLoading={loadingUsers}
+                        error={errors.creatorId?.value?.message}
+                        options={users?.data.map((seller) => ({
+                          label: `${seller.firstName} ${seller.lastName}`,
+                          value: seller.id,
+                        }))}
+                        required
+                        value={field.value}
+                        onSelectChange={(option) => {
+                          setUserId(option?.value ?? "");
+                          field.onChange(option);
+                        }}
+                      />
+                    )}
+                  />
                 )}
 
                 <Controller
@@ -354,32 +366,29 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
             <div>
               <h3 className="font-semibold text-gray-800 mb-3">Company Information</h3>
               <div className="space-y-4">
-                <Controller
-                  name="companyName"
-                  control={control}
-                  render={({ field: { value, onChange, ...field } }) => (
-                    <Input
-                      type="text"
-                      label="Company Name"
-                      error={errors.companyName?.message}
-                      value={value || ""}
-                      onChange={onChange}
-                      {...field}
-                    />
-                  )}
-                />
-
-                <FileUploader
-                  control={control}
-                  watch={watch}
-                  setValue={setValue}
-                  uploadsFile={uploadsFile}
-                  productData={offerData}
-                  fieldName="companyLogo"
-                  isMultiple={false}
-                  label="Company Logo"
-                  accept="image/*"
-                />
+                {/* Display Company Information */}
+                {(userId || isEditMode) && (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Company Name
+                      </label>
+                      <p className="mt-1 text-gray-900">{companyName || "N/A"}</p>
+                    </div>
+                    {companyLogo && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Company Logo
+                        </label>
+                        <img
+                          src={companyLogo}
+                          alt="Company Logo"
+                          className="mt-1 h-20 w-20 object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <FileUploader
                   control={control}

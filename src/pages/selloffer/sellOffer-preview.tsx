@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { useState } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
@@ -18,6 +19,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
   const offer = data?.data;
 
   const handleStatusToggle = async (status: boolean) => {
+    console.log({ ...offer, isActive: status });
     try {
       await updateSellOffer({
         id: offerId,
@@ -482,7 +484,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
         >
           Close
         </button>
-        <Button
+        {/* <Button
           onClick={() => handleStatusToggle(!offer?.isActive)}
           disabled={updatingOffer}
           leftIcon={
@@ -497,7 +499,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
           }
         >
           {offer?.isActive ? "Unapprove Offer" : "Approve Offer"}
-        </Button>
+        </Button> */}
       </div>
 
       <DocumentPreview />

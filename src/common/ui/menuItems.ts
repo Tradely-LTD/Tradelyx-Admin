@@ -1,4 +1,4 @@
-import { BarChart2, FileText, LogOut, Package, ShellIcon, User } from "lucide-react";
+import { BarChart2, FileText, LogOut, Package, ShellIcon, User, BellIcon } from "lucide-react";
 import { IoTimeSharp } from "react-icons/io5";
 
 // Define user roles as a constant enum-like object
@@ -55,6 +55,12 @@ export const getMenuItems = (): MenuItem[] => {
       label: "Sell Offers",
       path: "/sell-offer",
       description: "Manage sell offer inventory and details",
+    },
+    {
+      icon: BellIcon,
+      label: "Notifications",
+      path: "/notifications",
+      description: "Manage notification inventory and details",
     },
     {
       icon: LogOut,

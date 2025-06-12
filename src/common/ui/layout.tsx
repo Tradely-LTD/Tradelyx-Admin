@@ -1,7 +1,7 @@
 //@ts-nocheck
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { Drama, Menu, ChevronDown, ChevronRight } from "lucide-react";
+import { Drama, Menu, ChevronDown, ChevronRight, Search, Bell, User } from "lucide-react";
 import { useDispatch } from "react-redux";
 
 import { logout } from "@/pages/auth/authSlice";
@@ -44,11 +44,11 @@ const Layout: React.FC = () => {
       resizeTimer = setTimeout(() => {
         const newIsMobile = window.innerWidth < 768;
         setIsMobile(newIsMobile);
-        setIsSidebarCollapsed(newIsMobile); // Collapse sidebar on mobile
+        setIsSidebarCollapsed(newIsMobile);
       }, 100);
     };
 
-    handleResize(); // Set initial state
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -87,12 +87,11 @@ const Layout: React.FC = () => {
     );
   };
 
-  // Render backdrop for mobile view
   const renderBackdrop = () => {
     if (isMobile && !isSidebarCollapsed) {
       return (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 transition-opacity duration-300"
+          className="fixed inset-0 bg-black/50 z-20 transition-opacity duration-300"
           onClick={() => setIsSidebarCollapsed(true)}
         />
       );
@@ -101,168 +100,153 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      {/* Header */}
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 w-full z-20 shadow-sm">
-        <div className="flex items-center">
-          <button
-            onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Toggle sidebar"
-          >
-            <Menu className="h-5 w-5 text-gray-600" />
-          </button>
-          <h1 className="ml-4 text-xl font-semibold text-gray-800 truncate">
-            {menuItems.find((item) => isPathActive(item.path))?.label || "Dashboard"}
-          </h1>
-        </div>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      {renderBackdrop()}
 
-      {/* Main Content */}
-      <div className="flex flex-1 relative overflow-hidden">
-        {renderBackdrop()}
-
-        {/* Sidebar */}
-        <aside
-          ref={sidebarRef}
-          className={`h-[calc(100vh-4rem)] bg-gradient-to-b from-blue-900 to-blue-800 transition-all duration-300 ease-in-out border-r border-gray-200 z-30
-            ${isMobile ? "fixed left-0 top-16" : "relative"} 
-            ${isMobile && isSidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
-            ${isSidebarCollapsed && !isMobile ? "w-16" : "w-64"} shadow-lg`}
-        >
-          {/* Logo */}
-          <div className="flex items-center h-16 px-4 border-b border-blue-700 bg-blue-900">
+      {/* Full Height Sidebar */}
+      <aside
+        ref={sidebarRef}
+        className={`h-full bg-gradient-to-b from-slate-800 to-slate-900 transition-all duration-300 ease-in-out border-r border-gray-200 z-30
+          ${isMobile ? "fixed left-0 top-0" : "relative"} 
+          ${isMobile && isSidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
+          ${isSidebarCollapsed && !isMobile ? "w-16" : "w-64"} shadow-lg`}
+      >
+        {/* Logo */}
+        <div className="flex items-center h-16 px-4 border-b border-slate-700">
+          <div className="p-2 rounded-lg bg-blue-600">
             <Drama className="h-6 w-6 text-white" />
-            <span
-              className={`ml-2 font-semibold text-xl text-white transition-opacity duration-200
-              ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
-            >
-              Tradely
-            </span>
           </div>
+          <span
+            className={`ml-3 font-semibold text-xl text-white transition-opacity duration-200
+            ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
+          >
+            Tradely
+          </span>
+        </div>
 
-          {/* Navigation */}
-          <nav className="p-2 h-[calc(100%-4rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-900">
-            {menuItems.map((item, index) => (
-              <div key={index}>
-                <div
-                  onClick={() => handleMenuClick(item)}
-                  className={`flex items-center px-4 py-3 my-1 rounded-lg cursor-pointer
-                    ${
-                      isPathActive(item.path)
-                        ? "bg-blue-700 text-white"
-                        : "text-white hover:bg-blue-700/50"
-                    }
-                    transition-all duration-200 ease-in-out group relative`}
-                  style={{
-                    backgroundColor: isPathActive(item.path) ? item.color : undefined,
-                  }}
+        {/* Navigation */}
+        <nav className="p-2 h-[calc(100%-4rem)] overflow-y-auto">
+          {menuItems.map((item, index) => (
+            <div key={index}>
+              <div
+                onClick={() => handleMenuClick(item)}
+                className={`flex items-center px-4 py-3 my-1 rounded-lg cursor-pointer transition-all duration-200 group relative
+                  ${
+                    isPathActive(item.path)
+                      ? "bg-blue-600 text-white shadow-lg"
+                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  }`}
+              >
+                <item.icon className="h-5 w-5 min-w-5" />
+                <span
+                  className={`ml-3 font-medium whitespace-nowrap transition-opacity duration-200
+                    ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
                 >
-                  <item.icon
-                    className={`h-5 w-5 min-w-5 transition-colors duration-200
-                      ${
-                        isPathActive(item.path)
-                          ? "text-white"
-                          : "text-blue-200 group-hover:text-white"
-                      }`}
-                  />
-                  <span
-                    className={`ml-3 font-medium whitespace-nowrap transition-opacity duration-200
-                      ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}
-                      ${
-                        isPathActive(item.path)
-                          ? "text-white"
-                          : "text-blue-100 group-hover:text-white"
-                      }`}
-                  >
+                  {item.label}
+                </span>
+                {item.hasSubmenu && !(isSidebarCollapsed && !isMobile) && (
+                  <span className="ml-auto">
+                    {expandedSubmenu === item.label ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </span>
+                )}
+                {/* Tooltip for collapsed sidebar */}
+                {isSidebarCollapsed && !isMobile && (
+                  <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
                     {item.label}
                   </span>
-                  {item.hasSubmenu && !(isSidebarCollapsed && !isMobile) && (
-                    <span className="ml-auto">
-                      {expandedSubmenu === item.label ? (
-                        <ChevronDown className="h-4 w-4 text-blue-200 group-hover:text-white" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-blue-200 group-hover:text-white" />
-                      )}
-                    </span>
-                  )}
-                  {/* Tooltip for collapsed sidebar */}
-                  {isSidebarCollapsed && !isMobile && (
-                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                      {item.label}
-                    </span>
-                  )}
-                </div>
-
-                {/* Submenu */}
-                {item.hasSubmenu &&
-                  expandedSubmenu === item.label &&
-                  !(isSidebarCollapsed && !isMobile) && (
-                    <div className="ml-4 mt-1">
-                      {item.submenuItems?.map((subItem, subIndex) => (
-                        <div
-                          key={subIndex}
-                          onClick={() => handleSubmenuClick(subItem)}
-                          className={`flex items-center p-3 my-1 text-sm rounded-lg cursor-pointer
-                            ${
-                              isPathActive(subItem.path)
-                                ? "bg-blue-600 text-white"
-                                : "text-blue-100 hover:bg-blue-700/50"
-                            }
-                            transition-all duration-200`}
-                        >
-                          {subItem.icon && (
-                            <subItem.icon
-                              className={`h-4 w-4 mr-2 ${
-                                isPathActive(subItem.path) ? "text-white" : "text-blue-200"
-                              }`}
-                            />
-                          )}
-                          <span className="truncate">{subItem.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                {/* Collapsed Submenu (Icons only) */}
-                {item.hasSubmenu &&
-                  expandedSubmenu === item.label &&
-                  isSidebarCollapsed &&
-                  !isMobile && (
-                    <div className="ml-1 mt-1">
-                      {item.submenuItems?.map((subItem, subIndex) => (
-                        <div
-                          key={subIndex}
-                          onClick={() => handleSubmenuClick(subItem)}
-                          className={`flex items-center justify-center p-2 my-1 rounded-lg cursor-pointer
-                            ${
-                              isPathActive(subItem.path)
-                                ? "bg-blue-600 text-white"
-                                : "text-blue-100 hover:bg-blue-700/50"
-                            }
-                            transition-all duration-200 relative group`}
-                        >
-                          {subItem.icon && (
-                            <subItem.icon
-                              className={`h-5 w-5 ${
-                                isPathActive(subItem.path) ? "text-white" : "text-blue-200"
-                              }`}
-                            />
-                          )}
-                          <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                            {subItem.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                )}
               </div>
-            ))}
-          </nav>
-        </aside>
+
+              {/* Submenu */}
+              {item.hasSubmenu &&
+                expandedSubmenu === item.label &&
+                !(isSidebarCollapsed && !isMobile) && (
+                  <div className="ml-4 mt-1">
+                    {item.submenuItems?.map((subItem, subIndex) => (
+                      <div
+                        key={subIndex}
+                        onClick={() => handleSubmenuClick(subItem)}
+                        className={`flex items-center p-3 my-1 text-sm rounded-lg cursor-pointer transition-all duration-200
+                          ${
+                            isPathActive(subItem.path)
+                              ? "bg-blue-500 text-white"
+                              : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                          }`}
+                      >
+                        {subItem.icon && <subItem.icon className="h-4 w-4 mr-2" />}
+                        <span className="truncate">{subItem.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              {/* Collapsed Submenu (Icons only) */}
+              {item.hasSubmenu &&
+                expandedSubmenu === item.label &&
+                isSidebarCollapsed &&
+                !isMobile && (
+                  <div className="ml-1 mt-1">
+                    {item.submenuItems?.map((subItem, subIndex) => (
+                      <div
+                        key={subIndex}
+                        onClick={() => handleSubmenuClick(subItem)}
+                        className={`flex items-center justify-center p-2 my-1 rounded-lg cursor-pointer transition-all duration-200 relative group
+                          ${
+                            isPathActive(subItem.path)
+                              ? "bg-blue-500 text-white"
+                              : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                          }`}
+                      >
+                        {subItem.icon && <subItem.icon className="h-5 w-5" />}
+                        <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                          {subItem.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Header */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 w-full z-20 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+              className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 shadow-sm"
+              aria-label="Toggle sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-800">
+              {menuItems.find((item) => isPathActive(item.path))?.label || "Dashboard"}
+            </h1>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <button className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600">
+              <Search className="h-5 w-5" />
+            </button>
+            <button className="relative p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+            </button>
+            <button className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200">
+              <User className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
 
         {/* Main Content */}
-        <main className="flex-1 bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto transition-all duration-300 ease-in-out">
+        <main className="flex-1 bg-gray-50 overflow-y-auto transition-all duration-300 ease-in-out">
           <div className="p-6 min-h-full">
             <Outlet />
           </div>

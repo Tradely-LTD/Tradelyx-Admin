@@ -88,7 +88,7 @@ export const authApi = baseApi.injectEndpoints({
       { id: string }
     >({
       query: ({ id }) => ({
-        url: `profile/user/${id}`,
+        url: `profile/profile/seller/${id}`,
         method: Methods.Get,
       }),
       providesTags: ["USERS"],

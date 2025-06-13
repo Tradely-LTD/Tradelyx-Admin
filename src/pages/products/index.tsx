@@ -130,7 +130,7 @@ const ProductManagement: React.FC = () => {
           icon={<Box size={24} />}
           color="#143085"
           description="All products"
-          loading={false}
+          loading={isLoading}
         />
         <Card
           title="Total Verified"
@@ -138,7 +138,7 @@ const ProductManagement: React.FC = () => {
           icon={<ShieldCheck size={24} />}
           color="#187c53"
           description="All verified products"
-          loading={false}
+          loading={isLoading}
         />
         <Card
           title="Total Unverified"
@@ -146,7 +146,7 @@ const ProductManagement: React.FC = () => {
           icon={<ShieldOff size={24} />}
           color="#c38555"
           description="All unverified products"
-          loading={false}
+          loading={isLoading}
         />
         <Card
           title="Recent Product"
@@ -154,7 +154,7 @@ const ProductManagement: React.FC = () => {
           icon={<Box size={24} />}
           color="#143085"
           description="Recent Product"
-          loading={false}
+          loading={isLoading}
         />
       </div>
 

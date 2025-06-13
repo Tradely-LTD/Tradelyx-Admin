@@ -148,7 +148,9 @@ export default function AdminDashboard() {
   );
 }
 function DashboardCard({ title, value, icon, color, description, loading }) {
-  return (
+  return loading ? (
+    <Skeleton className="w-[250px] min-h-[120px]" />
+  ) : (
     <div
       className="bg-white rounded-xl shadow-sm p-5 w-[250px] min-h-[120px] 
                  hover:shadow-lg hover:-translate-y-0.5 transform transition-all duration-200 
@@ -160,29 +162,9 @@ function DashboardCard({ title, value, icon, color, description, loading }) {
     >
       <div className="flex justify-between items-start gap-3">
         <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-600 tracking-tight truncate">
-            {loading ? (
-              <span className="inline-block w-[120px] h-4 bg-gray-200 rounded animate-pulse" />
-            ) : (
-              title
-            )}
-          </p>
-          <h4 className="text-3xl font-extrabold mt-1.5 text-gray-900 tracking-tight">
-            {loading ? (
-              <span className="inline-block w-[80px] h-8 bg-gray-200 rounded animate-pulse" />
-            ) : (
-              value
-            )}
-          </h4>
-          {description && (
-            <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-              {loading ? (
-                <span className="inline-block w-[180px] h-3 bg-gray-200 rounded animate-pulse" />
-              ) : (
-                description
-              )}
-            </p>
-          )}
+          <p className="text-sm font-semibold text-gray-600 tracking-tight truncate">{title}</p>
+          <h4 className="text-3xl font-extrabold mt-1.5 text-gray-900 tracking-tight">{value}</h4>
+          {description && <p className="text-xs text-gray-500 mt-2 line-clamp-2">{description}</p>}
         </div>
         <div
           className="p-3 rounded-full transform transition-transform duration-200 
@@ -194,11 +176,7 @@ function DashboardCard({ title, value, icon, color, description, loading }) {
             color: color,
           }}
         >
-          {loading ? (
-            <span className="block w-6 h-6 bg-gray-200 rounded-full animate-pulse" />
-          ) : (
-            icon
-          )}
+          {icon}
         </div>
       </div>
       <div

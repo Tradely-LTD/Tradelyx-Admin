@@ -11,6 +11,7 @@ import Modal from "@/common/modal/modal";
 import { useGetNotificationsQuery } from "./notification-api";
 import NotificationForm from "./components/notification-form";
 import Button from "@/common/button/button";
+import EmptyState from "@/common/empty-state";
 
 const NotificationManagement = () => {
   // State for filters and pagination
@@ -104,10 +105,10 @@ const NotificationManagement = () => {
       </div>
 
       {/* Notification Table */}
-      <div className="overflow-x-auto bg-white rounded-md shadow">
-        {isLoading || isFetching ? (
-          <Loader />
-        ) : (
+      {isLoading || isFetching ? (
+        <Loader />
+      ) : data && data?.data?.length > 0 ? (
+        <div className="overflow-x-auto bg-white rounded-md shadow">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr className="text-left text-gray-700">
@@ -132,77 +133,71 @@ const NotificationManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data && data.data.length > 0 ? (
-                data.data.map((notification) => (
-                  <tr key={notification.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{notification.title}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text className="truncate max-w-xs">{notification.message}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{notification.userId}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      {notification.thumbnail ? (
-                        <img
-                          src={notification.thumbnail}
-                          alt={notification.title}
-                          className="w-8 h-8 rounded-md object-cover"
-                        />
-                      ) : (
-                        <Text>No Thumbnail</Text>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{formatDate(notification.createdAt)}</Text>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex space-x-2">
-                        <TableDropdown
-                          items={[
-                            {
-                              label: "Edit",
-                              action: () => handleEditNotification(notification),
-                              icon: <Edit2 size={14} />,
+              {data?.data?.map((notification) => (
+                <tr key={notification.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <Text>{notification.title}</Text>
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <Text className="truncate max-w-xs">{notification.message}</Text>
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <Text>{notification.userId}</Text>
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    {notification.thumbnail ? (
+                      <img
+                        src={notification.thumbnail}
+                        alt={notification.title}
+                        className="w-8 h-8 rounded-md object-cover"
+                      />
+                    ) : (
+                      <Text>No Thumbnail</Text>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <Text>{formatDate(notification.createdAt)}</Text>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex space-x-2">
+                      <TableDropdown
+                        items={[
+                          {
+                            label: "Edit",
+                            action: () => handleEditNotification(notification),
+                            icon: <Edit2 size={14} />,
+                          },
+                          {
+                            label: "View",
+                            action: () => {
+                              setPreviewIsModalOpen(true);
+                              setSelectedNotification(notification);
                             },
-                            {
-                              label: "View",
-                              action: () => {
-                                setPreviewIsModalOpen(true);
-                                setSelectedNotification(notification);
-                              },
-                              icon: <Eye size={14} />,
-                            },
-                          ]}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center">
-                    <Text>No notifications found</Text>
+                            icon: <Eye size={14} />,
+                          },
+                        ]}
+                      />
+                    </div>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
-        )}
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
-          <Pagination
-            current={currentPage}
-            total={Number(data?.pagination?.total)}
-            pageSize={perPage}
-            onChange={handlePageChange}
-            className="flex gap-2"
-          />
+          {/* Pagination */}
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+            <Pagination
+              current={currentPage}
+              total={Number(data?.pagination?.total)}
+              pageSize={perPage}
+              onChange={handlePageChange}
+              className="flex gap-2"
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <EmptyState description="No notifications found" />
+      )}
 
       {/* Edit Notification Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Notification">

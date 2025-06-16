@@ -23,7 +23,6 @@ export default function AdminDashboard() {
   const isSuperAdmin = loginResponse?.user.roles === "admin";
   const isCountryAdmin = loginResponse?.user.roles === "country_admin";
 
-  console.log(isCountryAdmin);
   return (
     <div className="h-screen  ">
       <div className="flex-1 flex  flex-col overflow-hidden">

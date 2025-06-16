@@ -28,7 +28,7 @@ interface Notification {
 
 // Validation schema using Yup
 const validationSchema = yup.object({
-  userId: yup.string().required("User ID is required").uuid("Must be a valid UUID"),
+  // userId: yup.string().required("User ID is required").uuid("Must be a valid UUID"),
   title: yup
     .string()
     .required("Title is required")
@@ -57,7 +57,7 @@ function NotificationForm({ id, onClose }: NotificationFormProps) {
     if (!data?.data) return undefined;
     return {
       id: data.data.id,
-      userId: data.data.userId,
+      // userId: data.data.userId,
       title: data.data.title,
       message: data.data.message,
       thumbnail: data.data.thumbnail,
@@ -77,7 +77,7 @@ function NotificationForm({ id, onClose }: NotificationFormProps) {
 
     return {
       id: notificationData?.id,
-      userId: notificationData?.userId || "",
+      // userId: notificationData?.userId || "",
       title: notificationData?.title || "",
       message: notificationData?.message || "",
       thumbnail: notificationData?.thumbnail || null,

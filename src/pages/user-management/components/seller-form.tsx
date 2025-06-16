@@ -310,7 +310,8 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
                   render={({ field }) => (
                     <Input
                       type="text"
-                      label="Registration Number"
+                      label="Company Registration Number"
+                      placeholder="Eg: Business Registration/CAC/LLC Registration Number"
                       error={errors.registrationNumber?.message}
                       {...field}
                       value={field.value ?? ""}

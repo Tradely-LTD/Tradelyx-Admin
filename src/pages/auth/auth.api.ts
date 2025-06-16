@@ -71,7 +71,7 @@ export interface LoginResponse {
   message: String;
 }
 
-export type UserRole = "superadmin" | "admin" | "agent" | null;
+export type UserRole = "superadmin" | "admin" | "agent" | "country_admin" | null;
 
 export interface AuthUser {
   id: string;
@@ -82,7 +82,7 @@ export interface AuthUser {
   profileImage?: string;
   isKYCCompleted: boolean;
   isVerified: boolean;
-  role: UserRole;
+  roles: UserRole;
   status: boolean;
   lga: string;
   city: string;
@@ -134,7 +134,7 @@ export interface User {
   stateId: string;
   lgaId: string;
   marketId: string;
-  role: UserRole;
+  roles: UserRole;
   status: boolean;
   union: string | null;
   city: string;

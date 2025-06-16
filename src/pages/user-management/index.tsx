@@ -18,7 +18,7 @@ const UserManagement = () => {
   // State for filters and pagination
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage, _] = useState(10);
   const [userRole, setUserRole] = useState("");
   const [userStatus, setUserStatus] = useState("");
 

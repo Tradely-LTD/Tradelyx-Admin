@@ -12,11 +12,18 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { isCountryAdmin } from "@/utils/helper";
+import { useUserSlice } from "../auth/authSlice";
 
 export default function AdminDashboard() {
   const { data, isLoading: statsLoading } = useGetStatsQuery({});
   const { data: chartData, isLoading: chartLoading } = useGetStatsChartQuery({});
 
+  const { loginResponse } = useUserSlice();
+  const isSuperAdmin = loginResponse?.user.roles === "admin";
+  const isCountryAdmin = loginResponse?.user.roles === "country_admin";
+
+  console.log(isCountryAdmin);
   return (
     <div className="h-screen  ">
       <div className="flex-1 flex  flex-col overflow-hidden">
@@ -57,22 +64,27 @@ export default function AdminDashboard() {
               description="Currently active offers"
               loading={statsLoading}
             />
-            <DashboardCard
-              title="Total RFQs"
-              value={data?.data?.totalRFQs || "0"}
-              icon={<ShoppingCart size={24} />}
-              color="#2196F3"
-              description="All Request for Quotations"
-              loading={statsLoading}
-            />
-            <DashboardCard
-              title="Total RFFs"
-              value={data?.data?.totalRFFs || "0"}
-              icon={<Truck size={24} />}
-              color="#607D8B"
-              description="All Request for Freight"
-              loading={statsLoading}
-            />
+            {isSuperAdmin && (
+              <DashboardCard
+                title="Total RFQs"
+                value={data?.data?.totalRFQs || "0"}
+                icon={<ShoppingCart size={24} />}
+                color="#2196F3"
+                description="All Request for Quotations"
+                loading={statsLoading}
+              />
+            )}
+            {isSuperAdmin && (
+              <DashboardCard
+                title="Total RFFs"
+                value={data?.data?.totalRFFs || "0"}
+                icon={<Truck size={24} />}
+                color="#607D8B"
+                description="All Request for Freight"
+                loading={statsLoading}
+              />
+            )}
+
             <DashboardCard
               title="Agent Users"
               value={data?.data?.usersByRole?.agent || "0"}
@@ -81,22 +93,26 @@ export default function AdminDashboard() {
               description="Users with agent role"
               loading={statsLoading}
             />
-            <DashboardCard
-              title="Admin"
-              value={data?.data?.usersByRole?.admin || "0"}
-              icon={<Users size={24} />}
-              color="#F44336"
-              description="Users with admin role"
-              loading={statsLoading}
-            />
-            <DashboardCard
-              title="Unassigned Users"
-              value={data?.data?.usersByRole?.null || "0"}
-              icon={<ShieldCheck size={24} />}
-              color="#F44336"
-              description="Users without role"
-              loading={statsLoading}
-            />
+            {isSuperAdmin && (
+              <DashboardCard
+                title="Admin"
+                value={data?.data?.usersByRole?.admin || "0"}
+                icon={<Users size={24} />}
+                color="#F44336"
+                description="Users with admin role"
+                loading={statsLoading}
+              />
+            )}
+            {isSuperAdmin && (
+              <DashboardCard
+                title="Unassigned Users"
+                value={data?.data?.usersByRole?.null || "0"}
+                icon={<ShieldCheck size={24} />}
+                color="#F44336"
+                description="Users without role"
+                loading={statsLoading}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -136,8 +152,8 @@ export default function AdminDashboard() {
                 />
                 <Legend />
                 <Bar dataKey="sellOffers" fill="#8884d8" name="Sell Offers" />
-                <Bar dataKey="rfqs" fill="#82ca9d" name="RFQs" />
-                <Bar dataKey="rffs" fill="#ffc658" name="RFFs" />
+                {isSuperAdmin && <Bar dataKey="rfqs" fill="#82ca9d" name="RFQs" />}
+                {isSuperAdmin && <Bar dataKey="rffs" fill="#ffc658" name="RFFs" />}
                 <Bar dataKey="users" fill="#ff8042" name="Users" />
               </BarChart>
             </ResponsiveContainer>

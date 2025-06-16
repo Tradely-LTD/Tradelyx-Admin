@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node api.js && vite",
     "dev-linode": "vite",
-    "prod" : "NODE_ENV=production vite",
+    "prod": "NODE_ENV=production vite",
     "dev-linode-admin": "NODE_ENV=production vite",
-    "build": "tsc -b && vite build",
+    "build": "node api.js && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

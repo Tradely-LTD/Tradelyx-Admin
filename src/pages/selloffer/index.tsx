@@ -18,6 +18,7 @@ import Card from "@/common/cards/card";
 import SellOfferForm from "./sell-offer-form";
 import SellOfferPreview from "./sellOffer-preview";
 import { formatDate } from "@/utils/helper";
+import EmptyState from "@/common/empty-state";
 
 interface SellOffer {
   id: string;
@@ -189,10 +190,10 @@ const SellOfferManagement: React.FC = () => {
       </div>
 
       {/* Sell Offer Table */}
-      <div className="overflow-x-auto bg-white rounded-md shadow">
-        {isLoading || isFetching ? (
-          <Loader />
-        ) : (
+      {isLoading || isFetching ? (
+        <Loader />
+      ) : data && data.data.length > 0 ? (
+        <div className="overflow-x-auto bg-white rounded-md shadow">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr className="text-left text-gray-700">
@@ -217,86 +218,80 @@ const SellOfferManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data && data.data.length > 0 ? (
-                data.data.map((offer: SellOffer) => (
-                  <tr key={offer.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <div className="flex items-center">
-                        {offer.thumbnail ? (
-                          <img
-                            src={offer.thumbnail}
-                            alt={offer.title}
-                            className="w-8 h-8 rounded-md mr-2 object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center mr-2">
-                            <Text className="text-blue-600">O</Text>
-                          </div>
-                        )}
-                        <Text>{offer.title}</Text>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{offer.productCategory}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <p className="line-clamp-2 max-w-sm text-gray-600">
-                        {offer.detailedDescription}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={offer.isActive ? "active" : "inactive"} />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{formatDate(offer.createdAt)}</Text>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex space-x-2">
-                        <TableDropdown
-                          items={[
-                            {
-                              label: "Edit",
-                              action: () => handleEditOffer(offer),
-                              icon: <Edit2 size={14} />,
-                            },
-                            {
-                              label: "View",
-                              action: () => handlePreviewOffer(offer),
-                              icon: <Eye size={14} />,
-                            },
-                            {
-                              label: "Delete",
-                              action: () => handleOpenDeleteModal(offer),
-                              icon: <Trash2 size={14} />,
-                            },
-                          ]}
+              {data.data.map((offer: SellOffer) => (
+                <tr key={offer.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <div className="flex items-center">
+                      {offer.thumbnail ? (
+                        <img
+                          src={offer.thumbnail}
+                          alt={offer.title}
+                          className="w-8 h-8 rounded-md mr-2 object-cover"
                         />
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center">
-                    <Text>No sell offers found</Text>
+                      ) : (
+                        <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center mr-2">
+                          <Text className="text-blue-600">O</Text>
+                        </div>
+                      )}
+                      <Text>{offer.title}</Text>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <Text>{offer.productCategory}</Text>
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <p className="line-clamp-2 max-w-sm text-gray-600">
+                      {offer.detailedDescription}
+                    </p>
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <StatusIndicator status={offer.isActive ? "active" : "inactive"} />
+                  </td>
+                  <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <Text>{formatDate(offer.createdAt)}</Text>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex space-x-2">
+                      <TableDropdown
+                        items={[
+                          {
+                            label: "Edit",
+                            action: () => handleEditOffer(offer),
+                            icon: <Edit2 size={14} />,
+                          },
+                          {
+                            label: "View",
+                            action: () => handlePreviewOffer(offer),
+                            icon: <Eye size={14} />,
+                          },
+                          {
+                            label: "Delete",
+                            action: () => handleOpenDeleteModal(offer),
+                            icon: <Trash2 size={14} />,
+                          },
+                        ]}
+                      />
+                    </div>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
-        )}
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
-          <Pagination
-            current={currentPage}
-            total={Number(data?.pagination.total) || 0}
-            pageSize={perPage}
-            onChange={handlePageChange}
-            className="flex gap-2"
-          />
+          {/* Pagination */}
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+            <Pagination
+              current={currentPage}
+              total={Number(data?.pagination.total) || 0}
+              pageSize={perPage}
+              onChange={handlePageChange}
+              className="flex gap-2"
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <EmptyState description="No sell offers found" />
+      )}
 
       {/* Add/Edit Sell Offer Modal */}
       <Modal

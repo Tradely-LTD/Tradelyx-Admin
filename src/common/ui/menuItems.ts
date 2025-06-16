@@ -4,8 +4,8 @@ import { IoTimeSharp } from "react-icons/io5";
 // Define user roles as a constant enum-like object
 export const UserRoles = {
   AGENT: "agent",
-  ADMIN: "admin",
-  SUPER_ADMIN: "superadmin",
+  SUPER_ADMIN: "admin",
+  ADMIN: "country_admin",
 } as const;
 
 // Type for user role keys

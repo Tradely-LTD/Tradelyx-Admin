@@ -30,8 +30,13 @@ interface MenuItem {
   submenuItems?: SubmenuItem[];
 }
 
-export const getMenuItems = (): MenuItem[] => {
-  return [
+export const getMenuItems = (userRole?: string | null): MenuItem[] => {
+  // If no user role is provided or user is not admin/country_admin, return empty array
+  if (!userRole || (userRole !== "admin" && userRole !== "country_admin")) {
+    return [];
+  }
+
+  const allMenuItems: MenuItem[] = [
     {
       icon: BarChart2,
       label: "Dashboard",
@@ -61,6 +66,7 @@ export const getMenuItems = (): MenuItem[] => {
       label: "Notifications",
       path: "/notifications",
       description: "Manage notification inventory and details",
+      privilege: ["SUPER_ADMIN"], // Only admin can access notifications
     },
     {
       icon: LogOut,
@@ -69,4 +75,23 @@ export const getMenuItems = (): MenuItem[] => {
       description: "Sign out of the application",
     },
   ];
+
+  // Filter menu items based on user role
+  return allMenuItems.filter((item) => {
+    // If no privilege is specified, all admin/country_admin can access
+    if (!item.privilege) {
+      return true;
+    }
+
+    // Check if user role matches the required privileges
+    if (userRole === "admin" && item.privilege.includes("SUPER_ADMIN")) {
+      return true;
+    }
+
+    if (userRole === "country_admin" && item.privilege.includes("ADMIN")) {
+      return true;
+    }
+
+    return false;
+  });
 };

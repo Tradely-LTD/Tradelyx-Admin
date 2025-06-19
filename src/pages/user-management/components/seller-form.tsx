@@ -88,7 +88,8 @@ const validationSchema = yup.object({
   identityDoctype: yup.array().of(yup.string().max(255)).default([]),
   businessServices: yup.array().of(yup.string().max(255)).default([]),
   mainMarkets: yup.array().of(yup.string().max(255)).default([]),
-  languageSpoken: yup.array().of(yup.string().max(255)).default([]),
+  //
+  languageSpoken: yup.array().of(yup.string().max(255)).default([]).nullable().notRequired(),
   certificationDocuments: yup.array().of(yup.string().max(255)).default([]),
   companyVerified: yup.boolean().default(false),
 });
@@ -435,7 +436,7 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
                   />
                 )}
               />
-              <Controller
+              {/* <Controller
                 name="languageSpoken"
                 control={control}
                 render={({ field }) => (
@@ -447,7 +448,7 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
                     onChange={(e) => field.onChange(e.target.value)}
                   />
                 )}
-              />
+              /> */}
             </div>
           </div>
 

@@ -276,6 +276,13 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                   <p className="font-medium text-gray-900">{seller?.personalInfo.state || "N/A"}</p>
                 </div>
               </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center mb-1">
+                  <MapPin size={16} className="text-gray-600 mr-2" />
+                  <p className="text-sm text-gray-500">Address</p>
+                </div>
+                <p className="font-medium text-gray-900">{seller?.personalInfo.address || "N/A"}</p>
+              </div>
             </div>
           </div>
         </div>

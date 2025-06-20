@@ -114,7 +114,7 @@ const ProductManagement: React.FC = () => {
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
   };
-
+  console.log(data);
   return (
     <div className="min-h-screen py-5">
       {/* Page Header */}
@@ -254,7 +254,7 @@ const ProductManagement: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator
-                        status={product.produtVerified ? "verified" : "not verified"}
+                        status={product.productVerified ? "verified" : "not verified"}
                       />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">

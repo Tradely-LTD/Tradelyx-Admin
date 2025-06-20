@@ -109,7 +109,7 @@ const UserManagement = () => {
               // value={userRole}
               options={[
                 { label: "All Roles", value: "" },
-                // { label: "Admin", value: "admin" },
+                { label: "Admin", value: "unassigned" },
                 { label: "Seller", value: "seller" },
                 { label: "Buyer", value: "buyer" },
               ]}

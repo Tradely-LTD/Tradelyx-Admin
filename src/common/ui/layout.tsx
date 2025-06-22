@@ -130,7 +130,7 @@ const Layout: React.FC = () => {
               className={`ml-3 font-semibold text-xl text-white transition-opacity duration-200
               ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
             >
-              Tradely
+              <img src="./tradelyx_logo.svg" className="w-[120px]" />
             </span>
           </div>
 

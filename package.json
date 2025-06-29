@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev-linode": "vite",
-    "prod" : "NODE_ENV=production vite",
+    "prod": "NODE_ENV=production vite",
     "dev-linode-admin": "NODE_ENV=production vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -53,6 +53,7 @@
     "@types/node": "^22.10.7",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/react-icons": "^2.2.7",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",

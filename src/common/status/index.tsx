@@ -15,6 +15,7 @@ export type StatusType =
   | "seller"
   | "company"
   | "individual"
+  | "country_admin"
   | boolean;
 
 interface StatusIndicatorProps {
@@ -32,7 +33,6 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   } else {
     displayStatus = status;
   }
-
   return (
     <StatusPill status={displayStatus} pale={pale}>
       {capitalizeFirstLetter(displayStatus)}
@@ -103,6 +103,13 @@ const StatusPill = styled.div<{
           background: ${pale ? "#E9F1FF" : "#dbeafe"};
           color: #1e3a8a;
           &::before { background: #1e3a8a; }
+        `;
+
+      case "country_admin":
+        return `
+          background: ${pale ? "#F2EBFF" : "#EFE1FF"};
+          color: #6D28D9;
+          &::before { background: #6D28D9; }
         `;
 
       case "company":

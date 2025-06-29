@@ -5,8 +5,8 @@ interface Config {
 
 const config: { [key: string]: Config } = {
   development: {
-    API_BASE_URL: "http://localhost:3000",
-    SERVER_BASE_URL: "http://localhost:3000",
+    API_BASE_URL: "https://172.105.61.224:3443",
+    SERVER_BASE_URL: "https://172.105.61.224:3443",
   },
   staging: {
     API_BASE_URL: "http://localhost:3000",

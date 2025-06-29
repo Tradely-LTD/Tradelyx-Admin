@@ -114,7 +114,7 @@ const ProductManagement: React.FC = () => {
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
   };
-
+  console.log(data);
   return (
     <div className="min-h-screen py-5">
       {/* Page Header */}
@@ -191,7 +191,7 @@ const ProductManagement: React.FC = () => {
 
         <button
           onClick={() => handleEditProduct()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:bg-blue-400"
+          className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-200"
           disabled={isDeleting}
         >
           Add Product
@@ -254,7 +254,7 @@ const ProductManagement: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator
-                        status={product.produtVerified ? "verified" : "not verified"}
+                        status={product.productVerified ? "verified" : "not verified"}
                       />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">

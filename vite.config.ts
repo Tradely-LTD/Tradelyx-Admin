@@ -15,7 +15,7 @@ export default defineConfig({
     port: 5175, // or whatever port you prefer
   },
   build: {
-    outDir: 'dist', // Change the output folder name
+    outDir: "dist", // Change the output folder name
     // Other build options
   },
 });

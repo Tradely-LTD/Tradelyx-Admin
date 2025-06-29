@@ -90,8 +90,8 @@ function Button({
         };
       default: // filled
         return {
-          backgroundColor: "#143085",
-          border: "1px solid #143085",
+          backgroundColor: "#029150",
+          border: "1px solid #029150",
           color: "white",
         };
     }

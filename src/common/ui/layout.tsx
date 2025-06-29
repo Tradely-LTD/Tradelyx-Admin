@@ -116,14 +116,14 @@ const Layout: React.FC = () => {
       {hasSidebarAccess && (
         <aside
           ref={sidebarRef}
-          className={`h-full bg-gradient-to-b from-slate-800 to-slate-900 transition-all duration-300 ease-in-out border-r border-gray-200 z-30
+          className={`h-full bg-primary transition-all duration-300 ease-in-out border-r border-gray-200 z-30
             ${isMobile ? "fixed left-0 top-0" : "relative"} 
             ${isMobile && isSidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
             ${isSidebarCollapsed && !isMobile ? "w-16" : "w-64"} shadow-lg`}
         >
           {/* Logo */}
           <div className="flex items-center h-16 px-4 border-b border-slate-700">
-            <div className="p-2 rounded-lg bg-blue-600">
+            <div className="p-2 rounded-lg bg-primary">
               <Drama className="h-6 w-6 text-white" />
             </div>
             <span
@@ -143,7 +143,7 @@ const Layout: React.FC = () => {
                   className={`flex items-center px-4 py-3 my-1 rounded-lg cursor-pointer transition-all duration-200 group relative
                     ${
                       isPathActive(item.path)
-                        ? "bg-blue-600 text-white shadow-lg"
+                        ? "bg-black text-white shadow-lg"
                         : "text-slate-300 hover:bg-slate-700 hover:text-white"
                     }`}
                 >
@@ -183,7 +183,7 @@ const Layout: React.FC = () => {
                           className={`flex items-center p-3 my-1 text-sm rounded-lg cursor-pointer transition-all duration-200
                             ${
                               isPathActive(subItem.path)
-                                ? "bg-blue-500 text-white"
+                                ? "bg-black text-white"
                                 : "text-slate-300 hover:bg-slate-700 hover:text-white"
                             }`}
                         >
@@ -207,7 +207,7 @@ const Layout: React.FC = () => {
                           className={`flex items-center justify-center p-2 my-1 rounded-lg cursor-pointer transition-all duration-200 relative group
                             ${
                               isPathActive(subItem.path)
-                                ? "bg-blue-500 text-white"
+                                ? "bg-black text-white"
                                 : "text-slate-300 hover:bg-slate-700 hover:text-white"
                             }`}
                         >
@@ -233,7 +233,7 @@ const Layout: React.FC = () => {
             {hasSidebarAccess && (
               <button
                 onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-                className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 shadow-sm"
+                className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors duration-200 shadow-sm"
                 aria-label="Toggle sidebar"
               >
                 <Menu className="h-5 w-5" />
@@ -250,9 +250,9 @@ const Layout: React.FC = () => {
             </button>
             <button className="relative p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600">
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+              <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full" />
             </button>
-            <button className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200">
+            <button className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors duration-200">
               <User className="h-5 w-5" />
             </button>
           </div>

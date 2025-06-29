@@ -191,7 +191,7 @@ const ProductManagement: React.FC = () => {
 
         <button
           onClick={() => handleEditProduct()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:bg-blue-400"
+          className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-200"
           disabled={isDeleting}
         >
           Add Product

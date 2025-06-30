@@ -16,6 +16,7 @@ export type StatusType =
   | "company"
   | "individual"
   | "country_admin"
+  | "unassigned"
   | boolean;
 
 interface StatusIndicatorProps {
@@ -78,6 +79,7 @@ const StatusPill = styled.div<{
       case "inactive":
       case "not verify":
       case "not approved":
+      case "unassigned":
         return `
           background: ${pale ? "#FEEAEE" : "#FEE7EB"};
           color: #E11D48;

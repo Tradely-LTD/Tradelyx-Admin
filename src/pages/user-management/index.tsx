@@ -233,7 +233,7 @@ const UserManagement = () => {
                       <StatusIndicator status={user?.isCompany} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.role} />
+                      <StatusIndicator status={user?.role == null ? "unassigned" : user?.role} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <StatusIndicator status={user?.status} />

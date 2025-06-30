@@ -16,7 +16,7 @@ export const thousandFormatter = (value: number) => {
   }).format(value);
 };
 export const capitalizeFirstLetter = (input: string): string => {
-  return input.length > 0 ? input.charAt(0).toUpperCase() + input.slice(1).toLowerCase() : input;
+  return input?.length > 0 ? input.charAt(0).toUpperCase() + input.slice(1).toLowerCase() : input;
 };
 export const formatID = (uuid: string): string => {
   // Extract the first 6 characters, convert to uppercase, and append "XX"

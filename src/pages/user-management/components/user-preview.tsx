@@ -1,4 +1,4 @@
-import { Loader, Mail, Calendar, User, MapPin, ShieldCheck, Building, Phone } from "lucide-react";
+import { Loader, Mail, Calendar, User, MapPin, ShieldCheck,  Phone } from "lucide-react";
 import { useGetUserProfileQuery } from "../user-api";
 import StatusIndicator from "@/common/status/index";
 

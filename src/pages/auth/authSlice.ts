@@ -33,6 +33,7 @@ export const authSlice = createSlice({
     setAuth: setAuthHandler,
     logout: () => {
       localStorage.clear();
+      window.location.href = "/login"; // Redirect to login page
       return initialState;
     },
   },

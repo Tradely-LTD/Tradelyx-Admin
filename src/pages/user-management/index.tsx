@@ -13,6 +13,7 @@ import { useDebounce } from "react-use";
 import TableDropdown from "@/common/dropdown";
 import SellerPreview from "./components/seller-preview";
 import SellerProfileForm from "./components/seller-form";
+import UserPreview from "./components/user-preview";
 
 const UserManagement = () => {
   // State for filters and pagination
@@ -28,6 +29,7 @@ const UserManagement = () => {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewModalOpen, setPreviewIsModalOpen] = useState(false);
+  const [isUserPreviewModalOpen, setUserPreviewIsModalOpen] = useState(false);
   const [isOnboradModalOpen, setIsOnboardIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -59,6 +61,15 @@ const UserManagement = () => {
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setIsModalOpen(true);
+  };
+
+  const handlePreview = (user) => {
+    setSelectedUser(user);
+    if (user.role === "seller") {
+      setPreviewIsModalOpen(true);
+    } else {
+      setUserPreviewIsModalOpen(true);
+    }
   };
 
   // Format date function
@@ -109,7 +120,7 @@ const UserManagement = () => {
               // value={userRole}
               options={[
                 { label: "All Roles", value: "" },
-                // { label: "Admin", value: "admin" },
+                { label: "Admin", value: "unassigned" },
                 { label: "Seller", value: "seller" },
                 { label: "Buyer", value: "buyer" },
               ]}
@@ -198,10 +209,15 @@ const UserManagement = () => {
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                            <User className="w-4 h-4 text-blue-600" />
+                            <User className="w-4 h-4 text-blue-500" />
                           </div>
                         )}
-                        <Text>{`${user.firstName} ${user.lastName}`}</Text>
+                        <div>
+                          <Text>
+                            {user.firstName} {user.lastName}
+                          </Text>
+                          <Text className="text-sm text-gray-500">{user.email}</Text>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
@@ -211,59 +227,53 @@ const UserManagement = () => {
                       <Text>{user.phone}</Text>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.isCompany ? "company" : "individual"} />
+                      <StatusIndicator status={user.isCompany} />
                     </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">{user.country}</td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.isKYCCompleted ? "completed" : "pending"} />
+                      <Text>{user.country}</Text>
                     </td>
-
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.companyVerified ? "verified" : "not verify"} />
+                      <StatusIndicator status={user.isKYCCompleted} />
                     </td>
-
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.role == null ? "null" : user.role} />
+                      <StatusIndicator status={user.isCompany} />
                     </td>
-
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.status ? "verified" : "not verify"} />
+                      <StatusIndicator status={user.role} />
+                    </td>
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <StatusIndicator status={user.status} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <Text>{formatDate(user.createdAt)}</Text>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex space-x-2">
-                        <TableDropdown
-                          items={[
-                            {
-                              label: "Edit",
-                              action: () => handleEditUser(user),
-                              icon: <Edit2 size={14} />,
-                            },
-                            {
-                              label: "View",
-                              action: () => {
-                                setPreviewIsModalOpen(true);
-                                setSelectedUser(user);
-                              },
-                              icon: <Eye size={14} />,
-                            },
-                            ...(user.role === "seller"
-                              ? [
-                                  {
-                                    label: "Onboard Seller",
-                                    action: () => {
-                                      setIsOnboardIsModalOpen(true);
-                                      setSelectedUser(user);
-                                    },
-                                    icon: <HandHelping size={14} />,
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <TableDropdown
+                        items={[
+                          {
+                            label: "Edit User",
+                            icon: <Edit2 size={16} />,
+                            action: () => handleEditUser(user),
+                          },
+                          {
+                            label: "View Details",
+                            icon: <Eye size={16} />,
+                            action: () => handlePreview(user),
+                          },
+                          ...(user.role === "seller"
+                            ? [
+                                {
+                                  label: "Onboard as Seller",
+                                  icon: <HandHelping size={16} />,
+                                  action: () => {
+                                    setSelectedUser(user);
+                                    setIsOnboardIsModalOpen(true);
                                   },
-                                ]
-                              : []),
-                          ]}
-                        />
-                      </div>
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))
@@ -310,10 +320,18 @@ const UserManagement = () => {
       <Modal
         isOpen={isPreviewModalOpen}
         onClose={() => setPreviewIsModalOpen(false)}
-        title="Preview Information"
+        title="Seller Profile"
         className="!max-w-[800px]"
       >
-        <SellerPreview onClose={() => setPreviewIsModalOpen(false)} sellerId={selectedUser?.id} />
+        <SellerPreview sellerId={selectedUser?.id} onClose={() => setPreviewIsModalOpen(false)} />
+      </Modal>
+      <Modal
+        isOpen={isUserPreviewModalOpen}
+        onClose={() => setUserPreviewIsModalOpen(false)}
+        title="User Profile"
+        className="!max-w-[800px]"
+      >
+        <UserPreview userId={selectedUser?.id} onClose={() => setUserPreviewIsModalOpen(false)} />
       </Modal>
       <Modal
         isOpen={isOnboradModalOpen}

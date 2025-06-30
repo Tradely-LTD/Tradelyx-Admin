@@ -82,15 +82,9 @@ const UserManagement = () => {
     );
   };
 
-  // Custom pagination item renderer
-
-  // Extracting pagination details
-  // const paginationData = data?.data.pagination || {
-  //   total: 0,
-  //   currentPage: 1,
-  //   totalPages: 1,
-  //   hasMore: false,
-  // };
+  // Safe data access with proper null checking
+  const users = data?.data || [];
+  const pagination = data?.pagination || { total: 0 };
 
   return (
     <div className="min-h-screen py-5">
@@ -196,8 +190,8 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data && data?.data?.length > 0 ? (
-                data?.data?.map((user) => (
+              {users?.length > 0 ? (
+                users?.map((user) => (
                   <tr key={user?.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <div className="flex items-center">
@@ -279,7 +273,7 @@ const UserManagement = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-4 py-4 text-center">
+                  <td colSpan={11} className="px-4 py-4 text-center">
                     <Text>No users found</Text>
                   </td>
                 </tr>
@@ -289,18 +283,15 @@ const UserManagement = () => {
         )}
 
         {/* Pagination */}
-        {/* {data?.data?.pagination?.total > 0 && ( */}
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
           <Pagination
             current={currentPage}
-            total={Number(data?.pagination?.total)}
+            total={Number(pagination?.total || 0)}
             pageSize={perPage}
             onChange={handlePageChange}
-            // itemRender={itemRender}
             className="flex gap-2"
           />
         </div>
-        {/* )} */}
       </div>
 
       {/* Edit User Modal */}
@@ -316,6 +307,7 @@ const UserManagement = () => {
           }}
         />
       </Modal>
+
       {/* seller data preview  */}
       <Modal
         isOpen={isPreviewModalOpen}
@@ -325,6 +317,7 @@ const UserManagement = () => {
       >
         <SellerPreview sellerId={selectedUser?.id} onClose={() => setPreviewIsModalOpen(false)} />
       </Modal>
+
       <Modal
         isOpen={isUserPreviewModalOpen}
         onClose={() => setUserPreviewIsModalOpen(false)}
@@ -333,6 +326,7 @@ const UserManagement = () => {
       >
         <UserPreview userId={selectedUser?.id} onClose={() => setUserPreviewIsModalOpen(false)} />
       </Modal>
+
       <Modal
         isOpen={isOnboradModalOpen}
         onClose={() => setIsOnboardIsModalOpen(false)}

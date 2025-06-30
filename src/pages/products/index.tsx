@@ -114,7 +114,7 @@ const ProductManagement: React.FC = () => {
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
   };
-  console.log(data);
+
   return (
     <div className="min-h-screen py-5">
       {/* Page Header */}

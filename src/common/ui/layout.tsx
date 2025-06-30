@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/pages/auth/authSlice";
 import { getMenuItems } from "./menuItems";
 import { RootState } from "@/store/store";
+import { Logout } from "iconsax-react";
 
 const Layout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -245,15 +246,13 @@ const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3">
-            <button className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600">
-              <Search className="h-5 w-5" />
-            </button>
-            <button className="relative p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full" />
-            </button>
-            <button className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors duration-200">
-              <User className="h-5 w-5" />
+            <button
+              onClick={() => {
+                dispatch(logout());
+              }}
+              className="p-2 rounded-lg bg-red-500 text-white transition-colors duration-200 "
+            >
+              <Logout className="h-5 w-5" />
             </button>
           </div>
         </header>

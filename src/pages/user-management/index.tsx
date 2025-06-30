@@ -196,15 +196,15 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data && data.data.length > 0 ? (
-                data.data.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
+              {data && data?.data?.length > 0 ? (
+                data?.data?.map((user) => (
+                  <tr key={user?.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <div className="flex items-center">
-                        {user.profileImage ? (
+                        {user?.profileImage ? (
                           <img
-                            src={user.profileImage}
-                            alt={`${user.firstName} ${user.lastName}`}
+                            src={user?.profileImage}
+                            alt={`${user?.firstName} ${user?.lastName}`}
                             className="w-8 h-8 rounded-full mr-2 object-cover"
                           />
                         ) : (
@@ -214,38 +214,38 @@ const UserManagement = () => {
                         )}
                         <div>
                           <Text>
-                            {user.firstName} {user.lastName}
+                            {user?.firstName} {user?.lastName}
                           </Text>
-                          <Text className="text-sm text-gray-500">{user.email}</Text>
+                          <Text className="text-sm text-gray-500">{user?.email}</Text>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{user.email}</Text>
+                      <Text>{user?.email}</Text>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{user.phone}</Text>
+                      <Text>{user?.phone}</Text>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.isCompany} />
+                      <StatusIndicator status={user?.isCompany} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{user.country}</Text>
+                      <Text>{user?.country}</Text>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.isKYCCompleted} />
+                      <StatusIndicator status={user?.isKYCCompleted} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.isCompany} />
+                      <StatusIndicator status={user?.isCompany} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.role} />
+                      <StatusIndicator status={user?.role} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user.status} />
+                      <StatusIndicator status={user?.status} />
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{formatDate(user.createdAt)}</Text>
+                      <Text>{formatDate(user?.createdAt)}</Text>
                     </td>
                     <td className="px-4 py-4 border-r border-[#EDEDED]">
                       <TableDropdown

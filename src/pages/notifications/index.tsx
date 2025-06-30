@@ -118,9 +118,7 @@ const NotificationManagement = () => {
                 <th className="px-4 py-4 font-medium">
                   <Text>Message</Text>
                 </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>User ID</Text>
-                </th>
+
                 <th className="px-4 py-4 font-medium">
                   <Text>Thumbnail</Text>
                 </th>
@@ -141,9 +139,7 @@ const NotificationManagement = () => {
                   <td className="px-4 py-4 border-r border-[#EDEDED]">
                     <Text className="truncate max-w-xs">{notification.message}</Text>
                   </td>
-                  <td className="px-4 py-4 border-r border-[#EDEDED]">
-                    <Text>{notification.userId}</Text>
-                  </td>
+
                   <td className="px-4 py-4 border-r border-[#EDEDED]">
                     {notification.thumbnail ? (
                       <img

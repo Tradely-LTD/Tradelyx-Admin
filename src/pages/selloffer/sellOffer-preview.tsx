@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { useState } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
@@ -10,16 +9,24 @@ interface SellOfferPreviewProps {
   onClose: () => void;
 }
 
+// Utility function to safely parse JSON
+const safeParseJSON = (jsonString: string | unknown) => {
+  try {
+    return typeof jsonString === "string" ? JSON.parse(jsonString) : jsonString;
+  } catch (error) {
+    console.error("Failed to parse JSON:", error);
+    return null;
+  }
+};
+
 const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
   const [activeDocument, setActiveDocument] = useState<string | null>(null);
   const [documentLoading, setDocumentLoading] = useState<boolean>(false);
   const [updateSellOffer, { isLoading: updatingOffer }] = useUpdateSellOfferMutation();
   const { data, isLoading } = useGetSellofferQuery({ id: offerId });
-
   const offer = data?.data;
 
   const handleStatusToggle = async (status: boolean) => {
-    console.log({ ...offer, isActive: status });
     try {
       await updateSellOffer({
         id: offerId,
@@ -322,7 +329,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
         <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
           {offer?.thumbnail ? (
             <img
-              src={offer.thumbnail}
+              src={offer?.thumbnail}
               alt="Sell Offer Thumbnail"
               className="w-full h-full object-cover"
             />
@@ -392,7 +399,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
                 <p className="text-sm text-gray-500">Quantity</p>
                 <p>
                   {offer?.quantityAndUnit
-                    ? `${offer.quantityAndUnit.value} ${offer.quantityAndUnit.unit}`
+                    ? `${offer.quantityAndUnit.quantity} ${offer.quantityAndUnit.unit}`
                     : "N/A"}
                 </p>
               </div>
@@ -400,13 +407,15 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
                 <p className="text-sm text-gray-500">Base Price</p>
                 <p>
                   {offer?.basePrice
-                    ? `${offer.basePrice.value} ${offer.basePrice.currency}`
+                    ? `${offer.basePrice.amount} ${offer.basePrice.currency}`
                     : "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Package Type</p>
-                <p>{offer?.packageType || "N/A"}</p>
+                <p>
+                  {offer?.packageType ? safeParseJSON(offer.packageType)?.title || "N/A" : "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Package Description</p>
@@ -414,7 +423,9 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Payment Type</p>
-                <p>{offer?.paymentType || "N/A"}</p>
+                <p>
+                  {offer?.paymentType ? safeParseJSON(offer.paymentType)?.title || "N/A" : "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Offer Validity Date</p>
@@ -430,11 +441,11 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Country of Origin</p>
-                <p>{offer?.originLocation?.country || "N/A"}</p>
+                <p>{offer?.originLocation || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">City</p>
-                <p>{offer?.originLocation?.city || "N/A"}</p>
+                <p>{offer?.originLocation || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Landmark</p>
@@ -464,13 +475,11 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Active</p>
-                {/* <p>{offer?.isActive ? "Actu" : "No"}</p> */}
-                <StatusIndicator status={offer.isActive ? "active" : "inactive"} />
+                <StatusIndicator status={offer?.isActive ? "active" : "inactive"} />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Approved</p>
-                {/* <p>{offer?.status ? "Yes" : "No"}</p> */}
-                <StatusIndicator status={offer.status ? "approved" : "not approved"} />
+                <StatusIndicator status={offer?.status ? "approved" : "not approved"} />
               </div>
             </div>
           </div>
@@ -484,7 +493,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
         >
           Close
         </button>
-        {/* <Button
+        <Button
           onClick={() => handleStatusToggle(!offer?.isActive)}
           disabled={updatingOffer}
           leftIcon={
@@ -499,7 +508,7 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
           }
         >
           {offer?.isActive ? "Unapprove Offer" : "Approve Offer"}
-        </Button> */}
+        </Button>
       </div>
 
       <DocumentPreview />

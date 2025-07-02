@@ -18,6 +18,16 @@ import {
 } from "../selloffer/sell-offer-api";
 import { useUserSlice } from "../auth/authSlice";
 
+// Utility function to safely parse JSON
+const safeParseJSON = (jsonString: string | unknown) => {
+  try {
+    return typeof jsonString === "string" ? JSON.parse(jsonString) : jsonString;
+  } catch (error) {
+    console.error("Failed to parse JSON:", error);
+    return null;
+  }
+};
+
 // Validation schema using Yup
 const validationSchema = yup.object({
   title: yup.string().required("Offer title is required"),
@@ -53,8 +63,8 @@ const validationSchema = yup.object({
     }),
   detailedDescription: yup.string().required("Description is required"),
   thumbnail: yup.string().nullable(),
-  companyLogo: yup.string().nullable(), // Now optional as it's auto-populated
-  companyName: yup.string().nullable(), // Now optional as it's auto-populated
+  companyLogo: yup.string().nullable(),
+  companyName: yup.string().nullable(),
   tags: yup.array().of(yup.string()).default([]),
   productImages: yup.array().of(yup.string().max(255)).default([]),
   packageDescription: yup.string().nullable(),
@@ -66,16 +76,16 @@ const validationSchema = yup.object({
     .object()
     .shape({
       unit: yup.string().required("Unit is required"),
-      value: yup
+      quantity: yup
         .string()
-        .required("Value is required")
-        .matches(/^[0-9]+$/, "Value must be a number"),
+        .required("Quantity is required")
+        .matches(/^[0-9]+$/, "Quantity must be a number"),
     })
     .nullable(),
   basePrice: yup
     .object()
     .shape({
-      value: yup
+      amount: yup
         .string()
         .required("Price is required")
         .matches(/^[0-9]+(\.[0-9]{1,2})?$/, "Invalid price format"),
@@ -127,14 +137,17 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
       creatorId: offerData?.creatorId
         ? { label: offerData.creatorId, value: offerData.creatorId }
         : { label: "", value: "" },
-      createdById: offerData?.createdById || adminId || "", // Ensure string
+      createdById: offerData?.createdById || adminId || "",
       productCategory: offerData?.productCategory
         ? { label: offerData.productCategory, value: offerData.productCategory }
         : { label: "", value: "" },
       packageType: isEditMode
         ? null
         : offerData?.packageType
-        ? { label: offerData.packageType, value: offerData.packageType }
+        ? {
+            label: safeParseJSON(offerData.packageType)?.title || offerData.packageType,
+            value: safeParseJSON(offerData.packageType)?.value || offerData.packageType,
+          }
         : { label: "", value: "" },
       detailedDescription: offerData?.detailedDescription || "",
       thumbnail: offerData?.thumbnail || null,
@@ -147,12 +160,19 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
       isDomestic: offerData?.isDomestic ?? true,
       isActive: offerData?.isActive ?? true,
       status: offerData?.status ?? false,
-      quantityAndUnit: offerData?.quantityAndUnit || { unit: "", value: "" },
-      basePrice: offerData?.basePrice || { value: "", currency: "" },
+      quantityAndUnit: offerData?.quantityAndUnit || { unit: "", quantity: "" },
+      basePrice: offerData?.basePrice || { amount: "", currency: "" },
       paymentType: offerData?.paymentType
-        ? { label: offerData.paymentType, value: offerData.paymentType }
+        ? {
+            label: safeParseJSON(offerData.paymentType)?.title || offerData.paymentType,
+            value: safeParseJSON(offerData.paymentType)?.value || offerData.paymentType,
+          }
         : { label: "", value: "" },
-      originLocation: offerData?.originLocation || { country: "", city: "" },
+      originLocation: offerData?.originLocation
+        ? typeof offerData.originLocation === "string"
+          ? { country: offerData.originLocation, city: "" }
+          : offerData.originLocation
+        : { country: "", city: "" },
       offerValidityDate: offerData?.offerValidityDate || null,
     }),
     [offerData, isEditMode, adminId, companyName, companyLogo]
@@ -173,20 +193,31 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
           creatorId: offerData.creatorId
             ? { label: offerData.creatorId, value: offerData.creatorId }
             : { label: "", value: "" },
-          createdById: offerData.createdById || adminId || "", // Ensure string
+          createdById: offerData.createdById || adminId || "",
           productCategory: offerData.productCategory
             ? { label: offerData.productCategory, value: offerData.productCategory }
             : { label: "", value: "" },
           packageType: isEditMode
             ? null
             : offerData.packageType
-            ? { label: offerData.packageType, value: offerData.packageType }
+            ? {
+                label: safeParseJSON(offerData.packageType)?.title || offerData.packageType,
+                value: safeParseJSON(offerData.packageType)?.value || offerData.packageType,
+              }
             : { label: "", value: "" },
           paymentType: offerData.paymentType
-            ? { label: offerData.paymentType, value: offerData.paymentType }
+            ? {
+                label: safeParseJSON(offerData.paymentType)?.title || offerData.paymentType,
+                value: safeParseJSON(offerData.paymentType)?.value || offerData.paymentType,
+              }
             : { label: "", value: "" },
           companyName: companyName || null,
           companyLogo: companyLogo || null,
+          originLocation: offerData.originLocation
+            ? typeof offerData.originLocation === "string"
+              ? { country: offerData.originLocation, city: "" }
+              : offerData.originLocation
+            : { country: "", city: "" },
         }
       : undefined,
     context: { isEditMode },
@@ -197,25 +228,30 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
       const payload = {
         ...formData,
         productCategory: formData.productCategory.value,
-        packageType: formData.packageType?.value,
+        packageType: formData.packageType
+          ? JSON.stringify({ title: formData.packageType.label, value: formData.packageType.value })
+          : null,
         creatorId: formData.creatorId?.value,
-        createdById: isEditMode ? offerData.createdById : adminId, // Use string
-        paymentType: formData.paymentType.value,
+        createdById: isEditMode ? offerData.createdById : adminId,
+        paymentType: JSON.stringify({
+          title: formData.paymentType.label,
+          value: formData.paymentType.value,
+        }),
         tags: formData.tags || [],
         productImages: formData.productImages || [],
         quantityAndUnit:
-          formData.quantityAndUnit.unit && formData.quantityAndUnit.value
-            ? { unit: formData.quantityAndUnit.unit, value: formData.quantityAndUnit.value }
+          formData.quantityAndUnit.unit && formData.quantityAndUnit.quantity
+            ? { unit: formData.quantityAndUnit.unit, quantity: formData.quantityAndUnit.quantity }
             : null,
         basePrice:
-          formData.basePrice.value && formData.basePrice.currency
-            ? { value: formData.basePrice.value, currency: formData.basePrice.currency }
+          formData.basePrice.amount && formData.basePrice.currency
+            ? { amount: formData.basePrice.amount, currency: formData.basePrice.currency }
             : null,
         originLocation: formData.originLocation.country
           ? { country: formData.originLocation.country, city: formData.originLocation.city }
           : null,
-        companyName: companyName || null, // Use fetched company name
-        companyLogo: companyLogo || null, // Use fetched company logo
+        companyName: companyName || null,
+        companyLogo: companyLogo || null,
       };
 
       if (!isEditMode) {
@@ -366,7 +402,6 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
             <div>
               <h3 className="font-semibold text-gray-800 mb-3">Company Information</h3>
               <div className="space-y-4">
-                {/* Display Company Information */}
                 {(userId || isEditMode) && (
                   <div className="space-y-2">
                     <div>
@@ -476,13 +511,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                     )}
                   />
                   <Controller
-                    name="quantityAndUnit.value"
+                    name="quantityAndUnit.quantity"
                     control={control}
                     render={({ field }) => (
                       <Input
                         type="text"
                         label="Quantity"
-                        error={errors.quantityAndUnit?.value?.message}
+                        error={errors.quantityAndUnit?.quantity?.message}
                         required
                         {...field}
                       />
@@ -495,13 +530,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                 <h4 className="text-sm font-medium text-gray-700">Base Price</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <Controller
-                    name="basePrice.value"
+                    name="basePrice.amount"
                     control={control}
                     render={({ field }) => (
                       <Input
                         type="text"
                         label="Price"
-                        error={errors.basePrice?.value?.message}
+                        error={errors.basePrice?.amount?.message}
                         required
                         {...field}
                       />
@@ -599,6 +634,7 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                     { label: "Bank Transfer", value: "bank_transfer" },
                     { label: "Credit Card", value: "credit_card" },
                     { label: "Cash on Delivery", value: "cod" },
+                    { label: "Advance Payment", value: "Advance Payment" },
                   ]}
                   required
                   value={field.value}

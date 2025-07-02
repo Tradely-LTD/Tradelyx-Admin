@@ -89,6 +89,11 @@ export const sellOfferApi = baseApi.injectEndpoints({
         method: Methods.Get,
       }),
       providesTags: ["SELLOFFER"],
+
+      transformResponse: (response: Product): ProductResponse => ({
+        message: "Product retrieved successfully",
+        data: response.data,
+      }),
     }),
 
     getSellOffers: builder.query<GetSelloffersResponse, SellOfferQueryParams>({

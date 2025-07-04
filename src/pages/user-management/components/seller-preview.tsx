@@ -28,6 +28,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
   const { data, isLoading } = useGetUserQuery({ id: sellerId });
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const seller = data;
+
   const handleApprove = async () => {
     try {
       await updateUser({

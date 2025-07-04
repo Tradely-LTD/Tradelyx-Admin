@@ -114,9 +114,11 @@ const UserManagement = () => {
               // value={userRole}
               options={[
                 { label: "All Roles", value: "" },
-                { label: "Admin", value: "unassigned" },
+                { label: "Admin", value: "admin" },
                 { label: "Seller", value: "seller" },
                 { label: "Buyer", value: "buyer" },
+                { label: "Agent", value: "agent" },
+                { label: "Unassigned", value: "null" },
               ]}
               onSelectChange={(e) => {
                 setUserRole(e.value);

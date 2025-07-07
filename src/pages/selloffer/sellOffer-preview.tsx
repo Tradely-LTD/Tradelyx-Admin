@@ -1,9 +1,41 @@
 //@ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
 import { useGetSellofferQuery, useUpdateSellOfferMutation } from "./sell-offer-api";
 import StatusIndicator from "@/common/status";
+
+interface OriginLocation {
+  country: string;
+  state?: string;
+  city?: string;
+}
+
+interface SellOffer {
+  id: string;
+  title: string;
+  productCategory: string;
+  detailedDescription: string;
+  tags: string[];
+  companyName: string;
+  companyLogo: string;
+  creatorId: string;
+  firstName: string;
+  lastName: string;
+  quantityAndUnit: { quantity: string; unit: string };
+  basePrice: { amount: string; currency: string };
+  packageType: string;
+  packageDescription: string;
+  paymentType: string;
+  offerValidityDate: string | Date | null;
+  originLocation: OriginLocation | string;
+  landMark: string;
+  isDomestic: boolean;
+  isActive: boolean;
+  status: boolean;
+  productImages: string[];
+  thumbnail: string;
+}
 
 interface SellOfferPreviewProps {
   offerId: string;
@@ -25,13 +57,42 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
   const [documentLoading, setDocumentLoading] = useState<boolean>(false);
   const [updateSellOffer, { isLoading: updatingOffer }] = useUpdateSellOfferMutation();
   const { data, isLoading } = useGetSellofferQuery({ id: offerId });
-  const offer = data?.data;
+  const offer: SellOffer | undefined = data?.data;
+
+  // Debug offer data
+  useEffect(() => {
+    console.log("offer:", offer);
+    console.log("offer.offerValidityDate:", offer?.offerValidityDate);
+    console.log("offer.originLocation:", offer?.originLocation);
+  }, [offer]);
 
   const handleStatusToggle = async (status: boolean) => {
     try {
+      // Normalize offerValidityDate and originLocation
+      const normalizedOffer = {
+        ...offer,
+        isActive: status,
+        offerValidityDate: offer?.offerValidityDate
+          ? typeof offer.offerValidityDate === "string"
+            ? offer.offerValidityDate
+            : offer.offerValidityDate instanceof Date
+            ? offer.offerValidityDate.toISOString()
+            : null
+          : null,
+        originLocation: offer?.originLocation
+          ? typeof offer.originLocation === "string"
+            ? { country: offer.originLocation, state: "", city: "" }
+            : {
+                country: offer.originLocation.country || "",
+                state: offer.originLocation.state || "",
+                city: offer.originLocation.city || "",
+              }
+          : { country: "", state: "", city: "" },
+      };
+
       await updateSellOffer({
         id: offerId,
-        data: { ...offer, isActive: status },
+        data: normalizedOffer,
       })
         .unwrap()
         .then(() => {
@@ -42,9 +103,12 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
     }
   };
 
-  const formatDate = (dateString: string | null): string => {
+  const formatDate = (dateString: string | Date | null): string => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+    return date instanceof Date && !isNaN(date.getTime())
+      ? date.toLocaleDateString()
+      : "Invalid Date";
   };
 
   const getFileType = (url: string): string => {
@@ -442,11 +506,33 @@ const SellOfferPreview = ({ offerId, onClose }: SellOfferPreviewProps) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Country of Origin</p>
-                <p>{offer?.originLocation || "N/A"}</p>
+                <p>
+                  {offer?.originLocation
+                    ? typeof offer.originLocation === "string"
+                      ? offer.originLocation
+                      : offer.originLocation.country || "N/A"
+                    : "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">State</p>
+                <p>
+                  {offer?.originLocation
+                    ? typeof offer.originLocation === "string"
+                      ? "N/A"
+                      : offer.originLocation.state || "N/A"
+                    : "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">City</p>
-                <p>{offer?.originLocation || "N/A"}</p>
+                <p>
+                  {offer?.originLocation
+                    ? typeof offer.originLocation === "string"
+                      ? "N/A"
+                      : offer.originLocation.city || "N/A"
+                    : "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Landmark</p>

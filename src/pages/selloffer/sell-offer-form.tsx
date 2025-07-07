@@ -5,7 +5,7 @@ import * as yup from "yup";
 import Input from "@/common/input/input";
 import Button from "@/common/button/button";
 import { Loader } from "@/common/loader/loader";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PackageTypesForm, ProductCategories, Units } from "@/constant";
 import { useGetUserQuery, useGetUsersQuery } from "@/pages/user-management/user-api";
 import { Save } from "lucide-react";
@@ -103,6 +103,7 @@ const validationSchema = yup.object({
     .object()
     .shape({
       country: yup.string().required("Country is required"),
+      state: yup.string().nullable(),
       city: yup.string().nullable(),
     })
     .required("Origin location is required"),
@@ -126,6 +127,11 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
   const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500, role: "seller" });
   const { data: user, isLoading: loadingUser } = useGetUserQuery({ id: userId }, { skip: !userId });
   const [uploadsFile] = useUploadsFileMutation();
+
+  // Debug offerData.originLocation
+  useEffect(() => {
+    console.log("offerData.originLocation:", offerData?.originLocation);
+  }, [offerData]);
 
   // Set company data from user response
   const companyName = user?.data?.companyInfo?.name || offerData?.companyName || "";
@@ -170,9 +176,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
         : { label: "", value: "" },
       originLocation: offerData?.originLocation
         ? typeof offerData.originLocation === "string"
-          ? { country: offerData.originLocation, city: "" }
-          : offerData.originLocation
-        : { country: "", city: "" },
+          ? { country: offerData.originLocation, state: "", city: "" }
+          : {
+              country: offerData.originLocation.country || "",
+              state: offerData.originLocation.state || "",
+              city: offerData.originLocation.city || "",
+            }
+        : { country: "", state: "", city: "" },
       offerValidityDate: offerData?.offerValidityDate || null,
     }),
     [offerData, isEditMode, adminId, companyName, companyLogo]
@@ -215,9 +225,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
           companyLogo: companyLogo || null,
           originLocation: offerData.originLocation
             ? typeof offerData.originLocation === "string"
-              ? { country: offerData.originLocation, city: "" }
-              : offerData.originLocation
-            : { country: "", city: "" },
+              ? { country: offerData.originLocation, state: "", city: "" }
+              : {
+                  country: offerData.originLocation.country || "",
+                  state: offerData.originLocation.state || "",
+                  city: offerData.originLocation.city || "",
+                }
+            : { country: "", state: "", city: "" },
         }
       : undefined,
     context: { isEditMode },
@@ -248,7 +262,11 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
             ? { amount: formData.basePrice.amount, currency: formData.basePrice.currency }
             : null,
         originLocation: formData.originLocation.country
-          ? { country: formData.originLocation.country, city: formData.originLocation.city }
+          ? {
+              country: formData.originLocation.country || "",
+              state: formData.originLocation.state || "",
+              city: formData.originLocation.city || "",
+            }
           : null,
         companyName: companyName || null,
         companyLogo: companyLogo || null,
@@ -305,6 +323,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                       label="Offer Title"
                       error={errors.title?.message}
                       required
+                      value={field.value || ""}
+                      onChange={field.onChange}
                       {...field}
                     />
                   )}
@@ -363,6 +383,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                       label="Detailed Description"
                       error={errors.detailedDescription?.message}
                       required
+                      value={field.value || ""}
+                      onChange={field.onChange}
                       {...field}
                     />
                   )}
@@ -388,7 +410,7 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                       type="text"
                       label="Tags (comma-separated)"
                       error={errors.tags?.message}
-                      value={field.value.join(", ")}
+                      value={field.value.join(", ") || ""}
                       onChange={(e) =>
                         field.onChange(e.target.value.split(",").map((tag) => tag.trim()))
                       }
@@ -462,13 +484,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                 <Controller
                   name="packageDescription"
                   control={control}
-                  render={({ field: { value, onChange, ...field } }) => (
+                  render={({ field }) => (
                     <Input
                       type="textarea"
                       label="Package Description"
                       error={errors.packageDescription?.message}
-                      value={value || ""}
-                      onChange={onChange}
+                      value={field.value || ""}
+                      onChange={field.onChange}
                       {...field}
                     />
                   )}
@@ -519,6 +541,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                         label="Quantity"
                         error={errors.quantityAndUnit?.quantity?.message}
                         required
+                        value={field.value || ""}
+                        onChange={field.onChange}
                         {...field}
                       />
                     )}
@@ -538,6 +562,8 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                         label="Price"
                         error={errors.basePrice?.amount?.message}
                         required
+                        value={field.value || ""}
+                        onChange={field.onChange}
                         {...field}
                       />
                     )}
@@ -586,6 +612,23 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                     label="Country of Origin"
                     error={errors.originLocation?.country?.message}
                     required
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    {...field}
+                  />
+                )}
+              />
+
+              <Controller
+                name="originLocation.state"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    type="text"
+                    label="State"
+                    error={errors.originLocation?.state?.message}
+                    value={field.value || ""}
+                    onChange={field.onChange}
                     {...field}
                   />
                 )}
@@ -594,13 +637,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
               <Controller
                 name="originLocation.city"
                 control={control}
-                render={({ field: { value, onChange, ...field } }) => (
+                render={({ field }) => (
                   <Input
                     type="text"
                     label="City"
                     error={errors.originLocation?.city?.message}
-                    value={value || ""}
-                    onChange={onChange}
+                    value={field.value || ""}
+                    onChange={field.onChange}
                     {...field}
                   />
                 )}
@@ -609,13 +652,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
               <Controller
                 name="landMark"
                 control={control}
-                render={({ field: { value, onChange, ...field } }) => (
+                render={({ field }) => (
                   <Input
                     type="text"
                     label="Landmark"
                     error={errors.landMark?.message}
-                    value={value || ""}
-                    onChange={onChange}
+                    value={field.value || ""}
+                    onChange={field.onChange}
                     {...field}
                   />
                 )}
@@ -646,13 +689,13 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
             <Controller
               name="offerValidityDate"
               control={control}
-              render={({ field: { value, onChange, ...field } }) => (
+              render={({ field }) => (
                 <Input
                   type="date"
                   label="Offer Validity Date"
                   error={errors.offerValidityDate?.message}
-                  value={value || ""}
-                  onChange={onChange}
+                  value={field.value || ""}
+                  onChange={field.onChange}
                   {...field}
                 />
               )}

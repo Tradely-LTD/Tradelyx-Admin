@@ -144,7 +144,7 @@ export const productApi = baseApi.injectEndpoints({
 
     getProducts: builder.query<ProductsResponse, GetProductsQueryParams>({
       query: (params) => ({
-        url: "/product/admin",
+        url: "/product/dashboard",
         method: Methods.Get,
         params,
       }),

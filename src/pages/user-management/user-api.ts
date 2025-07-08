@@ -97,7 +97,7 @@ export const authApi = baseApi.injectEndpoints({
     getUsers: builder.query<UsersResponse, GetUsersQueryParams>({
       query: (params) => {
         return {
-          url: `profile`,
+          url: `profile/dashboard`,
           method: Methods.Get,
           params,
         };

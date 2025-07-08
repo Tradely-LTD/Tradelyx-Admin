@@ -98,7 +98,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
 
     getSellOffers: builder.query<GetSelloffersResponse, SellOfferQueryParams>({
       query: (params) => ({
-        url: "/sell-offer/all",
+        url: "/sell-offer/dashboard",
         method: Methods.Get,
         params,
       }),
@@ -107,7 +107,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
 
     getSellOfferStats: builder.query<{ data: Product[] }, void>({
       query: () => ({
-        url: `/sell-offer/stats`,
+        url: `/sell-offer/dashboard/stats`,
         method: Methods.Get,
       }),
       providesTags: ["SELLOFFER"],

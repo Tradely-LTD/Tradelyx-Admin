@@ -26,7 +26,8 @@ const Layout: React.FC = () => {
   const menuItems = getMenuItems(userRole);
 
   // Check if user has access to sidebar (only admin and country_admin)
-  const hasSidebarAccess = userRole === "admin" || userRole === "country_admin";
+  const hasSidebarAccess =
+    userRole === "admin" || userRole === "country_admin" || userRole === "agent";
 
   // Handle clicks outside sidebar for mobile view
   useEffect(() => {

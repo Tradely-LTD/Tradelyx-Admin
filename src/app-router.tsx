@@ -8,6 +8,7 @@ import UserManagement from "./pages/user-management";
 import ProductManagement from "./pages/products";
 import SellOfferManagement from "./pages/selloffer";
 import NotificationManagement from "./pages/notifications";
+import ReferralManagement from "./pages/referrals";
 
 function AppRouter() {
   return (
@@ -20,6 +21,7 @@ function AppRouter() {
           <Route path="users" element={<UserManagement />} />
           <Route path="product" element={<ProductManagement />} />
           <Route path="sell-offer" element={<SellOfferManagement />} />
+          <Route path="referrals" element={<ReferralManagement />} />
           <Route path="notifications" element={<NotificationManagement />} />
         </Route>
       </Routes>

@@ -32,7 +32,7 @@ interface MenuItem {
 
 export const getMenuItems = (userRole?: string | null): MenuItem[] => {
   // If no user role is provided or user is not admin/country_admin, return empty array
-  if (!userRole || (userRole !== "admin" && userRole !== "country_admin")) {
+  if (!userRole || (userRole !== "admin" && userRole !== "country_admin" && userRole !== "agent")) {
     return [];
   }
 
@@ -62,6 +62,12 @@ export const getMenuItems = (userRole?: string | null): MenuItem[] => {
       description: "Manage sell offer inventory and details",
     },
     {
+      icon: IoTimeSharp,
+      label: "Referrals",
+      path: "/referrals",
+      description: "Manage referral inventory and details",
+    },
+    {
       icon: BellIcon,
       label: "Notifications",
       path: "/notifications",
@@ -85,6 +91,9 @@ export const getMenuItems = (userRole?: string | null): MenuItem[] => {
 
     // Check if user role matches the required privileges
     if (userRole === "admin" && item.privilege.includes("SUPER_ADMIN")) {
+      return true;
+    }
+    if (userRole === "agent" && item.privilege.includes("AGENT")) {
       return true;
     }
 

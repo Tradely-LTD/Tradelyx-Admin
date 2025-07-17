@@ -91,7 +91,7 @@ const ReferralManagement: React.FC = () => {
         />
         <Card
           title="Total Referrals"
-          value={referralStats?.data.totalReferrals}
+          value={referralStats?.data?.totalReferredUser}
           icon={<ShieldCheck size={24} />}
           color="#187c53"
           description="Total referred users"
@@ -99,10 +99,18 @@ const ReferralManagement: React.FC = () => {
         />
         <Card
           title="Verified Referrals"
-          value={referralStats?.data.verifiedReferrals}
+          value={referralStats?.data?.verifiedReferrals}
           icon={<ShieldOff size={24} />}
           color="#c38555"
           description="Verified referred users"
+          loading={isLoadingStats}
+        />
+        <Card
+          title="Pending Sellers"
+          value={referralStats?.data?.sellersWithoutKyc}
+          icon={<ShieldOff size={24} />}
+          color="#c38555"
+          description="Sellers without KYC verification"
           loading={isLoadingStats}
         />
       </div>

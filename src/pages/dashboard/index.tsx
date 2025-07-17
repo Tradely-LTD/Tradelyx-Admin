@@ -1,6 +1,6 @@
 import Skeleton from "react-loading-skeleton";
 import { Users, Package, ShoppingCart, Truck, ShieldCheck, User } from "lucide-react";
-import { useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";
+import { useGetAgentStatsQuery, useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";
 import {
   BarChart,
   Bar,
@@ -14,11 +14,10 @@ import {
 import { useUserSlice } from "../auth/authSlice";
 
 export default function AdminDashboard() {
-  const { data, isLoading: statsLoading } = useGetStatsQuery({});
-  const { data: chartData, isLoading: chartLoading } = useGetStatsChartQuery({});
   const { loginResponse } = useUserSlice();
   const isSuperAdmin = loginResponse?.user.roles === "admin";
-
+  const { data, isLoading: statsLoading } = useGetStatsQuery({});
+  const { data: chartData, isLoading: chartLoading } = useGetStatsChartQuery({});
   return (
     <div className="min-h-screen py-5 px-4 sm:px-6 lg:px-8">
       <div className="mb-6">

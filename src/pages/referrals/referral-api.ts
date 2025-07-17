@@ -20,9 +20,11 @@ interface ReferralResponse {
 interface ReferralStatsResponse {
   success: boolean;
   data: {
-    totalReferrals: number;
+    totalReferredUser: number;
     verifiedReferrals: number;
     referalCode: string;
+    sellersWithoutKyc: number;
+    totalSellers: number;
   };
 }
 
@@ -55,7 +57,7 @@ export const referralApi = baseApi.injectEndpoints({
 
     getReferralStats: builder.query<ReferralStatsResponse, void>({
       query: () => ({
-        url: "/referrals/stats",
+        url: "/referrals/dashboard/stats",
         method: Methods.Get,
       }),
       providesTags: ["REFERRALS"],

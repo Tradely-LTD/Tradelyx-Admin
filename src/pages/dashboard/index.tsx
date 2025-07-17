@@ -1,6 +1,6 @@
 import Skeleton from "react-loading-skeleton";
 import { Users, Package, ShoppingCart, Truck, ShieldCheck, User } from "lucide-react";
-import { useGetAgentStatsQuery, useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";
+import { useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";
 import {
   BarChart,
   Bar,

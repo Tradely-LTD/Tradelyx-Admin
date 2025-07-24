@@ -16,6 +16,7 @@ import { useGetUsersQuery } from "@/pages/user-management/user-api";
 import { Save } from "lucide-react";
 import { useUploadsFileMutation } from "@/store/uploads";
 import FileUploader from "@/common/files-uploader";
+import { useUserSlice } from "@/pages/auth/authSlice";
 
 // Validation schema using Yup
 const validationSchema = yup.object({
@@ -98,6 +99,8 @@ function ProductForm({ id, onClose }: ProductFormProps) {
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const { data, isLoading: isLoadingProduct } = useGetProductQuery({ id }, { skip: !id });
   const productData = data?.data;
+  const { loginResponse } = useUserSlice();
+  const creator_id = loginResponse?.user.id;
 
   const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500 });
 
@@ -166,8 +169,10 @@ function ProductForm({ id, onClose }: ProductFormProps) {
       const payload = {
         ...formData,
         category: formData.category.value,
+        creatorId: creator_id,
         packagingType: formData.packaging_type?.value,
-        creatorId: formData.creatorId?.value,
+        //  confrim label name
+        ownerId: formData.creatorId?.value,
         tags: formData.tags || [],
         produtVerified: formData.productVerified,
         documents: formData.documents || [],

@@ -19,6 +19,7 @@ import {
 } from "./product-api";
 import ProductPreview from "./components/product-preview";
 import Card from "@/common/cards/card";
+import { pageSizeOptions } from "@/utils/constant";
 
 interface Product {
   id: string;
@@ -34,7 +35,10 @@ const ProductManagement: React.FC = () => {
   // State for filters and pagination
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [perPage] = useState<number>(10);
+  const [perPage, setPerPage] = useState({
+    label: "10 per page",
+    value: 10,
+  });
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   // State for debounced search
@@ -60,7 +64,7 @@ const ProductManagement: React.FC = () => {
   // Fetch products data with query params
   const { data, isLoading, isFetching } = useGetProductsQuery({
     page: currentPage,
-    limit: perPage,
+    limit: perPage.value,
     search: debouncedSearchTerm,
     status: statusFilter,
   });
@@ -113,6 +117,10 @@ const ProductManagement: React.FC = () => {
       " " +
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
+  };
+  const handlePageSizeChange = (newPageSize) => {
+    setPerPage(newPageSize);
+    setCurrentPage(1);
   };
 
   return (
@@ -297,17 +305,8 @@ const ProductManagement: React.FC = () => {
         )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
-          <Pagination
-            current={currentPage}
-            total={Number(data?.pagination.total) || 0}
-            pageSize={perPage}
-            onChange={handlePageChange}
-            className="flex gap-2"
-          />
-        </div>
       </div>
-
+    
       {/* Add/Edit Product Modal */}
       <Modal
         isOpen={isModalOpen}

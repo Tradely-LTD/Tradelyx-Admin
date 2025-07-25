@@ -11,6 +11,7 @@ import { useDebounce } from "react-use";
 import { useGetReferralStatsQuery, useGetReferralsQuery } from "./referral-api";
 import Card from "@/common/cards/card";
 import ReferralPreview from "./components/referral-preview";
+import { pageSizeOptions } from "@/utils/constant";
 
 interface ReferredUser {
   id: string;
@@ -26,7 +27,10 @@ const ReferralManagement: React.FC = () => {
   // State for filters and pagination
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [perPage] = useState<number>(10);
+  const [perPage, setPerPage] = useState({
+    label: "10 per page",
+    value: 10,
+  });
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
   const [isPreviewModalOpen, setPreviewIsModalOpen] = useState<boolean>(false);
@@ -45,7 +49,7 @@ const ReferralManagement: React.FC = () => {
   const { data: referralStats, isLoading: isLoadingStats } = useGetReferralStatsQuery();
   const { data, isLoading, isFetching } = useGetReferralsQuery({
     page: currentPage,
-    limit: perPage,
+    limit: perPage.value,
     search: debouncedSearchTerm,
     status: statusFilter,
   });
@@ -53,6 +57,12 @@ const ReferralManagement: React.FC = () => {
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newPageSize) => {
+    setPerPage(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
   };
 
   // Handle referral preview
@@ -220,17 +230,30 @@ const ReferralManagement: React.FC = () => {
         )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
-          <Pagination
-            current={currentPage}
-            total={Number(data?.pagination?.total) || 0}
-            pageSize={perPage}
-            onChange={handlePageChange}
-            className="flex gap-2"
-          />
-        </div>
       </div>
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-3">
+            <div className="min-w-[140px] z-30">
+              <Input
+                type="select"
+                placeholder="Items per page"
+                value={perPage}
+                options={pageSizeOptions}
+                onSelectChange={handlePageSizeChange}
+              />
+            </div>
+          </div>
+        </div>
 
+        <Pagination
+          current={currentPage}
+          total={Number(data?.pagination?.total) || 0}
+          pageSize={perPage.value}
+          onChange={handlePageChange}
+          className="flex gap-2"
+        />
+      </div>
       {/* Referral Preview Modal */}
       <Modal
         isOpen={isPreviewModalOpen}

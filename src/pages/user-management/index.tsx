@@ -14,12 +14,16 @@ import TableDropdown from "@/common/dropdown";
 import SellerPreview from "./components/seller-preview";
 import SellerProfileForm from "./components/seller-form";
 import UserPreview from "./components/user-preview";
+import { pageSizeOptions } from "@/utils/constant";
 
 const UserManagement = () => {
   // State for filters and pagination
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, _] = useState(10);
+  const [perPage, setPerPage] = useState({
+    label: "10 per page",
+    value: 10,
+  });
   const [userRole, setUserRole] = useState("");
   const [userStatus, setUserStatus] = useState("");
 
@@ -46,15 +50,21 @@ const UserManagement = () => {
   // Fetch users data with query params
   const { data, isLoading, isFetching } = useGetUsersQuery({
     page: currentPage,
-    limit: perPage,
+    limit: perPage.value,
     search: debouncedSearchTerm,
     status: userStatus,
     role: userRole,
   });
 
-  // Handle page change
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPerPage(newPageSize);
+    setCurrentPage(1); 
   };
 
   // Open modal with user data
@@ -111,7 +121,6 @@ const UserManagement = () => {
             <Input
               type="select"
               placeholder="Filter by Role"
-              // value={userRole}
               options={[
                 { label: "All Roles", value: "" },
                 { label: "Admin", value: "admin" },
@@ -132,7 +141,6 @@ const UserManagement = () => {
             <Input
               type="select"
               placeholder="Filter by Status"
-              // value={userStatus}
               options={[
                 { label: "All Status", value: "" },
                 { label: "Verified", value: "true" },
@@ -285,15 +293,28 @@ const UserManagement = () => {
         )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
-          <Pagination
-            current={currentPage}
-            total={Number(pagination?.total || 0)}
-            pageSize={perPage}
-            onChange={handlePageChange}
-            className="flex gap-2"
-          />
+      </div>
+      <div className="flex items-center justify-between mb-8 border-t border-gray-200 bg-white px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-3">
+            <div className="min-w-[140px] z-30">
+              <Input
+                type="select"
+                placeholder="Items per page"
+                value={perPage}
+                options={pageSizeOptions}
+                onSelectChange={handlePageSizeChange}
+              />
+            </div>
+          </div>
         </div>
+        <Pagination
+          current={currentPage}
+          total={Number(pagination?.total || 0)}
+          pageSize={perPage.value}
+          onChange={handlePageChange}
+          className="flex gap-2"
+        />
       </div>
 
       {/* Edit User Modal */}

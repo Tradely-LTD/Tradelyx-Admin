@@ -16,6 +16,7 @@ import { useGetUsersQuery } from "@/pages/user-management/user-api";
 import { Save } from "lucide-react";
 import { useUploadsFileMutation } from "@/store/uploads";
 import FileUploader from "@/common/files-uploader";
+import { useUserSlice } from "@/pages/auth/authSlice";
 
 // Validation schema using Yup
 const validationSchema = yup.object({
@@ -98,7 +99,9 @@ function ProductForm({ id, onClose }: ProductFormProps) {
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const { data, isLoading: isLoadingProduct } = useGetProductQuery({ id }, { skip: !id });
   const productData = data?.data;
-
+  const { loginResponse } = useUserSlice();
+  const creator_id = loginResponse?.user.id;
+  const userRole = loginResponse?.user.roles;
   const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500 });
 
   const [uploadsFile] = useUploadsFileMutation();
@@ -166,8 +169,10 @@ function ProductForm({ id, onClose }: ProductFormProps) {
       const payload = {
         ...formData,
         category: formData.category.value,
+        creatorId: creator_id,
         packagingType: formData.packaging_type?.value,
-        creatorId: formData.creatorId?.value,
+        //  confrim label name
+        ownerId: formData.creatorId?.value,
         tags: formData.tags || [],
         produtVerified: formData.productVerified,
         documents: formData.documents || [],
@@ -567,26 +572,28 @@ function ProductForm({ id, onClose }: ProductFormProps) {
           </div>
 
           {/* Product Status */}
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-3">Product Status</h3>
-            <div className="flex items-center space-x-3">
-              <Controller
-                name="productVerified"
-                control={control}
-                render={({ field }) => (
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
-                      checked={field.value}
-                      onChange={field.onChange}
-                    />
-                    <span>Product Verified</span>
-                  </label>
-                )}
-              />
+          {userRole === "agent" ? null : (
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">Product Status</h3>
+              <div className="flex items-center space-x-3">
+                <Controller
+                  name="productVerified"
+                  control={control}
+                  render={({ field }) => (
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
+                        checked={field.value}
+                        onChange={field.onChange}
+                      />
+                      <span>Product Verified</span>
+                    </label>
+                  )}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 mt-8">

@@ -721,36 +721,41 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
                   </label>
                 )}
               />
-              <Controller
-                name="isActive"
-                control={control}
-                render={({ field }) => (
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
-                      checked={field.value}
-                      onChange={field.onChange}
-                    />
-                    <span>Active</span>
-                  </label>
-                )}
-              />
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
-                      checked={field.value}
-                      onChange={field.onChange}
-                    />
-                    <span>Approved</span>
-                  </label>
-                )}
-              />
+              {loginResponse?.user.roles !== "agent" ? (
+                <Controller
+                  name="isActive"
+                  control={control}
+                  render={({ field }) => (
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
+                        checked={field.value}
+                        onChange={field.onChange}
+                      />
+                      <span>Active</span>
+                    </label>
+                  )}
+                />
+              ) : null}
+
+              {loginResponse?.user.roles !== "agent" ? (
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
+                        checked={field.value}
+                        onChange={field.onChange}
+                      />
+                      <span>Approved</span>
+                    </label>
+                  )}
+                />
+              ) : null}
             </div>
           </div>
 

@@ -102,7 +102,7 @@ function ProductForm({ id, onClose }: ProductFormProps) {
   const { loginResponse } = useUserSlice();
   const creator_id = loginResponse?.user.id;
   const userRole = loginResponse?.user.roles;
-  const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500 });
+  const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500,  role:"seller"  });
 
   const [uploadsFile] = useUploadsFileMutation();
 

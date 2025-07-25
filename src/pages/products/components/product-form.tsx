@@ -101,7 +101,7 @@ function ProductForm({ id, onClose }: ProductFormProps) {
   const productData = data?.data;
   const { loginResponse } = useUserSlice();
   const creator_id = loginResponse?.user.id;
-
+  const userRole = loginResponse?.user.roles;
   const { data: users, isLoading: loadingUsers } = useGetUsersQuery({ limit: 500 });
 
   const [uploadsFile] = useUploadsFileMutation();
@@ -572,26 +572,28 @@ function ProductForm({ id, onClose }: ProductFormProps) {
           </div>
 
           {/* Product Status */}
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-3">Product Status</h3>
-            <div className="flex items-center space-x-3">
-              <Controller
-                name="productVerified"
-                control={control}
-                render={({ field }) => (
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
-                      checked={field.value}
-                      onChange={field.onChange}
-                    />
-                    <span>Product Verified</span>
-                  </label>
-                )}
-              />
+          {userRole === "agent" ? null : (
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-3">Product Status</h3>
+              <div className="flex items-center space-x-3">
+                <Controller
+                  name="productVerified"
+                  control={control}
+                  render={({ field }) => (
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-0"
+                        checked={field.value}
+                        onChange={field.onChange}
+                      />
+                      <span>Product Verified</span>
+                    </label>
+                  )}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 mt-8">

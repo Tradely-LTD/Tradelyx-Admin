@@ -19,6 +19,7 @@ import SellOfferForm from "./sell-offer-form";
 import SellOfferPreview from "./sellOffer-preview";
 import { formatDate } from "@/utils/helper";
 import EmptyState from "@/common/empty-state";
+import { pageSizeOptions } from "@/utils/constant";
 
 interface SellOffer {
   id: string;
@@ -35,7 +36,10 @@ const SellOfferManagement: React.FC = () => {
   // State for filters and pagination
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [perPage] = useState<number>(10);
+  const [perPage, setPerPage] = useState({
+    label: "10 per page",
+    value: 10,
+  });
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   // State for debounced search
@@ -61,7 +65,7 @@ const SellOfferManagement: React.FC = () => {
   // Fetch sell offers data with query params
   const { data, isLoading, isFetching } = useGetSellOffersQuery({
     page: currentPage,
-    limit: perPage,
+    limit: perPage.value,
     search: debouncedSearchTerm,
     status: statusFilter,
   });
@@ -80,6 +84,11 @@ const SellOfferManagement: React.FC = () => {
   const handleEditOffer = (offer?: SellOffer) => {
     setSelectedOffer(offer || null);
     setIsModalOpen(true);
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPerPage(newPageSize);
+    setCurrentPage(1);
   };
 
   // Open delete confirmation modal
@@ -193,102 +202,115 @@ const SellOfferManagement: React.FC = () => {
       {isLoading || isFetching ? (
         <Loader />
       ) : data && data.data.length > 0 ? (
-        <div className="overflow-x-auto bg-white rounded-md shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr className="text-left text-gray-700">
-                <th className="px-4 py-4 font-medium">
-                  <Text>Offer</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Category</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Description</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Status</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Created On</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Actions</Text>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {data.data.map((offer: SellOffer) => (
-                <tr key={offer.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
-                  <td className="px-4 py-4 border-r border-[#EDEDED]">
-                    <div className="flex items-center">
-                      {offer.thumbnail ? (
-                        <img
-                          src={offer.thumbnail}
-                          alt={offer.title}
-                          className="w-8 h-8 rounded-md mr-2 object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center mr-2">
-                          <Text className="text-blue-600">O</Text>
-                        </div>
-                      )}
-                      <Text>{offer.title}</Text>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 border-r border-[#EDEDED]">
-                    <Text>{offer.productCategory}</Text>
-                  </td>
-                  <td className="px-4 py-4 border-r border-[#EDEDED]">
-                    <p className="line-clamp-2 max-w-sm text-gray-600">
-                      {offer.detailedDescription}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 border-r border-[#EDEDED]">
-                    <StatusIndicator status={offer.isActive ? "active" : "inactive"} />
-                  </td>
-                  <td className="px-4 py-4 border-r border-[#EDEDED]">
-                    <Text>{formatDate(offer.createdAt)}</Text>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex space-x-2">
-                      <TableDropdown
-                        items={[
-                          {
-                            label: "Edit",
-                            action: () => handleEditOffer(offer),
-                            icon: <Edit2 size={14} />,
-                          },
-                          {
-                            label: "View",
-                            action: () => handlePreviewOffer(offer),
-                            icon: <Eye size={14} />,
-                          },
-                          {
-                            label: "Delete",
-                            action: () => handleOpenDeleteModal(offer),
-                            icon: <Trash2 size={14} />,
-                          },
-                        ]}
-                      />
-                    </div>
-                  </td>
+        <>
+          <div className="overflow-x-auto bg-white rounded-md shadow">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr className="text-left text-gray-700">
+                  <th className="px-4 py-4 font-medium">
+                    <Text>Offer</Text>
+                  </th>
+                  <th className="px-4 py-4 font-medium">
+                    <Text>Category</Text>
+                  </th>
+                  <th className="px-4 py-4 font-medium">
+                    <Text>Description</Text>
+                  </th>
+                  <th className="px-4 py-4 font-medium">
+                    <Text>Status</Text>
+                  </th>
+                  <th className="px-4 py-4 font-medium">
+                    <Text>Created On</Text>
+                  </th>
+                  <th className="px-4 py-4 font-medium">
+                    <Text>Actions</Text>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {data.data.map((offer: SellOffer) => (
+                  <tr key={offer.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <div className="flex items-center">
+                        {offer.thumbnail ? (
+                          <img
+                            src={offer.thumbnail}
+                            alt={offer.title}
+                            className="w-8 h-8 rounded-md mr-2 object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center mr-2">
+                            <Text className="text-blue-600">O</Text>
+                          </div>
+                        )}
+                        <Text>{offer.title}</Text>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <Text>{offer.productCategory}</Text>
+                    </td>
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <p className="line-clamp-2 max-w-sm text-gray-600">
+                        {offer.detailedDescription}
+                      </p>
+                    </td>
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <StatusIndicator status={offer.isActive ? "active" : "inactive"} />
+                    </td>
+                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                      <Text>{formatDate(offer.createdAt)}</Text>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex space-x-2">
+                        <TableDropdown
+                          items={[
+                            {
+                              label: "Edit",
+                              action: () => handleEditOffer(offer),
+                              icon: <Edit2 size={14} />,
+                            },
+                            {
+                              label: "View",
+                              action: () => handlePreviewOffer(offer),
+                              icon: <Eye size={14} />,
+                            },
+                            {
+                              label: "Delete",
+                              action: () => handleOpenDeleteModal(offer),
+                              icon: <Trash2 size={14} />,
+                            },
+                          ]}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between mb-8 border-t border-gray-200 bg-white px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-3">
+                <div className="min-w-[140px] z-30">
+                  <Input
+                    type="select"
+                    placeholder="Items per page"
+                    value={perPage}
+                    options={pageSizeOptions}
+                    onSelectChange={handlePageSizeChange}
+                  />
+                </div>
+              </div>
+            </div>
             <Pagination
               current={currentPage}
-              total={Number(data?.pagination.total) || 0}
-              pageSize={perPage}
+              total={Number(data?.pagination?.total || 0)}
+              pageSize={perPage.value}
               onChange={handlePageChange}
               className="flex gap-2"
             />
           </div>
-        </div>
+        </>
       ) : (
         <EmptyState description="No sell offers found" />
       )}

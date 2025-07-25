@@ -3,6 +3,7 @@ import { useState } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
 import { useGetProductQuery, useUpdateProductMutation } from "../product-api";
+import { useUserSlice } from "@/pages/auth/authSlice";
 
 const ProductPreview = ({ productId, onClose }) => {
   const [activeDocument, setActiveDocument] = useState(null);
@@ -10,6 +11,8 @@ const ProductPreview = ({ productId, onClose }) => {
   const [updateProduct, { isLoading: updatingProduct }] = useUpdateProductMutation();
   const { data, isLoading } = useGetProductQuery({ id: productId });
 
+  const { loginResponse } = useUserSlice();
+  const userRole = loginResponse?.user.roles;
   const product = data?.data;
 
   const handleVerifyToggle = async (verifyStatus) => {
@@ -442,24 +445,26 @@ const ProductPreview = ({ productId, onClose }) => {
         >
           Close
         </button>
-        <Button
-          onClick={() => handleVerifyToggle(!product?.productVerified)}
-          disabled={updatingProduct}
-          leftIcon={
-            product?.productVerified ? (
-              <X size={18} className="mr-2" />
-            ) : (
-              <CheckCircle size={18} className="mr-2" />
-            )
-          }
-          className={
-            product?.productVerified
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-green-600 hover:bg-green-700"
-          }
-        >
-          {product?.productVerified ? "Unverify Product" : "Verify Product"}
-        </Button>
+        {userRole === "agent" ? null : (
+          <Button
+            onClick={() => handleVerifyToggle(!product?.productVerified)}
+            disabled={updatingProduct}
+            leftIcon={
+              product?.productVerified ? (
+                <X size={18} className="mr-2" />
+              ) : (
+                <CheckCircle size={18} className="mr-2" />
+              )
+            }
+            className={
+              product?.productVerified
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-green-600 hover:bg-green-700"
+            }
+          >
+            {product?.productVerified ? "Unverify Product" : "Verify Product"}
+          </Button>
+        )}
       </div>
 
       <DocumentPreview />

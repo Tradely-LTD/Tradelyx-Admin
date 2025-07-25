@@ -21,6 +21,8 @@ const Layout: React.FC = () => {
   // Get current user from Redux store
   const { loginResponse } = useSelector((state: RootState) => state.auth);
   const userRole = loginResponse?.user?.roles;
+  const firstName = loginResponse?.user.firstName;
+  const lastName = loginResponse?.user.lastName;
 
   // Get menu items based on user role
   const menuItems = getMenuItems(userRole);
@@ -110,6 +112,18 @@ const Layout: React.FC = () => {
     return null;
   };
 
+  // Generate user initials for avatar
+  const getUserInitials = () => {
+    if (!firstName && !lastName) return "U";
+    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
+  };
+
+  // Format user role for display
+  const formatUserRole = (role: string) => {
+    if (!role) return "";
+    return role.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {hasSidebarAccess && renderBackdrop()}
@@ -125,9 +139,6 @@ const Layout: React.FC = () => {
         >
           {/* Logo */}
           <div className="flex items-center h-16 px-4 border-b border-slate-700">
-            <div className="p-2 rounded-lg bg-primary">
-              <Drama className="h-6 w-6 text-white" />
-            </div>
             <span
               className={`ml-3 font-semibold text-xl text-white transition-opacity duration-200
               ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
@@ -247,14 +258,21 @@ const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3">
-            <button
-              onClick={() => {
-                dispatch(logout());
-              }}
-              className="p-2 rounded-lg bg-red-500 text-white transition-colors duration-200 "
-            >
-              <Logout className="h-5 w-5" />
-            </button>
+            {/* User Avatar and Info */}
+            <div className="flex items-center space-x-3">
+              {/* User Avatar */}
+              <div className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
+                {getUserInitials()}
+              </div>
+
+              {/* User Info */}
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-800">
+                  {firstName} {lastName}
+                </span>
+                <span className="text-xs text-gray-500">{formatUserRole(userRole)}</span>
+              </div>
+            </div>
           </div>
         </header>
 

@@ -1,4 +1,4 @@
-import { BarChart2, FileText, LogOut, Package, ShellIcon, BellIcon, Users } from "lucide-react";
+import { BarChart2, FileText, LogOut, Package, ShellIcon, BellIcon, Users, Mail } from "lucide-react";
 import { IoTimeSharp } from "react-icons/io5";
 
 // Define user roles as a constant enum-like object
@@ -73,6 +73,13 @@ export const getMenuItems = (userRole?: string | null): MenuItem[] => {
       path: "/notifications",
       description: "Manage notification inventory and details",
       privilege: ["SUPER_ADMIN"], // Only admin can access notifications
+    },
+    {
+      icon: Mail,
+      label: "Emails",
+      path: "/emails",
+      description: "Send and track email communications",
+      privilege: ["SUPER_ADMIN"],
     },
     {
       icon: LogOut,

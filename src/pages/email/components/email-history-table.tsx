@@ -6,7 +6,12 @@ import Input, { SelectOption } from "@/common/input/input";
 import { Loader } from "@/common/loader/loader";
 import Text from "@/common/text/text";
 import Modal from "@/common/modal/modal";
-import { EmailHistoryResponse, EmailHistoryQueryParams, EmailLog, EmailType } from "@/pages/email/email-api";
+import {
+  EmailHistoryResponse,
+  EmailHistoryQueryParams,
+  EmailLog,
+  EmailType,
+} from "@/pages/email/email-api";
 import StatusIndicator, { StatusType } from "@/common/status";
 import type { MultiValue, SingleValue } from "react-select";
 
@@ -76,12 +81,12 @@ const EmailHistoryTable = ({
   const total = data?.pagination?.total ?? 0;
   const [selectedLog, setSelectedLog] = useState<EmailLog | null>(null);
 
-  const getBodyPreview = useMemo(() => {
-    return (body: string) => {
-      const text = body.replace(/<[^>]+>/g, "").trim();
-      return text.length > 40 ? `${text.slice(0, 40)}…` : text;
-    };
-  }, []);
+  // const getBodyPreview = useMemo(() => {
+  //   return (body: string) => {
+  //     const text = body.replace(/<[^>]+>/g, "").trim();
+  //     return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+  //   };
+  // }, []);
 
   const mapStatusToIndicator = (status: EmailLog["status"]): StatusType =>
     status === "sent" ? "sent" : status === "failed" ? "failed" : "pending";
@@ -139,7 +144,10 @@ const EmailHistoryTable = ({
             type="select"
             value={typeOptions.find((option) => option.value === (filters.emailType ?? ""))}
             onSelectChange={(option) =>
-              onFiltersChange({ emailType: (extractValue(option) as EmailType) || undefined, page: 1 })
+              onFiltersChange({
+                emailType: (extractValue(option) as EmailType) || undefined,
+                page: 1,
+              })
             }
             options={typeOptions}
             classNameWrapper="w-full"
@@ -200,8 +208,12 @@ const EmailHistoryTable = ({
                       <Text className="font-medium text-gray-900">{log.subject}</Text>
                     </td>
                     <td className="px-4 py-3">
-                      <Text className="block text-gray-900">{log.recipientEmail || "Multiple recipients"}</Text>
-                      {log.recipientName && <Text className="block text-xs text-gray-500">{log.recipientName}</Text>}
+                      <Text className="block text-gray-900">
+                        {log.recipientEmail || "Multiple recipients"}
+                      </Text>
+                      {log.recipientName && (
+                        <Text className="block text-xs text-gray-500">{log.recipientName}</Text>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusIndicator status={mapTypeToIndicator(log.emailType)} pale />
@@ -233,10 +245,15 @@ const EmailHistoryTable = ({
             </div>
             <div className="flex flex-col gap-2 items-start md:items-end">
               <Text className="text-sm text-gray-500 md:text-right">
-                Showing {(currentPage - 1) * limit + 1}-
-                {Math.min(currentPage * limit, total)} of {total} records
+                Showing {(currentPage - 1) * limit + 1}-{Math.min(currentPage * limit, total)} of{" "}
+                {total} records
               </Text>
-              <Pagination current={currentPage} total={total} pageSize={limit} onChange={onPageChange} />
+              <Pagination
+                current={currentPage}
+                total={total}
+                pageSize={limit}
+                onChange={onPageChange}
+              />
             </div>
           </div>
         )}
@@ -252,7 +269,9 @@ const EmailHistoryTable = ({
           <div className="space-y-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">Recipient: </Text>
+                <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Recipient:{" "}
+                </Text>
                 <Text className="text-base font-medium text-gray-900">
                   {selectedLog.recipientEmail || "Multiple recipients"}
                 </Text>
@@ -265,11 +284,15 @@ const EmailHistoryTable = ({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">Email type: </Text>
+                <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Email type:{" "}
+                </Text>
                 <StatusIndicator status={mapTypeToIndicator(selectedLog.emailType)} />
               </div>
               <div className="space-y-1">
-                <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">Sent at: </Text>
+                <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Sent at:{" "}
+                </Text>
                 <Text className="text-sm text-gray-800">
                   {formatDateTime(selectedLog.sentAt ?? selectedLog.createdAt)}
                 </Text>
@@ -285,7 +308,9 @@ const EmailHistoryTable = ({
             </div>
 
             <div className="space-y-2">
-              <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">Message</Text>
+              <Text className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Message
+              </Text>
               <div className="max-h-[420px] overflow-auto rounded-lg border border-gray-200 bg-white p-4">
                 {isHtmlContent(selectedLog.body) ? (
                   <div
@@ -307,4 +332,3 @@ const EmailHistoryTable = ({
 };
 
 export default EmailHistoryTable;
-

@@ -17,6 +17,10 @@ export type StatusType =
   | "individual"
   | "country_admin"
   | "unassigned"
+  | "sent"
+  | "failed"
+  | "bulk"
+  | "all_users"
   | boolean;
 
 interface StatusIndicatorProps {
@@ -36,9 +40,17 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   }
   return (
     <StatusPill status={displayStatus} pale={pale}>
-      {capitalizeFirstLetter(displayStatus)}
+      {formatStatus(displayStatus)}
     </StatusPill>
   );
+};
+
+const formatStatus = (value: Exclude<StatusType, boolean>) => {
+  return value
+    .toString()
+    .split("_")
+    .map((part) => capitalizeFirstLetter(part.toLowerCase()))
+    .join(" ");
 };
 
 const StatusPill = styled.div<{
@@ -91,6 +103,34 @@ const StatusPill = styled.div<{
           background: ${pale ? "#FFF8E6" : "#FFF4CC"};
           color: #B45309;
           &::before { background: #B45309; }
+        `;
+
+      case "sent":
+        return `
+          background: ${pale ? "#E6F7F2" : "#ECF9F6"};
+          color: #0B815A;
+          &::before { background: #0B815A; }
+        `;
+
+      case "failed":
+        return `
+          background: ${pale ? "#FEEAEE" : "#FEE7EB"};
+          color: #E11D48;
+          &::before { background: #E11D48; }
+        `;
+
+      case "bulk":
+        return `
+          background: ${pale ? "#E8F5FF" : "#DBF0FF"};
+          color: #1D4ED8;
+          &::before { background: #1D4ED8; }
+        `;
+
+      case "all_users":
+        return `
+          background: ${pale ? "#F1E8FF" : "#E8D9FF"};
+          color: #6D28D9;
+          &::before { background: #6D28D9; }
         `;
 
       case "buyer":

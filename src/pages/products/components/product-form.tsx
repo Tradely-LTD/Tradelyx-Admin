@@ -169,7 +169,8 @@ function ProductForm({ id, onClose }: ProductFormProps) {
       const payload = {
         ...formData,
         category: formData.category.value,
-        creatorId: creator_id,
+        // Only set creatorId when creating, never when updating (preserve original creator)
+        ...(isEditMode ? {} : { creatorId: creator_id }),
         packagingType: formData.packaging_type?.value,
         //  confrim label name
         ownerId: formData.creatorId?.value,

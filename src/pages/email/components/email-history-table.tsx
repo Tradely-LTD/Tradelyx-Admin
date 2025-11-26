@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import {  useState } from "react";
 import Pagination from "rc-pagination";
 import Button from "@/common/button/button";
 import EmptyState from "@/common/empty-state";

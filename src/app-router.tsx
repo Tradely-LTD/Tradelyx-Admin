@@ -9,6 +9,8 @@ import ProductManagement from "./pages/products";
 import SellOfferManagement from "./pages/selloffer";
 import NotificationManagement from "./pages/notifications";
 import ReferralManagement from "./pages/referrals";
+import EmailLandingPage from "./pages/email";
+import EmailComposePage from "./pages/email/compose";
 
 function AppRouter() {
   return (
@@ -23,6 +25,8 @@ function AppRouter() {
           <Route path="sell-offer" element={<SellOfferManagement />} />
           <Route path="referrals" element={<ReferralManagement />} />
           <Route path="notifications" element={<NotificationManagement />} />
+          <Route path="emails" element={<EmailLandingPage />} />
+          <Route path="emails/compose" element={<EmailComposePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

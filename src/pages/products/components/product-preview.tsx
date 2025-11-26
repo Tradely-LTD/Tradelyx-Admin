@@ -17,9 +17,11 @@ const ProductPreview = ({ productId, onClose }) => {
 
   const handleVerifyToggle = async (verifyStatus) => {
     try {
+      // Exclude creatorId from update to preserve the original seller's ID
+      const { creatorId, ...productWithoutCreatorId } = product;
       await updateProduct({
         id: productId,
-        data: { ...product, produtVerified: verifyStatus },
+        data: { ...productWithoutCreatorId, produtVerified: verifyStatus },
       })
         .unwrap()
         .then(() => {

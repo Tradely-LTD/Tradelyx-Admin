@@ -1,4 +1,4 @@
-import { BarChart2, FileText, LogOut, Package, ShellIcon, BellIcon, Users, Mail } from "lucide-react";
+import { BarChart2, FileText, LogOut, Package, ShellIcon, BellIcon, Users, Mail, ShieldCheck } from "lucide-react";
 import { IoTimeSharp } from "react-icons/io5";
 
 // Define user roles as a constant enum-like object
@@ -60,6 +60,13 @@ export const getMenuItems = (userRole?: string | null): MenuItem[] => {
       label: "Sell Offers",
       path: "/sell-offer",
       description: "Manage sell offer inventory and details",
+    },
+    {
+      icon: ShieldCheck,
+      label: "KYC Review",
+      path: "/kyc",
+      description: "Approve or reject seller identity documents",
+      privilege: ["SUPER_ADMIN"], // the API allows admin only
     },
     {
       icon: IoTimeSharp,

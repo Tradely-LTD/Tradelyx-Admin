@@ -12,6 +12,7 @@ import ReferralManagement from "./pages/referrals";
 import EmailLandingPage from "./pages/email";
 import EmailComposePage from "./pages/email/compose";
 import KycReview from "./pages/kyc";
+import CertificateReview from "./pages/certificates";
 
 function AppRouter() {
   return (
@@ -26,6 +27,7 @@ function AppRouter() {
           <Route path="sell-offer" element={<SellOfferManagement />} />
           <Route path="referrals" element={<ReferralManagement />} />
           <Route path="kyc" element={<KycReview />} />
+          <Route path="certificates" element={<CertificateReview />} />
           <Route path="notifications" element={<NotificationManagement />} />
           <Route path="emails" element={<EmailLandingPage />} />
           <Route path="emails/compose" element={<EmailComposePage />} />

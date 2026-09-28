@@ -13,6 +13,7 @@ const defaultTags = [
   "REFERRALS",
   "EMAILS",
   "KYC",
+  "OUTREACH",
 ] as const;
 type DefaultTags = (typeof defaultTags)[number];
 

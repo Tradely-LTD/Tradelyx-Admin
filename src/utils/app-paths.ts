@@ -21,6 +21,7 @@ export const appPaths = {
   getUser: (id = ":id") => `/user/${id}`,
   emails: "/emails",
   emailCompose: "/emails/compose",
+  outreach: "/outreach",
 
   location: "/location",
 

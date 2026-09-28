@@ -1,284 +1,128 @@
-//@ts-nocheck
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import { Drama, Menu, ChevronDown, ChevronRight, Search, Bell, User } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { LogOut, Menu, X } from "lucide-react";
 
-import { logout } from "@/pages/auth/authSlice";
-import { getMenuItems } from "./menuItems";
-import { RootState } from "@/store/store";
-import { Logout } from "iconsax-react";
+import { logout, useUserSlice } from "@/pages/auth/authSlice";
+import { useGetKycSubmissionsQuery } from "@/pages/kyc/kyc-api";
+import { findMenuItem, getMenuGroups } from "./menuItems";
+import { initials } from "./kit";
 
-const Layout: React.FC = () => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
+const roleLabel: Record<string, string> = { admin: "Administrator", country_admin: "Country admin", agent: "Agent" };
+
+const Layout = () => {
   const dispatch = useDispatch();
-  const sidebarRef = useRef<HTMLElement>(null);
+  const location = useLocation();
+  const { loginResponse } = useUserSlice();
+  const user = loginResponse?.user;
+  const role = user?.roles ?? null;
+  const groups = getMenuGroups(role);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Get current user from Redux store
-  const { loginResponse } = useSelector((state: RootState) => state.auth);
-  const userRole = loginResponse?.user?.roles;
-  const firstName = loginResponse?.user.firstName;
-  const lastName = loginResponse?.user.lastName;
+  // Live counts for the badges; only admins can read the KYC queue
+  const { data: kyc } = useGetKycSubmissionsQuery({ status: "pending", page: 1, limit: 1 }, { skip: role !== "admin", pollingInterval: 120_000 });
+  const badges = { kycPending: kyc?.pagination?.total ?? 0 };
 
-  // Get menu items based on user role
-  const menuItems = getMenuItems(userRole);
+  useEffect(() => setMobileOpen(false), [location.pathname]);
 
-  // Check if user has access to sidebar (only admin and country_admin)
-  const hasSidebarAccess =
-    userRole === "admin" || userRole === "country_admin" || userRole === "agent";
-
-  // Handle clicks outside sidebar for mobile view
+  const current = findMenuItem(location.pathname);
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isMobile &&
-        !isSidebarCollapsed &&
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node)
-      ) {
-        setIsSidebarCollapsed(true);
-      }
-    };
+    document.title = current ? `${current.label} · TradelyX Admin` : "TradelyX Admin";
+  }, [current]);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMobile, isSidebarCollapsed]);
+  const sidebar = (
+    <div className="hatch flex h-full flex-col bg-brand-950 text-white/80">
+      <div className="flex h-16 shrink-0 items-center gap-2.5 px-5">
+        <span className="text-[19px] font-extrabold tracking-[-0.03em] text-white">Tradely<span className="text-brand-300">X</span></span>
+        <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-brand-200">Admin</span>
+      </div>
 
-  // Handle window resize with debounce
-  useEffect(() => {
-    let resizeTimer: NodeJS.Timeout;
+      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6 pt-2" aria-label="Main">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="mb-1.5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/35">{group.label}</p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const count = item.badge ? badges[item.badge] : 0;
+                return (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      end={item.path === "/"}
+                      className={({ isActive }) =>
+                        `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors duration-150 ${
+                          isActive ? "bg-white/[0.09] text-white" : "hover:bg-white/[0.05] hover:text-white"
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r bg-brand-500" aria-hidden />}
+                          <item.icon size={17} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? "text-brand-300" : "text-white/50 group-hover:text-white/80"} />
+                          <span className="flex-1">{item.label}</span>
+                          {count > 0 && (
+                            <span className="tnum rounded-full bg-attention px-1.5 py-px text-[10.5px] font-bold text-white" aria-label={`${count} waiting`}>
+                              {count > 99 ? "99+" : count}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
 
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        const newIsMobile = window.innerWidth < 768;
-        setIsMobile(newIsMobile);
-        setIsSidebarCollapsed(newIsMobile);
-      }, 100);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      clearTimeout(resizeTimer);
-    };
-  }, []);
-
-  const handleMenuClick = (item: MenuItem) => {
-    if (item.hasSubmenu) {
-      setExpandedSubmenu(expandedSubmenu === item.label ? null : item.label);
-    } else {
-      navigate(item.path);
-      if (isMobile) setIsSidebarCollapsed(true);
-      if (item.path === "/login") {
-        dispatch(logout());
-      }
-    }
-  };
-
-  const handleSubmenuClick = (subItem: SubmenuItem) => {
-    navigate(subItem.path);
-    if (isMobile) setIsSidebarCollapsed(true);
-  };
-
-  const isPathActive = (itemPath: string): boolean => {
-    if (itemPath === "/") {
-      return location.pathname === "/";
-    }
-
-    const currentPath = location.pathname.split("/").filter(Boolean);
-    const itemPathSegments = itemPath.split("/").filter(Boolean);
-
-    return (
-      currentPath.length === itemPathSegments.length &&
-      currentPath.every((segment, index) => segment === itemPathSegments[index])
-    );
-  };
-
-  const renderBackdrop = () => {
-    if (isMobile && !isSidebarCollapsed) {
-      return (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 transition-opacity duration-300"
-          onClick={() => setIsSidebarCollapsed(true)}
-        />
-      );
-    }
-    return null;
-  };
-
-  // Generate user initials for avatar
-  const getUserInitials = () => {
-    if (!firstName && !lastName) return "U";
-    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
-  };
-
-  // Format user role for display
-  const formatUserRole = (role: string) => {
-    if (!role) return "";
-    return role.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-  };
+      <div className="border-t border-white/10 p-3">
+        <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-900 text-[13px] font-bold text-white ring-2 ring-white/10">
+            {initials(user?.firstName, user?.lastName)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold text-white">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="truncate text-[11.5px] text-white/45">{roleLabel[role ?? ""] ?? role}</p>
+          </div>
+          <button
+            onClick={() => dispatch(logout())}
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      {hasSidebarAccess && renderBackdrop()}
+    <div className="flex h-dvh overflow-hidden bg-paper">
+      <aside className="hidden w-[248px] shrink-0 lg:block">{sidebar}</aside>
 
-      {/* Full Height Sidebar - Only show for admin and country_admin */}
-      {hasSidebarAccess && (
-        <aside
-          ref={sidebarRef}
-          className={`h-full bg-primary transition-all duration-300 ease-in-out border-r border-gray-200 z-30
-            ${isMobile ? "fixed left-0 top-0" : "relative"} 
-            ${isMobile && isSidebarCollapsed ? "-translate-x-full" : "translate-x-0"}
-            ${isSidebarCollapsed && !isMobile ? "w-16" : "w-64"} shadow-lg`}
-        >
-          {/* Logo */}
-          <div className="flex items-center h-16 px-4 border-b border-slate-700">
-            <span
-              className={`ml-3 font-semibold text-xl text-white transition-opacity duration-200
-              ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
-            >
-              <img src="./tradelyx_logo.svg" className="w-[120px]" />
-            </span>
-          </div>
-
-          {/* Navigation */}
-          <nav className="p-2 h-[calc(100%-4rem)] overflow-y-auto">
-            {menuItems.map((item, index) => (
-              <div key={index}>
-                <div
-                  onClick={() => handleMenuClick(item)}
-                  className={`flex items-center px-4 py-3 my-1 rounded-lg cursor-pointer transition-all duration-200 group relative
-                    ${
-                      isPathActive(item.path)
-                        ? "bg-black text-white shadow-lg"
-                        : "text-slate-300 hover:bg-slate-700 hover:text-white"
-                    }`}
-                >
-                  <item.icon className="h-5 w-5 min-w-5" />
-                  <span
-                    className={`ml-3 font-medium whitespace-nowrap transition-opacity duration-200
-                      ${isSidebarCollapsed && !isMobile ? "opacity-0 hidden" : "opacity-100"}`}
-                  >
-                    {item.label}
-                  </span>
-                  {item.hasSubmenu && !(isSidebarCollapsed && !isMobile) && (
-                    <span className="ml-auto">
-                      {expandedSubmenu === item.label ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </span>
-                  )}
-                  {/* Tooltip for collapsed sidebar */}
-                  {isSidebarCollapsed && !isMobile && (
-                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                      {item.label}
-                    </span>
-                  )}
-                </div>
-
-                {/* Submenu */}
-                {item.hasSubmenu &&
-                  expandedSubmenu === item.label &&
-                  !(isSidebarCollapsed && !isMobile) && (
-                    <div className="ml-4 mt-1">
-                      {item.submenuItems?.map((subItem, subIndex) => (
-                        <div
-                          key={subIndex}
-                          onClick={() => handleSubmenuClick(subItem)}
-                          className={`flex items-center p-3 my-1 text-sm rounded-lg cursor-pointer transition-all duration-200
-                            ${
-                              isPathActive(subItem.path)
-                                ? "bg-black text-white"
-                                : "text-slate-300 hover:bg-slate-700 hover:text-white"
-                            }`}
-                        >
-                          {subItem.icon && <subItem.icon className="h-4 w-4 mr-2" />}
-                          <span className="truncate">{subItem.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                {/* Collapsed Submenu (Icons only) */}
-                {item.hasSubmenu &&
-                  expandedSubmenu === item.label &&
-                  isSidebarCollapsed &&
-                  !isMobile && (
-                    <div className="ml-1 mt-1">
-                      {item.submenuItems?.map((subItem, subIndex) => (
-                        <div
-                          key={subIndex}
-                          onClick={() => handleSubmenuClick(subItem)}
-                          className={`flex items-center justify-center p-2 my-1 rounded-lg cursor-pointer transition-all duration-200 relative group
-                            ${
-                              isPathActive(subItem.path)
-                                ? "bg-black text-white"
-                                : "text-slate-300 hover:bg-slate-700 hover:text-white"
-                            }`}
-                        >
-                          {subItem.icon && <subItem.icon className="h-5 w-5" />}
-                          <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                            {subItem.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            ))}
-          </nav>
-        </aside>
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 animate-fade bg-ink/50" onClick={() => setMobileOpen(false)} />
+          <div className="relative h-full w-[264px] animate-rise">{sidebar}</div>
+          <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="absolute left-[276px] top-4 grid h-10 w-10 place-items-center rounded-full bg-white text-ink">
+            <X size={18} />
+          </button>
+        </div>
       )}
 
-      {/* Main Content Area */}
-      <div className={`flex flex-col flex-1 overflow-hidden ${!hasSidebarAccess ? "w-full" : ""}`}>
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 w-full z-20 shadow-sm">
-          <div className="flex items-center space-x-4">
-            {hasSidebarAccess && (
-              <button
-                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-                className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors duration-200 shadow-sm"
-                aria-label="Toggle sidebar"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-            )}
-            <h1 className="text-xl font-semibold text-gray-800">
-              {menuItems.find((item) => isPathActive(item.path))?.label || "Dashboard"}
-            </h1>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            {/* User Avatar and Info */}
-            <div className="flex items-center space-x-3">
-              {/* User Avatar */}
-              <div className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
-                {getUserInitials()}
-              </div>
-
-              {/* User Info */}
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-800">
-                  {firstName} {lastName}
-                </span>
-                <span className="text-xs text-gray-500">{formatUserRole(userRole)}</span>
-              </div>
-            </div>
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-rule bg-white px-4 lg:hidden">
+          <button onClick={() => setMobileOpen(true)} aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-lg text-ink hover:bg-paper-deep">
+            <Menu size={20} />
+          </button>
+          <span className="font-semibold text-ink">{current?.label ?? "TradelyX Admin"}</span>
         </header>
-
-        {/* Main Content */}
-        <main className="flex-1 bg-gray-50 overflow-y-auto transition-all duration-300 ease-in-out">
-          <div className="p-6 min-h-full">
+        <main className="flex-1 overflow-y-auto" id="main">
+          <div key={location.pathname} className="mx-auto w-full max-w-[1320px] animate-rise px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
             <Outlet />
           </div>
         </main>

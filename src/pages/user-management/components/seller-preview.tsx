@@ -20,7 +20,7 @@ import { useGetUserQuery, useUpdateUserMutation } from "../user-api";
 import Button from "@/common/button/button";
 
 interface SellerPreviewProps {
-  sellerId: number;
+  sellerId: string;
   onClose: () => void;
 }
 

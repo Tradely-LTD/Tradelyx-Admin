@@ -1,7 +1,7 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/auth/login/login";
 import { appPaths } from "./utils/app-paths";
-// import PrivateRoute from "./common/router-helper/private-route";
+import PrivateRoute from "./common/router-helper/private-route";
 import AdminDashboard from "./pages/dashboard";
 import Layout from "./common/ui/layout";
 import UserManagement from "./pages/user-management";
@@ -13,6 +13,7 @@ import EmailLandingPage from "./pages/email";
 import EmailComposePage from "./pages/email/compose";
 import KycReview from "./pages/kyc";
 import CertificateReview from "./pages/certificates";
+import OutreachPage from "./pages/outreach";
 
 function AppRouter() {
   return (
@@ -20,7 +21,14 @@ function AppRouter() {
       <Routes>
         <Route path={appPaths.login} element={<LoginPage />} />
 
-        <Route path={appPaths.dashboard} element={<Layout />}>
+        <Route
+          path={appPaths.dashboard}
+          element={
+            <PrivateRoute>
+              <Layout />
+            </PrivateRoute>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="product" element={<ProductManagement />} />
@@ -29,8 +37,10 @@ function AppRouter() {
           <Route path="kyc" element={<KycReview />} />
           <Route path="certificates" element={<CertificateReview />} />
           <Route path="notifications" element={<NotificationManagement />} />
+          <Route path="outreach" element={<OutreachPage />} />
           <Route path="emails" element={<EmailLandingPage />} />
           <Route path="emails/compose" element={<EmailComposePage />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -15,6 +15,7 @@ import KycReview from "./pages/kyc";
 import CertificateReview from "./pages/certificates";
 import OutreachPage from "./pages/outreach";
 import ActivityPage from "./pages/activity";
+import RequestsPage from "./pages/requests";
 
 function AppRouter() {
   return (
@@ -40,6 +41,7 @@ function AppRouter() {
           <Route path="notifications" element={<NotificationManagement />} />
           <Route path="outreach" element={<OutreachPage />} />
           <Route path="activity" element={<ActivityPage />} />
+          <Route path="requests" element={<RequestsPage />} />
           <Route path="emails" element={<EmailLandingPage />} />
           <Route path="emails/compose" element={<EmailComposePage />} />
           <Route path="*" element={<Navigate replace to="/" />} />

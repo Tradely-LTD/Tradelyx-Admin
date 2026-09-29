@@ -1,4 +1,4 @@
-import { Award, BarChart2, History, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, BarChart2, FileQuestion, History, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 /**
  * The sidebar, grouped by the job a staff member is doing. `roles` limits an
@@ -43,6 +43,7 @@ const ALL_GROUPS: MenuGroup[] = [
   {
     label: "Marketplace",
     items: [
+      { icon: FileQuestion, label: "Buyer requests", path: "/requests", description: "What buyers asked for; unclear requests flagged", roles: ["admin", "country_admin"] },
       { icon: Package, label: "Products", path: "/product", description: "Every product listed on TradelyX" },
       { icon: ShellIcon, label: "Sell offers", path: "/sell-offer", description: "Stock sellers have ready, with price and quantity" },
     ],

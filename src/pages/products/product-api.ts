@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { toast } from "react-toastify";
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";
@@ -42,8 +41,26 @@ interface ProductResponse {
   success?: boolean;
 }
 
+/** A row of the admin list (GET /product/dashboard): the product plus who sells it. */
+export interface AdminProduct extends Product {
+  price?: { currency?: string; amount?: number | string } | null;
+  priceNegotiable?: boolean | null;
+  sellerCompany?: string | null;
+  sellerFirstName?: string | null;
+  sellerLastName?: string | null;
+  sellerVerified?: boolean | null;
+  creatorCountry?: string | null;
+}
+
+export interface ProductStats {
+  totalProducts: number;
+  verifiedProducts: number;
+  unverifiedProducts: number;
+  recentProducts: number;
+}
+
 interface ProductsResponse {
-  data: Product[];
+  data: AdminProduct[];
   pagination: {
     total: number;
     currentPage: number;
@@ -58,6 +75,7 @@ interface GetProductsQueryParams {
   search?: string;
   category?: string;
   status?: string;
+  sellerId?: string;
 }
 
 interface CreateProductPayload {
@@ -82,11 +100,6 @@ interface CreateProductPayload {
 }
 
 interface UpdateProductPayload extends Partial<CreateProductPayload> {}
-
-interface ApiError {
-  error: string;
-  details?: string;
-}
 
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -151,7 +164,7 @@ export const productApi = baseApi.injectEndpoints({
       providesTags: ["PRODUCTS"],
     }),
 
-    getProductStats: builder.query<{ data: Product[] }, void>({
+    getProductStats: builder.query<ProductStats, void>({
       query: () => ({
         url: `/product/stats`,
         method: Methods.Get,

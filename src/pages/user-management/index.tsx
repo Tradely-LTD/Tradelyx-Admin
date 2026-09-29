@@ -1,364 +1,229 @@
-//@ts-nocheck
 import { useState } from "react";
-import { Search, User, Filter, Edit2, Eye, HandHelping } from "lucide-react";
-import Pagination from "rc-pagination";
-import Input from "@/common/input/input";
-import Text from "@/common/text/text";
-import StatusIndicator from "@/common/status";
-import { useGetUsersQuery } from "./user-api";
-import Modal from "@/common/modal/modal";
-import UserForm from "./components/user-form";
-import { Loader } from "@/common/loader/loader";
+import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "react-use";
+import Pagination from "rc-pagination";
+import { Edit2, Eye, HandHelping, Search, Users as UsersIcon, X } from "lucide-react";
+
+import { useGetUsersQuery, User } from "./user-api";
+import { SegmentKey, useGetSegmentUsersQuery, useGetSegmentsQuery } from "../outreach/outreach-api";
+import { useUserSlice } from "../auth/authSlice";
+import Modal from "@/common/modal/modal";
 import TableDropdown from "@/common/dropdown";
+import UserForm from "./components/user-form";
 import SellerPreview from "./components/seller-preview";
 import SellerProfileForm from "./components/seller-form";
 import UserPreview from "./components/user-preview";
-import { pageSizeOptions } from "@/utils/constant";
+import UserDrawer, { roleTone } from "./components/user-drawer";
+import { Card, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber, initials } from "@/common/ui/kit";
+
+type Row = User & { companyName?: string | null; optedOut?: boolean };
+
+const ROLES = [
+  { label: "All roles", value: "" },
+  { label: "Buyers", value: "buyer" },
+  { label: "Sellers", value: "seller" },
+  { label: "Agents", value: "agent" },
+  { label: "Admins", value: "admin" },
+  { label: "No role yet", value: "null" },
+];
 
 const UserManagement = () => {
-  // State for filters and pagination
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState({
-    label: "10 per page",
-    value: 10,
-  });
-  const [userRole, setUserRole] = useState("");
-  const [userStatus, setUserStatus] = useState("");
+  const [params, setParams] = useSearchParams();
+  const { loginResponse } = useUserSlice();
+  const isAdmin = loginResponse?.user.roles === "admin";
 
-  // State for debounced search
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const segment = (isAdmin ? params.get("segment") : null) as SegmentKey | null;
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [role, setRole] = useState("");
+  const [verified, setVerified] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPreviewModalOpen, setPreviewIsModalOpen] = useState(false);
-  const [isUserPreviewModalOpen, setUserPreviewIsModalOpen] = useState(false);
-  const [isOnboradModalOpen, setIsOnboardIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selected, setSelected] = useState<Row | null>(null);
+  const [modal, setModal] = useState<null | "edit" | "profile" | "onboard">(null);
 
-  // Setup debounce for search
-  useDebounce(
-    () => {
-      setDebouncedSearchTerm(searchTerm);
-      setCurrentPage(1); // Reset to first page on new search
-    },
-    500,
-    [searchTerm]
-  );
+  useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 400, [search]);
 
-  // Fetch users data with query params
-  const { data, isLoading, isFetching } = useGetUsersQuery({
-    page: currentPage,
-    limit: perPage.value,
-    search: debouncedSearchTerm,
-    status: userStatus,
-    role: userRole,
-  });
+  const { data: segments } = useGetSegmentsQuery(undefined, { skip: !isAdmin });
+  const all = useGetUsersQuery({ page, limit, search: debounced, status: verified, role }, { skip: !!segment });
+  const inSegment = useGetSegmentUsersQuery({ key: segment as SegmentKey, page, limit, search: debounced }, { skip: !segment });
+  const { data, isFetching, isLoading } = segment ? inSegment : all;
+  const rows = (data?.data ?? []) as Row[];
+  const total = Number(data?.pagination?.total ?? 0);
+  const segmentInfo = segments?.find((s) => s.key === segment);
 
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  const setSegment = (key: string) => {
+    const next = new URLSearchParams(params);
+    if (key) next.set("segment", key);
+    else next.delete("segment");
+    setParams(next, { replace: true });
+    setPage(1);
   };
 
-
-  const handlePageSizeChange = (newPageSize) => {
-    setPerPage(newPageSize);
-    setCurrentPage(1); 
+  const open = (user: Row, which: typeof modal) => {
+    setSelected(user);
+    setModal(which);
   };
 
-  // Open modal with user data
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setIsModalOpen(true);
-  };
-
-  const handlePreview = (user) => {
-    setSelectedUser(user);
-    if (user.role === "seller") {
-      setPreviewIsModalOpen(true);
-    } else {
-      setUserPreviewIsModalOpen(true);
-    }
-  };
-
-  // Format date function
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return (
-      date.toLocaleDateString() +
-      " " +
-      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    );
-  };
-
-  // Safe data access with proper null checking
-  const users = data?.data || [];
-  const pagination = data?.pagination || { total: 0 };
+  const select =
+    "h-10 cursor-pointer rounded-lg border-0 bg-white pl-3 pr-8 text-[13.5px] text-ink shadow-sm ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-900";
 
   return (
-    <div className="min-h-screen py-5">
-      {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-        <p className="text-gray-600">View and manage user accounts</p>
-      </div>
+    <>
+      <PageHeader
+        eyebrow="People"
+        title="Users"
+        description="Everyone on TradelyX. Open a person to see which setup steps they've done, and nudge them about the rest."
+      />
 
-      {/* Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4 justify-between">
-        <div className="flex items-center gap-3">
-          <div className="">
-            <Input
-              type="text"
-              placeholder="Search by name, email or phone"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<Search className="w-4 h-4" />}
-            />
-          </div>
-
-          <div className="">
-            <Input
-              type="select"
-              placeholder="Filter by Role"
-              options={[
-                { label: "All Roles", value: "" },
-                { label: "Admin", value: "admin" },
-                { label: "Seller", value: "seller" },
-                { label: "Buyer", value: "buyer" },
-                { label: "Agent", value: "agent" },
-                { label: "Unassigned", value: "null" },
-              ]}
-              onSelectChange={(e) => {
-                setUserRole(e.value);
-                setCurrentPage(1);
-              }}
-              leftIcon={<Filter className="w-4 h-4" />}
-            />
-          </div>
-
-          <div className="">
-            <Input
-              type="select"
-              placeholder="Filter by Status"
-              options={[
-                { label: "All Status", value: "" },
-                { label: "Verified", value: "true" },
-                { label: "Not Verified", value: "false" },
-              ]}
-              onSelectChange={(e) => {
-                setUserStatus(e.value);
-                setCurrentPage(1);
-              }}
-              leftIcon={<Filter className="w-4 h-4" />}
-            />
-          </div>
+      <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center">
+        <div className="relative lg:w-80">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email or phone"
+            aria-label="Search users"
+            className="h-10 w-full rounded-lg border-0 bg-white pl-9 pr-3 text-[13.5px] text-ink shadow-sm ring-1 ring-inset ring-rule placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brand-900"
+          />
         </div>
+        {isAdmin && (
+          <select value={segment ?? ""} onChange={(e) => setSegment(e.target.value)} className={select} aria-label="Stuck at">
+            <option value="">Everyone</option>
+            <optgroup label="Stuck at">
+              {segments
+                ?.filter((s) => s.group === "compliance")
+                .map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label} ({formatNumber(s.count)})
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+        )}
+        {!segment && (
+          <>
+            <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className={select} aria-label="Role">
+              {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+            <select value={verified} onChange={(e) => { setVerified(e.target.value); setPage(1); }} className={select} aria-label="Email verified">
+              <option value="">Verified or not</option>
+              <option value="true">Verified</option>
+              <option value="false">Not verified</option>
+            </select>
+          </>
+        )}
+        <div className="tnum text-[13px] text-ink-soft lg:ml-auto">{isLoading ? "" : `${formatNumber(total)} ${total === 1 ? "person" : "people"}`}</div>
       </div>
 
-      {/* User Table */}
-      <div className="overflow-x-auto bg-white rounded-md shadow">
-        {isLoading || isFetching ? (
-          <Loader />
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
+      {segmentInfo && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-attention-soft px-4 py-2.5 text-[13px] text-attention-deep ring-1 ring-inset ring-attention/20">
+          <span>
+            <strong>{segmentInfo.label}.</strong> {segmentInfo.description}
+          </span>
+          <button onClick={() => setSegment("")} className="inline-flex cursor-pointer items-center gap-1 font-semibold hover:underline">
+            <X size={14} /> Clear
+          </button>
+        </div>
+      )}
+
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left text-[13.5px]">
             <thead>
-              <tr className="text-left text-gray-700">
-                <th className="px-4 py-4 font-medium">
-                  <Text>Name</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Email</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Phone</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Company</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Country</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>KYC Status</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Company</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Role</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Status Verified</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Registered On</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Actions</Text>
-                </th>
+              <tr className="border-b border-rule bg-paper text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-faint">
+                <th className="px-5 py-3">Person</th>
+                <th className="px-3 py-3">Role</th>
+                <th className="px-3 py-3">Phone</th>
+                <th className="px-3 py-3">Country</th>
+                <th className="px-3 py-3">KYC</th>
+                <th className="px-3 py-3">Joined</th>
+                <th className="w-12 px-3 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {users?.length > 0 ? (
-                users?.map((user) => (
-                  <tr key={user?.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <div className="flex items-center">
-                        {user?.profileImage ? (
-                          <img
-                            src={user?.profileImage}
-                            alt={`${user?.firstName} ${user?.lastName}`}
-                            className="w-8 h-8 rounded-full mr-2 object-cover"
-                          />
+            <tbody className={`divide-y divide-rule transition-opacity ${isFetching && !isLoading ? "opacity-60" : ""}`}>
+              {isLoading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i}><td colSpan={7} className="px-5 py-3"><Skeleton className="h-9" /></td></tr>
+                ))
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState icon={<UsersIcon size={20} />} title={segment ? "Nobody is stuck here" : "No users match"}>
+                      {segment ? "Everyone has done this step." : "Try another search or clear the filters."}
+                    </EmptyState>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((u) => (
+                  <tr key={u.id} onClick={() => setSelected(u)} className="cursor-pointer transition-colors hover:bg-brand-50/40">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        {u.profileImage ? (
+                          <img src={u.profileImage} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" loading="lazy" />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                            <User className="w-4 h-4 text-blue-500" />
-                          </div>
+                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-paper-deep text-[12px] font-bold text-ink-soft">{initials(u.firstName, u.lastName)}</div>
                         )}
-                        <div>
-                          <Text>
-                            {user?.firstName} {user?.lastName}
-                          </Text>
-                          <Text className="text-sm text-gray-500">{user?.email}</Text>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-ink">{`${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || "—"}</p>
+                          <p className="truncate text-[12.5px] text-ink-soft">{u.companyName || u.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{user?.email}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{user?.phone}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.isCompany} />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{user?.country}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.isKYCCompleted} />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.isCompany} />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.role == null ? "unassigned" : user?.role} />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator status={user?.status} />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{formatDate(user?.createdAt)}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
+                    <td className="px-3 py-3"><Pill tone={roleTone(u.role)}>{u.role ?? "none"}</Pill></td>
+                    <td className="tnum px-3 py-3 text-ink-soft">{u.phone || "—"}</td>
+                    <td className="px-3 py-3 text-ink-soft">{u.country || "—"}</td>
+                    <td className="px-3 py-3">{u.isKYCCompleted ? <Pill tone="green" dot>Verified</Pill> : <Pill tone="gray" dot>No</Pill>}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-ink-soft">{formatDate(u.createdAt)}</td>
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       <TableDropdown
                         items={[
-                          {
-                            label: "Edit User",
-                            icon: <Edit2 size={16} />,
-                            action: () => handleEditUser(user),
-                          },
-                          {
-                            label: "View Details",
-                            icon: <Eye size={16} />,
-                            action: () => handlePreview(user),
-                          },
-                          ...(user.role === "seller"
-                            ? [
-                                {
-                                  label: "Onboard as Seller",
-                                  icon: <HandHelping size={16} />,
-                                  action: () => {
-                                    setSelectedUser(user);
-                                    setIsOnboardIsModalOpen(true);
-                                  },
-                                },
-                              ]
-                            : []),
+                          { label: "Edit user", icon: <Edit2 size={16} />, action: () => open(u, "edit") },
+                          { label: "Full profile", icon: <Eye size={16} />, action: () => open(u, "profile") },
+                          ...(u.role === "seller" ? [{ label: "Onboard as seller", icon: <HandHelping size={16} />, action: () => open(u, "onboard") }] : []),
                         ]}
                       />
                     </td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td colSpan={11} className="px-4 py-4 text-center">
-                    <Text>No users found</Text>
-                  </td>
-                </tr>
               )}
             </tbody>
           </table>
-        )}
-
-        {/* Pagination */}
-      </div>
-      <div className="flex items-center justify-between mb-8 border-t border-gray-200 bg-white px-4 py-3">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <div className="flex items-center gap-3">
-            <div className="min-w-[140px] z-30">
-              <Input
-                type="select"
-                placeholder="Items per page"
-                value={perPage}
-                options={pageSizeOptions}
-                onSelectChange={handlePageSizeChange}
-              />
-            </div>
-          </div>
         </div>
-        <Pagination
-          current={currentPage}
-          total={Number(pagination?.total || 0)}
-          pageSize={perPage.value}
-          onChange={handlePageChange}
-          className="flex gap-2"
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule px-5 py-3">
+          <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className={`${select} h-8 text-[12.5px]`} aria-label="Rows per page">
+            {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n} per page</option>)}
+          </select>
+          <Pagination current={page} total={total} pageSize={limit} onChange={setPage} showSizeChanger={false} />
+        </div>
+      </Card>
+
+      {selected && !modal && (
+        <UserDrawer
+          user={selected}
+          canOutreach={isAdmin}
+          onClose={() => setSelected(null)}
+          onEdit={() => setModal("edit")}
+          onProfile={() => setModal("profile")}
+          onOnboard={() => setModal("onboard")}
         />
-      </div>
+      )}
 
-      {/* Edit User Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Edit User Information"
-      >
-        <UserForm
-          id={selectedUser?.id}
-          onClose={() => {
-            setIsModalOpen(false);
-          }}
-        />
+      <Modal isOpen={modal === "edit"} onClose={() => setModal(null)} title="Edit user">
+        <UserForm id={selected?.id ?? ""} onClose={() => setModal(null)} />
       </Modal>
-
-      {/* seller data preview  */}
-      <Modal
-        isOpen={isPreviewModalOpen}
-        onClose={() => setPreviewIsModalOpen(false)}
-        title="Seller Profile"
-        className="!max-w-[800px]"
-      >
-        <SellerPreview sellerId={selectedUser?.id} onClose={() => setPreviewIsModalOpen(false)} />
+      <Modal isOpen={modal === "profile"} onClose={() => setModal(null)} title={selected?.role === "seller" ? "Seller profile" : "User profile"} className="!max-w-[800px]">
+        {selected?.role === "seller" ? (
+          <SellerPreview sellerId={selected.id} onClose={() => setModal(null)} />
+        ) : (
+          <UserPreview userId={selected?.id ?? ""} onClose={() => setModal(null)} />
+        )}
       </Modal>
-
-      <Modal
-        isOpen={isUserPreviewModalOpen}
-        onClose={() => setUserPreviewIsModalOpen(false)}
-        title="User Profile"
-        className="!max-w-[800px]"
-      >
-        <UserPreview userId={selectedUser?.id} onClose={() => setUserPreviewIsModalOpen(false)} />
+      <Modal isOpen={modal === "onboard"} onClose={() => setModal(null)} title="Onboard seller" className="!max-w-[800px]">
+        <SellerProfileForm onClose={() => setModal(null)} id={selected?.id} />
       </Modal>
-
-      <Modal
-        isOpen={isOnboradModalOpen}
-        onClose={() => setIsOnboardIsModalOpen(false)}
-        title="Onboard Seller"
-        className="!max-w-[800px]"
-      >
-        <SellerProfileForm onClose={() => setIsOnboardIsModalOpen(false)} id={selectedUser?.id} />
-      </Modal>
-    </div>
+    </>
   );
 };
 

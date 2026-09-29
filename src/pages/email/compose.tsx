@@ -87,15 +87,15 @@ const EmailComposePage = () => {
   };
 
   return (
-    <div className="min-h-screen space-y-8 py-6">
+    <div className="space-y-8">
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Email Mode</h1>
-          <p className="text-gray-600">Compose and send targeted email communications.</p>
+          <h1 className="text-[26px] font-bold tracking-[-0.02em] text-ink">Write an email</h1>
+          <p className="text-sm text-ink-soft">To one person, or a few you pick. Sent exactly as written.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outlined" onClick={() => navigate(appPaths.emails)}>
-            Back to Email Dashboard
+            Back to Direct email
           </Button>
          
         </div>

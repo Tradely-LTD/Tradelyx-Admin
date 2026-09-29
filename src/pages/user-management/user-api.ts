@@ -18,7 +18,7 @@ export const authApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || err?.error || "Failed to update ";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || err?.error || "Failed to update ";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -39,7 +39,7 @@ export const authApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || err?.error || "Failed to create ";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || err?.error || "Failed to create ";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -60,7 +60,7 @@ export const authApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || err?.error || "Failed to update ";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || err?.error || "Failed to update ";
           toast.error(errorMessage, {
             position: "top-right",
           });

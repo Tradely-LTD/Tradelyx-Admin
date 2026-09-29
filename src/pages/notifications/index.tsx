@@ -158,11 +158,8 @@ const NotificationManagement = () => {
                     <div className="flex space-x-2">
                       <TableDropdown
                         items={[
-                          {
-                            label: "Edit",
-                            action: () => handleEditNotification(notification),
-                            icon: <Edit2 size={14} />,
-                          },
+                          // No "Edit": a push that has gone out can't be changed on
+                          // people's phones, and the API has no route for it.
                           {
                             label: "View",
                             action: () => {

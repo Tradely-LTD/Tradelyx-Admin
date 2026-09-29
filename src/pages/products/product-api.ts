@@ -104,7 +104,7 @@ export const productApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to create product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to create product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -126,7 +126,7 @@ export const productApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to update product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to update product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -166,6 +166,24 @@ export const productApi = baseApi.injectEndpoints({
       providesTags: ["PRODUCTS"],
     }),
 
+    // Staff only. Verification is the platform's call, so it has its own
+    // route and is never part of a product edit.
+    setProductVerified: builder.mutation<{ message: string }, { id: string; verified: boolean }>({
+      query: ({ id, verified }) => ({
+        url: `/product/${id}/verify`,
+        method: Methods.Post,
+        body: { verified },
+      }),
+      invalidatesTags: ["PRODUCTS"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          toast.success(data?.message ?? "Updated", { position: "top-right" });
+        } catch (err: any) {
+          toast.error(err?.error?.data?.error || err?.error?.data?.message || err?.error?.data?.message || "Could not update verification", { position: "top-right" });
+        }
+      },
+    }),
     deleteProductById: builder.mutation<
       { message: string; deletedProductId: string },
       { id: string }
@@ -182,7 +200,7 @@ export const productApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to delete product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to delete product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -199,5 +217,6 @@ export const {
   useGetProductsQuery,
   useGetProductsByCreatorQuery,
   useDeleteProductByIdMutation,
+  useSetProductVerifiedMutation,
   useGetProductStatsQuery,
 } = productApi;

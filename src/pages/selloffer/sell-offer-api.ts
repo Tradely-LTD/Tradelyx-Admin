@@ -45,7 +45,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: data,
       }),
-      invalidatesTags: ["SELLOFFER"],
+      invalidatesTags: ["SELLOFFER", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -63,11 +63,13 @@ export const sellOfferApi = baseApi.injectEndpoints({
 
     updateSellOffer: builder.mutation<ProductResponse, { id: string; data: UpdateProductPayload }>({
       query: ({ id, data }) => ({
-        url: `/sell-offer/sell-offers/${id}`,
+        // Staff edit route: the sell-offers/:id route is the seller's repost and
+        // applies only date, price, quantity and on/off
+        url: `/sell-offer/admin/${id}`,
         method: "put",
         body: data,
       }),
-      invalidatesTags: ["SELLOFFER"],
+      invalidatesTags: ["SELLOFFER", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -121,7 +123,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
         url: `/sell-offer/${id}`,
         method: Methods.Delete,
       }),
-      invalidatesTags: ["SELLOFFER"],
+      invalidatesTags: ["SELLOFFER", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;

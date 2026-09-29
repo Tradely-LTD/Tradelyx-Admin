@@ -10,7 +10,7 @@ export const authApi = baseApi.injectEndpoints({
         method: Methods.Put,
         body: data,
       }),
-      invalidatesTags: ["USERS"],
+      invalidatesTags: ["USERS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -31,7 +31,7 @@ export const authApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: data,
       }),
-      invalidatesTags: ["USERS"],
+      invalidatesTags: ["USERS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -52,7 +52,7 @@ export const authApi = baseApi.injectEndpoints({
         method: Methods.Put,
         body: data,
       }),
-      invalidatesTags: ["USERS"],
+      invalidatesTags: ["USERS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -80,13 +80,8 @@ export const authApi = baseApi.injectEndpoints({
       }),
       providesTags: ["USERS"],
     }),
-    getUser: builder.query<
-      {
-        data: SellerResponse;
-        success: boolean;
-      },
-      { id: string }
-    >({
+    // The API answers with the seller object itself, not { data }
+    getUser: builder.query<SellerResponse, { id: string }>({
       query: ({ id }) => ({
         url: `profile/profile/seller/${id}`,
         method: Methods.Get,
@@ -172,6 +167,7 @@ export interface SellerResponse {
 }
 
 export interface PersonalInfo {
+  address?: string | null;
   firstName: string;
   lastName: string;
   email: string;

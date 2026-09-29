@@ -33,34 +33,6 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
     }),
-    register: builder.mutation<RegisterResponse, RegisterRequest>({
-      query: (data) => ({
-        url: "/auth/register",
-        method: Methods.Post,
-        body: data,
-      }),
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled;
-
-          toast.success("Account created successfully", {
-            position: "top-right",
-          });
-        } catch (err: any) {
-          const errorMessage = err.error.data.error || err?.error || "Failed to create the account";
-
-          toast.error(errorMessage, {
-            position: "top-right",
-          });
-        }
-      },
-    }),
-    logout: builder.mutation({
-      query: () => ({
-        url: "/authentication/logout",
-        method: Methods.Put,
-      }),
-    }),
   }),
 });
 
@@ -166,4 +138,4 @@ export interface ResetPasswordResponse {
 
 export interface RefreshTokenResponse extends LoginResponse {}
 
-export const { useLoginMutation, useLogoutMutation, useRegisterMutation } = authApi;
+export const { useLoginMutation } = authApi;

@@ -1,11 +1,10 @@
 //@ts-nocheck
 import { Loader, X } from "lucide-react";
 import Button from "@/common/button/button";
-import { useGetReferralQuery } from "../referral-api";
 
-const ReferralPreview = ({ referralId, onClose }) => {
-  const { data, isLoading } = useGetReferralQuery({ id: referralId });
-  const referral = data;
+// Shows the row the list already loaded: there is no single-referral endpoint
+const ReferralPreview = ({ referral, onClose }) => {
+  const isLoading = false;
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";

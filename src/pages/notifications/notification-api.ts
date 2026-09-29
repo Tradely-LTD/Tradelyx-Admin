@@ -56,7 +56,7 @@ export const notificationApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: data,
       }),
-      invalidatesTags: ["NOTIFICATIONS"],
+      invalidatesTags: ["NOTIFICATIONS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -79,7 +79,7 @@ export const notificationApi = baseApi.injectEndpoints({
         method: Methods.Put,
         body: data,
       }),
-      invalidatesTags: ["NOTIFICATIONS"],
+      invalidatesTags: ["NOTIFICATIONS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;

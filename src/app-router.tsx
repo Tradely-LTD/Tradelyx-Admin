@@ -14,6 +14,7 @@ import EmailComposePage from "./pages/email/compose";
 import KycReview from "./pages/kyc";
 import CertificateReview from "./pages/certificates";
 import OutreachPage from "./pages/outreach";
+import ActivityPage from "./pages/activity";
 
 function AppRouter() {
   return (
@@ -38,6 +39,7 @@ function AppRouter() {
           <Route path="certificates" element={<CertificateReview />} />
           <Route path="notifications" element={<NotificationManagement />} />
           <Route path="outreach" element={<OutreachPage />} />
+          <Route path="activity" element={<ActivityPage />} />
           <Route path="emails" element={<EmailLandingPage />} />
           <Route path="emails/compose" element={<EmailComposePage />} />
           <Route path="*" element={<Navigate replace to="/" />} />

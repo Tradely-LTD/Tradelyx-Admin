@@ -2,33 +2,32 @@
 import { useState } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
-import { useGetProductQuery, useUpdateProductMutation } from "../product-api";
+import { useGetProductQuery, useSetProductVerifiedMutation } from "../product-api";
 import { useUserSlice } from "@/pages/auth/authSlice";
+import { useGetActivityQuery } from "@/pages/activity/activity-api";
 
 const ProductPreview = ({ productId, onClose }) => {
   const [activeDocument, setActiveDocument] = useState(null);
   const [documentLoading, setDocumentLoading] = useState(false);
-  const [updateProduct, { isLoading: updatingProduct }] = useUpdateProductMutation();
+  const [setVerified, { isLoading: updatingProduct }] = useSetProductVerifiedMutation();
   const { data, isLoading } = useGetProductQuery({ id: productId });
 
   const { loginResponse } = useUserSlice();
   const userRole = loginResponse?.user.roles;
   const product = data?.data;
+  // Who last changed verification, from the activity log (admins only)
+  const { data: verification } = useGetActivityQuery(
+    { targetType: "product", targetId: productId, action: "product.", limit: 5 },
+    { skip: userRole !== "admin" }
+  );
+  const lastVerification = verification?.data?.find((a) => a.action === "product.verified" || a.action === "product.unverified");
 
-  const handleVerifyToggle = async (verifyStatus) => {
+  const handleVerifyToggle = async (verified) => {
     try {
-      // Exclude creatorId from update to preserve the original seller's ID
-      const { creatorId, ...productWithoutCreatorId } = product;
-      await updateProduct({
-        id: productId,
-        data: { ...productWithoutCreatorId, produtVerified: verifyStatus },
-      })
-        .unwrap()
-        .then(() => {
-          onClose();
-        });
-    } catch (error) {
-      console.error(`Failed to ${verifyStatus ? "verify" : "unverify"} product:`, error);
+      await setVerified({ id: productId, verified }).unwrap();
+      onClose();
+    } catch {
+      // the toast says why
     }
   };
 
@@ -440,7 +439,14 @@ const ProductPreview = ({ productId, onClose }) => {
         </div>
       </div>
 
-      <div className="border-t p-4 flex justify-end gap-3 bg-gray-50 sticky bottom-0">
+      <div className="border-t p-4 flex flex-wrap items-center justify-end gap-3 bg-gray-50 sticky bottom-0">
+        {lastVerification && (
+          <p className="mr-auto text-[12.5px] text-ink-soft">
+            {lastVerification.action === "product.verified" ? "Verified" : "Verification removed"} by{" "}
+            <strong className="text-ink">{lastVerification.actorName ?? "staff"}</strong> on{" "}
+            {new Date(lastVerification.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        )}
         <button
           onClick={onClose}
           className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"

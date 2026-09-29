@@ -1,6 +1,5 @@
-//@ts-nocheck
 import { format } from "date-fns";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, Resolver } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Input from "@/common/input/input";
@@ -54,6 +53,12 @@ interface SellerApiResponse {
 }
 
 // Interface for the flat form and database structure
+// "cashew, sesame" ⇄ ["cashew", "sesame"]. These inputs used to store the
+// raw text in a list field, which the form's own validation then refused.
+// Trailing commas and spaces are kept while typing so the cursor doesn't jump.
+const listToText = (value: unknown) => (Array.isArray(value) ? value.join(", ") : String(value ?? ""));
+const textToList = (text: string) => text.split(",").map((s, i, all) => (i === all.length - 1 ? s.trimStart() : s.trim())).filter((s, i, all) => s || i === all.length - 1);
+
 interface SellerProfile {
   id?: string;
   companyName: string;
@@ -105,7 +110,7 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
   const isEditMode = !!id;
   const [createSellerProfile, { isLoading: isCreating }] = useCreateSellerProfileMutation();
   const [updateSellerProfile, { isLoading: isUpdating }] = useUpdateSellerProfileMutation();
-  const { data, isLoading: isLoadingProfile, error } = useGetUserQuery({ id }, { skip: !id });
+  const { data, isLoading: isLoadingProfile } = useGetUserQuery({ id: id ?? "" }, { skip: !id });
   const [uploadsFile] = useUploadsFileMutation();
 
   const profileData = useMemo<SellerProfile | undefined>(() => {
@@ -115,7 +120,7 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
 
     // Fix: Use data directly instead of data.data
     // The API returns the data structure directly, not nested under a 'data' property
-    const apiData = data as SellerApiResponse;
+    const apiData = data as unknown as SellerApiResponse;
 
     const { companyInfo, businessDetails, documents } = apiData;
 
@@ -187,7 +192,9 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
     reset,
     formState: { errors },
   } = useForm<SellerProfile>({
-    resolver: yupResolver(validationSchema),
+    // The schema allows undefined where the form type says null; the values
+    // are the same to the API, so the resolver is cast rather than the model
+    resolver: yupResolver(validationSchema) as unknown as Resolver<SellerProfile>,
     defaultValues: getDefaultValues(),
   });
 
@@ -206,8 +213,9 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
         id: formData.id,
         companyRegistrationDoc: formData.companyRegistrationDoc || [],
         identityDoctype: formData.identityDoctype || [],
-        businessServices: formData.businessServices || [],
-        mainMarkets: formData.mainMarkets || [],
+        // Drop the empty item left by a trailing comma while typing
+        businessServices: (formData.businessServices || []).map((v) => v.trim()).filter(Boolean),
+        mainMarkets: (formData.mainMarkets || []).map((v) => v.trim()).filter(Boolean),
         languageSpoken: formData.languageSpoken || [],
         certificationDocuments: formData.certificationDocuments || [],
       };
@@ -444,8 +452,8 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
                 type="text"
                 label="Business Services (comma-separated)"
                 error={errors.businessServices?.message}
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
+                value={listToText(field.value)}
+                onChange={(e) => field.onChange(textToList(e.target.value))}
               />
             )}
           />
@@ -457,8 +465,8 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
                 type="text"
                 label="Main Markets (comma-separated)"
                 error={errors.mainMarkets?.message}
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
+                value={listToText(field.value)}
+                onChange={(e) => field.onChange(textToList(e.target.value))}
               />
             )}
           />

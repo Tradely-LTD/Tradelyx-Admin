@@ -42,7 +42,7 @@ export default function OutreachPage() {
         />
       </div>
       {tab === "compose" ? (
-        <Composer initialTemplate={params.get("template")} person={person} onClearPerson={clearPerson} onSent={() => setTab("campaigns")} />
+        <Composer initialTemplate={params.get("template")} initialPath={params.get("path")} person={person} onClearPerson={clearPerson} onSent={() => setTab("campaigns")} />
       ) : (
         <Campaigns />
       )}

@@ -14,6 +14,8 @@ const defaultTags = [
   "EMAILS",
   "KYC",
   "OUTREACH",
+  "ACTIVITY",
+  "REQUESTS",
 ] as const;
 type DefaultTags = (typeof defaultTags)[number];
 

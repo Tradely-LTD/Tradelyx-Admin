@@ -1,378 +1,330 @@
-//@ts-nocheck
-
-import { useState } from "react";
-import { Search, Filter, Edit2, Eye, Trash2, Box, ShieldCheck, ShieldOff } from "lucide-react";
-import Pagination from "rc-pagination";
-import Input from "@/common/input/input";
-import Text from "@/common/text/text";
-import StatusIndicator from "@/common/status";
-import Modal from "@/common/modal/modal";
-import ProductForm from "./components/product-form";
-// import ProductPreview from "./components/product-preview";
-import { Loader } from "@/common/loader/loader";
+import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
-import TableDropdown from "@/common/dropdown";
+import Pagination from "rc-pagination";
+import { BadgeCheck, Check, Edit2, ExternalLink, Eye, Package, Plus, Search, ShieldCheck, Store, Trash2, X } from "lucide-react";
+
 import {
-  useGetProductsQuery,
+  AdminProduct,
   useDeleteProductByIdMutation,
   useGetProductStatsQuery,
+  useGetProductsQuery,
+  useSetProductVerifiedMutation,
 } from "./product-api";
+import ProductForm from "./components/product-form";
 import ProductPreview from "./components/product-preview";
-import Card from "@/common/cards/card";
-import { pageSizeOptions } from "@/utils/constant";
+import Modal from "@/common/modal/modal";
+import TableDropdown from "@/common/dropdown";
+import { useUserSlice } from "../auth/authSlice";
+import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
 
-interface Product {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  thumbnail?: string | null;
-  productVerified: boolean;
-  createdAt: string;
-}
+/**
+ * Products: review what sellers list, verify the good ones, remove the bad.
+ *
+ * Opens on "Awaiting review" because that is the job; everything else is a
+ * filter away. Verifying is one click on the row, or several at once from a
+ * selection. Every verify, edit and removal is recorded in the activity log.
+ */
 
-const ProductManagement: React.FC = () => {
-  // State for filters and pagination
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState({
-    label: "10 per page",
-    value: 10,
-  });
-  const [statusFilter, setStatusFilter] = useState<string>("");
+const WEB_URL = "https://web.tradelyx.com";
 
-  // State for debounced search
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+type Filter = "unverified" | "verified" | "";
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [isPreviewModalOpen, setPreviewIsModalOpen] = useState<boolean>(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+const price = (p: AdminProduct["price"]) => {
+  if (!p || p.amount == null || p.amount === "") return null;
+  const amount = Number(p.amount);
+  if (!Number.isFinite(amount)) return null;
+  try {
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency: p.currency || "NGN", maximumFractionDigits: 0 }).format(amount);
+  } catch {
+    return `${p.currency ?? ""} ${formatNumber(amount)}`.trim();
+  }
+};
 
-  // Setup debounce for search
-  useDebounce(
-    () => {
-      setDebouncedSearchTerm(searchTerm);
-      setCurrentPage(1); // Reset to first page on new search
-    },
-    500,
-    [searchTerm]
-  );
+export default function ProductManagement() {
+  const { loginResponse } = useUserSlice();
+  const role = loginResponse?.user.roles;
+  const canModerate = role === "admin" || role === "country_admin";
 
-  // Fetch products data with query params
+  const [filter, setFilter] = useState<Filter>(canModerate ? "unverified" : "");
+  const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [seller, setSeller] = useState<{ id: string; name: string } | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [formFor, setFormFor] = useState<{ id?: string } | null>(null);
+  const [deleting, setDeleting] = useState<AdminProduct | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 350, [search]);
+
   const { data, isLoading, isFetching } = useGetProductsQuery({
-    page: currentPage,
-    limit: perPage.value,
-    search: debouncedSearchTerm,
-    status: statusFilter,
+    page,
+    limit,
+    search: debounced || undefined,
+    status: filter || undefined,
+    sellerId: seller?.id,
   });
+  const { data: stats, isLoading: statsLoading } = useGetProductStatsQuery();
+  const [setVerified, { isLoading: verifying }] = useSetProductVerifiedMutation();
+  const [deleteProduct, { isLoading: deletingNow }] = useDeleteProductByIdMutation();
 
-  const { data: recordsStats, isLoading: loadingStats } = useGetProductStatsQuery();
+  const rows = useMemo(() => data?.data ?? [], [data]);
+  const total = Number(data?.pagination?.total ?? 0);
+  const allOnPage = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
-  // Delete product mutation
-  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductByIdMutation();
+  const toggle = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  // Open modal for adding/editing product
-  const handleEditProduct = (product?: Product) => {
-    setSelectedProduct(product || null);
-    setIsModalOpen(true);
-  };
-
-  // Open delete confirmation modal
-  const handleOpenDeleteModal = (product: Product) => {
-    setProductToDelete(product);
-    setIsDeleteModalOpen(true);
-  };
-
-  // Handle product deletion
-  const handleDeleteProduct = async () => {
-    if (!productToDelete) return;
+  const verifySelected = async () => {
+    setBulkBusy(true);
     try {
-      await deleteProduct({ id: productToDelete.id }).unwrap();
-      setIsDeleteModalOpen(false);
-      setProductToDelete(null);
-    } catch (error) {
-      console.error("Failed to delete product:", error);
+      // One at a time: each is its own verification in the activity log
+      for (const id of selected) await setVerified({ id, verified: true }).unwrap().catch(() => undefined);
+      setSelected(new Set());
+    } finally {
+      setBulkBusy(false);
     }
   };
 
-  // Handle product preview
-  const handlePreviewProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setPreviewIsModalOpen(true);
-  };
-
-  // Format date function
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return (
-      date.toLocaleDateString() +
-      " " +
-      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    );
-  };
-  const handlePageSizeChange = (newPageSize) => {
-    setPerPage(newPageSize);
-    setCurrentPage(1);
-  };
+  const tiles = [
+    { label: "All products", value: stats?.totalProducts, icon: Package },
+    { label: "Awaiting review", value: stats?.unverifiedProducts, icon: ShieldCheck, attention: true },
+    { label: "Verified", value: stats?.verifiedProducts, icon: BadgeCheck },
+    { label: "Added in 30 days", value: stats?.recentProducts, icon: Plus },
+  ];
 
   return (
-    <div className="min-h-screen py-5">
-      {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Product Management</h1>
-        <p className="text-gray-600">View and manage products</p>
+    <>
+      <PageHeader
+        eyebrow="Marketplace"
+        title="Products"
+        description="Check what sellers list. Verified products carry the verified tick buyers look for."
+        actions={
+          canModerate && (
+            <Btn icon={<Plus size={16} />} onClick={() => setFormFor({})}>
+              Add product for a seller
+            </Btn>
+          )
+        }
+      />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {tiles.map((t) => (
+          <Card key={t.label} className="flex items-center gap-3 px-4 py-3.5">
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${t.attention && t.value ? "bg-attention-soft text-attention-deep" : "bg-brand-50 text-brand-900"}`}>
+              <t.icon size={17} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[12px] text-ink-soft">{t.label}</p>
+              {statsLoading ? <Skeleton className="mt-1 h-5 w-10" /> : <p className="tnum text-lg font-bold leading-tight text-ink">{formatNumber(t.value)}</p>}
+            </div>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 my-3">
-        <Card
-          title="Total Product"
-          value={recordsStats?.totalProducts}
-          icon={<Box size={24} />}
-          color="#143085"
-          description="All products"
-          loading={isLoading}
-        />
-        <Card
-          title="Total Verified"
-          value={recordsStats?.verifiedProducts}
-          icon={<ShieldCheck size={24} />}
-          color="#187c53"
-          description="All verified products"
-          loading={isLoading}
-        />
-        <Card
-          title="Total Unverified"
-          value={recordsStats?.unverifiedProducts}
-          icon={<ShieldOff size={24} />}
-          color="#c38555"
-          description="All unverified products"
-          loading={isLoading}
-        />
-        <Card
-          title="Recent Product"
-          value={recordsStats?.recentProducts}
-          icon={<Box size={24} />}
-          color="#143085"
-          description="Recent Product"
-          loading={isLoading}
-        />
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter">
+          {([
+            ["unverified", "Awaiting review"],
+            ["verified", "Verified"],
+            ["", "All"],
+          ] as [Filter, string][]).map(([value, label]) => (
+            <button
+              key={label}
+              onClick={() => { setFilter(value); setPage(1); setSelected(new Set()); }}
+              aria-pressed={filter === value}
+              className={`cursor-pointer rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                filter === value ? "bg-brand-950 text-white" : "bg-white text-ink-soft ring-1 ring-inset ring-rule hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {seller && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 py-1.5 pl-3 pr-1.5 text-[12.5px] font-semibold text-sky-800 ring-1 ring-inset ring-sky-200">
+              <Store size={13} /> {seller.name}
+              <button onClick={() => { setSeller(null); setPage(1); }} aria-label="Show every seller" className="grid h-5 w-5 cursor-pointer place-items-center rounded-full hover:bg-sky-100">
+                <X size={12} />
+              </button>
+            </span>
+          )}
+        </div>
+        <div className="relative lg:ml-auto lg:w-80">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search product, category or seller"
+            aria-label="Search products"
+            className="h-10 w-full rounded-lg border-0 bg-white pl-9 pr-3 text-[13.5px] text-ink shadow-sm ring-1 ring-inset ring-rule placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brand-900"
+          />
+        </div>
       </div>
 
-      {/* Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4 justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <Input
-              type="text"
-              placeholder="Search by title or category"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<Search className="w-4 h-4" />}
-            />
-          </div>
-
-          <div>
-            <Input
-              type="select"
-              placeholder="Filter by Status"
-              options={[
-                { label: "All", value: "" },
-                { label: "Verified", value: "verified" },
-                { label: "Not Verified", value: "unverified" },
-              ]}
-              onSelectChange={(e) => {
-                setStatusFilter(e.value);
-                setCurrentPage(1);
-              }}
-              leftIcon={<Filter className="w-4 h-4" />}
-            />
+      {canModerate && selected.size > 0 && (
+        <div className="mb-3 flex animate-rise items-center justify-between gap-3 rounded-xl bg-brand-950 px-4 py-2.5 text-white">
+          <span className="text-[13.5px] font-semibold">
+            {selected.size} selected
+          </span>
+          <div className="flex gap-2">
+            <Btn size="sm" variant="ghost" className="text-white/80 hover:bg-white/10 hover:text-white" onClick={() => setSelected(new Set())}>
+              Clear
+            </Btn>
+            <Btn size="sm" icon={<Check size={14} />} loading={bulkBusy} onClick={verifySelected} className="bg-white text-brand-950 hover:bg-brand-50">
+              Verify selected
+            </Btn>
           </div>
         </div>
+      )}
 
-        <button
-          onClick={() => handleEditProduct()}
-          className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-200"
-          disabled={isDeleting}
-        >
-          Add Product
-        </button>
-      </div>
-
-      {/* Product Table */}
-      <div className="overflow-x-auto bg-white rounded-md shadow">
-        {isLoading || isFetching ? (
-          <Loader />
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-[13.5px]">
             <thead>
-              <tr className="text-left text-gray-700">
-                <th className="px-4 py-4 font-medium">
-                  <Text>Product</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Category</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Description</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Status</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Created On</Text>
-                </th>
-                <th className="px-4 py-4 font-medium">
-                  <Text>Actions</Text>
-                </th>
+              <tr className="border-b border-rule bg-paper text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-faint">
+                {canModerate && (
+                  <th className="w-10 py-3 pl-5">
+                    <input
+                      type="checkbox"
+                      aria-label="Select every product on this page"
+                      checked={allOnPage}
+                      onChange={() => setSelected(allOnPage ? new Set() : new Set(rows.map((r) => r.id)))}
+                      className="h-4 w-4 cursor-pointer accent-brand-900"
+                    />
+                  </th>
+                )}
+                <th className="px-4 py-3">Product</th>
+                <th className="px-3 py-3">Seller</th>
+                <th className="px-3 py-3">Price</th>
+                <th className="px-3 py-3">Added</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="w-12 px-3 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {data && data.data.length > 0 ? (
-                data.data.map((product: Product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 even:bg-[#F7F7F7]">
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <div className="flex items-center">
-                        {product.thumbnail ? (
-                          <img
-                            src={product.thumbnail}
-                            alt={product.title}
-                            className="w-8 h-8 rounded-md mr-2 object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center mr-2">
-                            <Text className="text-blue-600">P</Text>
-                          </div>
-                        )}
-                        <Text>{product.title}</Text>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 distance-r border-[#EDEDED]">
-                      <Text>{product.category}</Text>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <p className="line-clamp-2 max-w-sm text-gray-600">{product.description}</p>
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <StatusIndicator
-                        status={product.productVerified ? "verified" : "not verified"}
-                      />
-                    </td>
-                    <td className="px-4 py-4 border-r border-[#EDEDED]">
-                      <Text>{formatDate(product.createdAt)}</Text>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex space-x-2">
-                        <TableDropdown
-                          items={[
-                            {
-                              label: "Edit",
-                              action: () => handleEditProduct(product),
-                              icon: <Edit2 size={14} />,
-                            },
-                            {
-                              label: "View",
-                              action: () => handlePreviewProduct(product),
-                              icon: <Eye size={14} />,
-                            },
-                            {
-                              label: "Delete",
-                              action: () => handleOpenDeleteModal(product),
-                              icon: <Trash2 size={14} />,
-                            },
-                          ]}
-                        />
-                      </div>
-                    </td>
-                  </tr>
+            <tbody className={`divide-y divide-rule transition-opacity ${isFetching && !isLoading ? "opacity-60" : ""}`}>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}><td colSpan={7} className="px-5 py-3"><Skeleton className="h-11" /></td></tr>
                 ))
-              ) : (
+              ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center">
-                    <Text>No products found</Text>
+                  <td colSpan={7}>
+                    <EmptyState icon={<Package size={20} />} title={filter === "unverified" ? "Nothing waiting for review" : "No products match"}>
+                      {filter === "unverified" ? "Every product has been checked." : "Try another search or filter."}
+                    </EmptyState>
                   </td>
                 </tr>
+              ) : (
+                rows.map((p) => {
+                  const sellerName = p.sellerCompany || [p.sellerFirstName, p.sellerLastName].filter(Boolean).join(" ") || "Seller";
+                  const cost = price(p.price);
+                  return (
+                    <tr key={p.id} className={`cursor-pointer transition-colors hover:bg-brand-50/40 ${selected.has(p.id) ? "bg-brand-50/60" : ""}`} onClick={() => setPreviewId(p.id)}>
+                      {canModerate && (
+                        <td className="py-3 pl-5" onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" aria-label={`Select ${p.title}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} className="h-4 w-4 cursor-pointer accent-brand-900" />
+                        </td>
+                      )}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {p.thumbnail || p.images?.[0] ? (
+                            <img src={p.thumbnail || p.images![0]} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-lg bg-paper-deep object-cover" />
+                          ) : (
+                            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-paper-deep text-ink-faint"><Package size={17} /></div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="max-w-[280px] truncate font-semibold text-ink">{p.title}</p>
+                            <p className="truncate text-[12.5px] text-ink-soft">{[p.category, p.place_of_origin].filter(Boolean).join(" · ")}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <p className="max-w-[200px] truncate text-ink">{sellerName}</p>
+                        <p className="text-[12px]">{p.sellerVerified ? <span className="text-brand-900">KYC verified</span> : <span className="text-ink-faint">Not KYC verified</span>}</p>
+                      </td>
+                      <td className="tnum whitespace-nowrap px-3 py-3 text-ink-soft">
+                        {cost ?? <span className="text-ink-faint">Ask for a quote</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-ink-soft">{formatDate(p.createdAt)}</td>
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        {p.productVerified ? (
+                          <Pill tone="green" dot>Verified</Pill>
+                        ) : canModerate ? (
+                          <Btn size="sm" variant="secondary" icon={<Check size={14} />} disabled={verifying} onClick={() => setVerified({ id: p.id, verified: true })}>
+                            Verify
+                          </Btn>
+                        ) : (
+                          <Pill tone="orange" dot>Awaiting review</Pill>
+                        )}
+                      </td>
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        <TableDropdown
+                          items={[
+                            { label: "Open", icon: <Eye size={16} />, action: () => setPreviewId(p.id) },
+                            { label: "See on TradelyX", icon: <ExternalLink size={16} />, action: () => window.open(`${WEB_URL}/product/${p.id}`, "_blank", "noopener") },
+                            { label: "This seller's products", icon: <Store size={16} />, action: () => { setSeller({ id: p.creatorId, name: sellerName }); setPage(1); } },
+                            ...(canModerate
+                              ? [
+                                  ...(p.productVerified ? [{ label: "Remove verification", icon: <X size={16} />, action: () => setVerified({ id: p.id, verified: false }) }] : []),
+                                  { label: "Edit", icon: <Edit2 size={16} />, action: () => setFormFor({ id: p.id }) },
+                                  { label: "Remove", icon: <Trash2 size={16} />, action: () => setDeleting(p), danger: true },
+                                ]
+                              : []),
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
-        )}
-
-        {/* Pagination */}
-      </div>
-    
-      {/* Add/Edit Product Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={selectedProduct ? "Edit Product" : "Add Product"}
-        className="!max-w-4xl"
-      >
-        <ProductForm
-          id={selectedProduct?.id}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedProduct(null);
-          }}
-        />
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setProductToDelete(null);
-        }}
-        title="Confirm Deletion"
-        className="!max-w-md"
-      >
-        <div className="p-4">
-          <Text className="mb-4">
-            Are you sure you want to delete <strong>{productToDelete?.title}</strong>? This action
-            cannot be undone.
-          </Text>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => {
-                setIsDeleteModalOpen(false);
-                setProductToDelete(null);
-              }}
-              className="px-4 py-2 text-gray-600 rounded-md hover:bg-gray-100"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDeleteProduct}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400"
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </button>
-          </div>
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rule px-5 py-3">
+          <div className="flex items-center gap-3 text-[12.5px] text-ink-soft">
+            <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} aria-label="Rows per page" className="h-8 cursor-pointer rounded-lg border-0 bg-white pl-2 pr-7 text-[12.5px] ring-1 ring-inset ring-rule">
+              {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n} per page</option>)}
+            </select>
+            <span className="tnum">{formatNumber(total)} {total === 1 ? "product" : "products"}</span>
+          </div>
+          <Pagination current={page} total={total} pageSize={limit} onChange={setPage} showSizeChanger={false} />
+        </div>
+      </Card>
+
+      <Modal isOpen={!!previewId} onClose={() => setPreviewId(null)} title="Product" className="!max-w-[860px]">
+        {previewId && <ProductPreview productId={previewId} onClose={() => setPreviewId(null)} />}
       </Modal>
 
-      {/* Product Preview Modal */}
-      <Modal
-        isOpen={isPreviewModalOpen}
-        onClose={() => setPreviewIsModalOpen(false)}
-        title="Preview Product Details"
-        className="!max-w-[800px]"
+      <Modal isOpen={!!formFor} onClose={() => setFormFor(null)} title={formFor?.id ? "Edit product" : "Add a product for a seller"} className="!max-w-[860px]">
+        {formFor && <ProductForm id={formFor.id} onClose={() => setFormFor(null)} />}
+      </Modal>
+
+      <Confirm
+        open={!!deleting}
+        title="Remove this product?"
+        confirmLabel="Remove product"
+        loading={deletingNow}
+        onCancel={() => setDeleting(null)}
+        onConfirm={async () => {
+          if (!deleting) return;
+          try {
+            await deleteProduct({ id: deleting.id }).unwrap();
+            setDeleting(null);
+          } catch {
+            // toast says why
+          }
+        }}
       >
-        <ProductPreview
-          onClose={() => setPreviewIsModalOpen(false)}
-          productId={selectedProduct?.id}
-        />
-      </Modal>
-    </div>
+        <strong className="text-ink">{deleting?.title}</strong> disappears from the marketplace and the seller's store. The seller isn't told
+        automatically; this can't be undone. It is recorded in the activity log.
+      </Confirm>
+    </>
   );
-};
-
-export default ProductManagement;
+}

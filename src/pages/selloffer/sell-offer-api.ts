@@ -53,7 +53,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to create product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to create product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -75,7 +75,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to update the offer";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to update the offer";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -129,7 +129,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to delete product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to delete product";
           toast.error(errorMessage, {
             position: "top-right",
           });

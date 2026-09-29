@@ -2,33 +2,25 @@
 import { useState } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
-import { useGetProductQuery, useUpdateProductMutation } from "../product-api";
+import { useGetProductQuery, useSetProductVerifiedMutation } from "../product-api";
 import { useUserSlice } from "@/pages/auth/authSlice";
 
 const ProductPreview = ({ productId, onClose }) => {
   const [activeDocument, setActiveDocument] = useState(null);
   const [documentLoading, setDocumentLoading] = useState(false);
-  const [updateProduct, { isLoading: updatingProduct }] = useUpdateProductMutation();
+  const [setVerified, { isLoading: updatingProduct }] = useSetProductVerifiedMutation();
   const { data, isLoading } = useGetProductQuery({ id: productId });
 
   const { loginResponse } = useUserSlice();
   const userRole = loginResponse?.user.roles;
   const product = data?.data;
 
-  const handleVerifyToggle = async (verifyStatus) => {
+  const handleVerifyToggle = async (verified) => {
     try {
-      // Exclude creatorId from update to preserve the original seller's ID
-      const { creatorId, ...productWithoutCreatorId } = product;
-      await updateProduct({
-        id: productId,
-        data: { ...productWithoutCreatorId, produtVerified: verifyStatus },
-      })
-        .unwrap()
-        .then(() => {
-          onClose();
-        });
-    } catch (error) {
-      console.error(`Failed to ${verifyStatus ? "verify" : "unverify"} product:`, error);
+      await setVerified({ id: productId, verified }).unwrap();
+      onClose();
+    } catch {
+      // the toast says why
     }
   };
 

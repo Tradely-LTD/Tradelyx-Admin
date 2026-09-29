@@ -65,7 +65,7 @@ export const notificationApi = baseApi.injectEndpoints({
           });
         } catch (err: any) {
           const errorMessage =
-            err?.error?.data?.error || err?.error || "Failed to create notification";
+            err?.error?.data?.error || err?.error?.data?.message || err?.error || "Failed to create notification";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -88,7 +88,7 @@ export const notificationApi = baseApi.injectEndpoints({
           });
         } catch (err: any) {
           const errorMessage =
-            err?.error?.data?.error || err?.error || "Failed to update notification";
+            err?.error?.data?.error || err?.error?.data?.message || err?.error || "Failed to update notification";
           toast.error(errorMessage, {
             position: "top-right",
           });

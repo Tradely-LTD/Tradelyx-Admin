@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Building2, Check, Edit2, Eye, HandHelping, Mail, MailX, Phone, MapPin, Calendar } from "lucide-react";
 
 import { useGetUserOverviewQuery } from "@/pages/outreach/outreach-api";
+import { useGetActivityQuery } from "@/pages/activity/activity-api";
+import { ActivityRow } from "@/pages/activity";
 import { Btn, Drawer, Pill, Skeleton, formatDate, initials } from "@/common/ui/kit";
 import type { User } from "../user-api";
 
@@ -30,6 +32,7 @@ type Props = {
 
 export default function UserDrawer({ user, canOutreach, onClose, onEdit, onProfile, onOnboard }: Props) {
   const { data, isLoading, isError } = useGetUserOverviewQuery(user?.id ?? "", { skip: !user || !canOutreach });
+  const { data: activity } = useGetActivityQuery({ targetType: "user", targetId: user?.id, limit: 10 }, { skip: !user || !canOutreach });
   if (!user) return null;
   const name = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
   const done = data?.checks.filter((c) => c.done).length ?? 0;
@@ -137,6 +140,20 @@ export default function UserDrawer({ user, canOutreach, onClose, onEdit, onProfi
                 </li>
               ))}
             </ul>
+          )}
+        </section>
+      )}
+      {canOutreach && (
+        <section className="mt-7">
+          <h3 className="mb-1 text-[14px] font-bold text-ink">Staff actions</h3>
+          {!activity?.data.length ? (
+            <p className="text-[13px] text-ink-faint">None yet</p>
+          ) : (
+            <ol className="divide-y divide-rule">
+              {activity.data.map((a) => (
+                <ActivityRow key={a.id} a={a} compact />
+              ))}
+            </ol>
           )}
         </section>
       )}

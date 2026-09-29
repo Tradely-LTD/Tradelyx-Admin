@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -69,7 +68,7 @@ function UserForm({ id, onClose }: { id: string; onClose?: () => void }) {
       : undefined,
   });
 
-  const processSubmit = (formData) => {
+  const processSubmit = (formData: Record<string, any>) => {
     const {
       createdAt,
       updatedAt,

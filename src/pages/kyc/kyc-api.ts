@@ -69,7 +69,7 @@ export const kycApi = baseApi.injectEndpoints({
         url: `/kyc/admin/submissions/${userId}/approve`,
         method: Methods.Post,
       }),
-      invalidatesTags: ["KYC", "USERS"],
+      invalidatesTags: ["KYC", "USERS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -85,7 +85,7 @@ export const kycApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: { reason },
       }),
-      invalidatesTags: ["KYC", "USERS"],
+      invalidatesTags: ["KYC", "USERS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;

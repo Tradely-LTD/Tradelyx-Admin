@@ -36,7 +36,7 @@ export const certificatesApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: { verified },
       }),
-      invalidatesTags: ["KYC"],
+      invalidatesTags: ["KYC", "ACTIVITY"],
       async onQueryStarted({ verified }, { queryFulfilled }) {
         try {
           await queryFulfilled;

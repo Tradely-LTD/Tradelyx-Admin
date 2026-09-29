@@ -50,12 +50,14 @@ const toDraft = (s: State): Draft => ({
 
 type Props = {
   initialTemplate?: string | null;
+  /** Overrides the template's button link, e.g. /rfq/<id> for a nudge about one request */
+  initialPath?: string | null;
   person?: { id: string; name: string } | null;
   onClearPerson: () => void;
   onSent: () => void;
 };
 
-export default function Composer({ initialTemplate, person, onClearPerson, onSent }: Props) {
+export default function Composer({ initialTemplate, initialPath, person, onClearPerson, onSent }: Props) {
   const { data: templates, isLoading: templatesLoading } = useGetTemplatesQuery();
   const { data: segments } = useGetSegmentsQuery();
   const [state, setState] = useState<State>(BLANK);
@@ -73,10 +75,11 @@ export default function Composer({ initialTemplate, person, onClearPerson, onSen
     if (!templates || !initialTemplate) return;
     const t = templates.data.find((x) => x.key === initialTemplate);
     if (t) {
-      setState(fromTemplate(t));
+      const base = fromTemplate(t);
+      setState(initialPath && initialPath.startsWith("/") ? { ...base, buttonPath: initialPath } : base);
       setEdited(false);
     }
-  }, [templates, initialTemplate]);
+  }, [templates, initialTemplate, initialPath]);
 
   const target: Target = person ? { userId: person.id } : { segment: state.segment };
   const draft = useMemo(() => toDraft(state), [state]);

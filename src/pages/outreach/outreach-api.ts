@@ -143,7 +143,7 @@ export const outreachApi = baseApi.injectEndpoints({
     // Errors are shown by the caller: a 409 means "look again", not failure
     createCampaign: builder.mutation<{ message: string; data: { campaignId: string; recipients: number } }, Draft & Target & { expectedRecipients: number }>({
       query: (body) => ({ url: "/outreach/campaigns", method: Methods.Post, body }),
-      invalidatesTags: ["OUTREACH", "EMAILS"],
+      invalidatesTags: ["OUTREACH", "EMAILS", "ACTIVITY"],
     }),
     getCampaigns: builder.query<Paged<Campaign>, { page: number; limit: number }>({
       query: (params) => ({ url: "/outreach/campaigns", params }),

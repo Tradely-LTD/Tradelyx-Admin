@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { toast } from "react-toastify";
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";
@@ -8,11 +7,38 @@ interface SellOfferQueryParams {
   page?: number;
   limit?: number;
   search?: string;
+  /** active (on and within its date), inactive (taken down), expired */
   status?: string;
+  sellerId?: string;
+}
+
+type Money = { currency?: string; amount?: number | string } | null;
+
+/** GET /sell-offer/:id answers { data, success }; the form and preview read `data`. */
+export type SellOfferDetail = Record<string, any>;
+interface SellOfferDetailResponse {
+  message: string;
+  data: SellOfferDetail;
+}
+
+export interface SellOfferStats {
+  totalOffers: number;
+  activeOffers: number;
+  inactiveOffers: number;
+  recentOffers: number;
 }
 
 // Interface for the response data
-interface SellOffers {
+export interface SellOffers {
+  basePrice?: Money;
+  quantityAndUnit?: { quantity?: number | string; unit?: string } | null;
+  offerValidityDate?: string | null;
+  originLocation?: { country?: string; state?: string; city?: string } | null;
+  productImages?: string[] | null;
+  sellerFirstName?: string | null;
+  sellerLastName?: string | null;
+  sellerVerified?: boolean | null;
+  creatorCountry?: string | null;
   id: string;
   title: string;
   productCategory: string;
@@ -61,7 +87,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
       },
     }),
 
-    updateSellOffer: builder.mutation<ProductResponse, { id: string; data: UpdateProductPayload }>({
+    updateSellOffer: builder.mutation<SellOfferDetailResponse, { id: string; data: Record<string, unknown> }>({
       query: ({ id, data }) => ({
         // Staff edit route: the sell-offers/:id route is the seller's repost and
         // applies only date, price, quantity and on/off
@@ -85,14 +111,14 @@ export const sellOfferApi = baseApi.injectEndpoints({
       },
     }),
 
-    getSelloffer: builder.query<ProductResponse, { id: string }>({
+    getSelloffer: builder.query<SellOfferDetailResponse, { id: string }>({
       query: ({ id }) => ({
         url: `/sell-offer/${id}`,
         method: Methods.Get,
       }),
       providesTags: ["SELLOFFER"],
 
-      transformResponse: (response: Product): ProductResponse => ({
+      transformResponse: (response: { data: SellOfferDetail }): SellOfferDetailResponse => ({
         message: "Product retrieved successfully",
         data: response.data,
       }),
@@ -107,7 +133,7 @@ export const sellOfferApi = baseApi.injectEndpoints({
       providesTags: ["SELLOFFER"],
     }),
 
-    getSellOfferStats: builder.query<{ data: Product[] }, void>({
+    getSellOfferStats: builder.query<{ success: boolean; data: SellOfferStats }, void>({
       query: () => ({
         url: `/sell-offer/dashboard/stats`,
         method: Methods.Get,

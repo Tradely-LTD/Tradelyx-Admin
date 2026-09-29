@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Pagination from "rc-pagination";
-import { Award, BadgeCheck, Bell, Edit3, History, Megaphone, Package, ShieldCheck, ShieldX, Store, Trash2, UserCog } from "lucide-react";
+import { Award, BadgeCheck, Bell, Edit3, FileX, History, Megaphone, Package, ShieldCheck, ShieldX, Store, Trash2, UserCog } from "lucide-react";
 
 import { StaffAction, useGetActivityQuery } from "./activity-api";
 import { Card, EmptyState, PageHeader, Skeleton, formatDate, initials } from "@/common/ui/kit";
@@ -21,6 +21,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "seller_profile.", label: "Seller profiles" },
   { value: "campaign.", label: "Outreach" },
   { value: "notification.", label: "Push notifications" },
+  { value: "request.", label: "Buyer requests" },
 ];
 
 const ICON: Record<string, { icon: typeof History; tone: string }> = {
@@ -39,6 +40,7 @@ const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "seller_profile.edited": { icon: Store, tone: "bg-sky-50 text-sky-800" },
   "campaign.sent": { icon: Megaphone, tone: "bg-brand-50 text-brand-900" },
   "notification.broadcast": { icon: Bell, tone: "bg-brand-50 text-brand-900" },
+  "request.closed": { icon: FileX, tone: "bg-danger-soft text-danger-deep" },
 };
 
 export default function ActivityPage() {

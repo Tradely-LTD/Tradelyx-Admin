@@ -12,11 +12,6 @@ interface ReferredUser {
   createdAt: string;
 }
 
-interface ReferralResponse {
-  success: boolean;
-  referralCode: string;
-}
-
 interface ReferralStatsResponse {
   success: boolean;
   data: {
@@ -47,14 +42,6 @@ interface GetReferralsQueryParams {
 
 export const referralApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getUserReferralCode: builder.query<ReferralResponse, void>({
-      query: () => ({
-        url: "/referrals/code",
-        method: Methods.Get,
-      }),
-      providesTags: ["REFERRALS"],
-    }),
-
     getReferralStats: builder.query<ReferralStatsResponse, void>({
       query: () => ({
         url: "/referrals/dashboard/stats",
@@ -82,19 +69,10 @@ export const referralApi = baseApi.injectEndpoints({
       providesTags: ["REFERRALS"],
     }),
 
-    getReferral: builder.query<ReferredUser, { id: string }>({
-      query: ({ id }) => ({
-        url: `/referrals/${id}`,
-        method: Methods.Get,
-      }),
-      providesTags: ["REFERRALS"],
-    }),
   }),
 });
 
 export const {
-  useGetUserReferralCodeQuery,
   useGetReferralStatsQuery,
   useGetReferralsQuery,
-  useGetReferralQuery,
 } = referralApi;

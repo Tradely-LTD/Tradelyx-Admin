@@ -1,4 +1,4 @@
-import { Award, BarChart2, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, BarChart2, History, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 /**
  * The sidebar, grouped by the job a staff member is doing. `roles` limits an
@@ -26,7 +26,10 @@ export interface MenuGroup {
 const ALL_GROUPS: MenuGroup[] = [
   {
     label: "Overview",
-    items: [{ icon: BarChart2, label: "Dashboard", path: "/", description: "What needs attention today, and how the platform is growing" }],
+    items: [
+      { icon: BarChart2, label: "Dashboard", path: "/", description: "What needs attention today, and how the platform is growing" },
+      { icon: History, label: "Activity", path: "/activity", description: "What staff have done, to whom and when", roles: ["admin"] },
+    ],
   },
   {
     label: "People",

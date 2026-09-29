@@ -263,7 +263,7 @@ const ReferralManagement: React.FC = () => {
       >
         <ReferralPreview
           onClose={() => setPreviewIsModalOpen(false)}
-          referralId={selectedReferral?.id}
+          referral={selectedReferral}
         />
       </Modal>
     </div>

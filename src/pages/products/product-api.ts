@@ -96,7 +96,7 @@ export const productApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: data,
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -118,7 +118,7 @@ export const productApi = baseApi.injectEndpoints({
         method: Methods.Put,
         body: data,
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -151,13 +151,6 @@ export const productApi = baseApi.injectEndpoints({
       providesTags: ["PRODUCTS"],
     }),
 
-    getProductsByCreator: builder.query<{ data: Product[] }, { creatorId: string }>({
-      query: ({ creatorId }) => ({
-        url: `/products/creator/${creatorId}`,
-        method: Methods.Get,
-      }),
-      providesTags: ["PRODUCTS"],
-    }),
     getProductStats: builder.query<{ data: Product[] }, void>({
       query: () => ({
         url: `/product/stats`,
@@ -174,7 +167,7 @@ export const productApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: { verified },
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -192,7 +185,7 @@ export const productApi = baseApi.injectEndpoints({
         url: `/product/${id}`,
         method: Methods.Delete,
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -215,7 +208,6 @@ export const {
   useUpdateProductMutation,
   useGetProductQuery,
   useGetProductsQuery,
-  useGetProductsByCreatorQuery,
   useDeleteProductByIdMutation,
   useSetProductVerifiedMutation,
   useGetProductStatsQuery,

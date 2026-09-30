@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { toast } from "react-toastify";
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";
@@ -42,8 +41,32 @@ interface ProductResponse {
   success?: boolean;
 }
 
+/** A row of the admin list (GET /product/dashboard): the product plus who sells it. */
+export interface AdminProduct extends Product {
+  price?: { currency?: string; amount?: number | string } | null;
+  priceNegotiable?: boolean | null;
+  sellerCompany?: string | null;
+  sellerFirstName?: string | null;
+  sellerLastName?: string | null;
+  sellerVerified?: boolean | null;
+  creatorCountry?: string | null;
+  sellerEmail?: string | null;
+  sellerPhone?: string | null;
+  uploadedBy?: string | null;
+  uploaderFirstName?: string | null;
+  uploaderLastName?: string | null;
+  uploaderRole?: string | null;
+}
+
+export interface ProductStats {
+  totalProducts: number;
+  verifiedProducts: number;
+  unverifiedProducts: number;
+  recentProducts: number;
+}
+
 interface ProductsResponse {
-  data: Product[];
+  data: AdminProduct[];
   pagination: {
     total: number;
     currentPage: number;
@@ -58,6 +81,7 @@ interface GetProductsQueryParams {
   search?: string;
   category?: string;
   status?: string;
+  sellerId?: string;
 }
 
 interface CreateProductPayload {
@@ -83,11 +107,6 @@ interface CreateProductPayload {
 
 interface UpdateProductPayload extends Partial<CreateProductPayload> {}
 
-interface ApiError {
-  error: string;
-  details?: string;
-}
-
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createProduct: builder.mutation<ProductResponse, CreateProductPayload>({
@@ -96,7 +115,7 @@ export const productApi = baseApi.injectEndpoints({
         method: Methods.Post,
         body: data,
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -104,7 +123,7 @@ export const productApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to create product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to create product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -118,7 +137,7 @@ export const productApi = baseApi.injectEndpoints({
         method: Methods.Put,
         body: data,
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -126,7 +145,7 @@ export const productApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to update product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to update product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -151,14 +170,7 @@ export const productApi = baseApi.injectEndpoints({
       providesTags: ["PRODUCTS"],
     }),
 
-    getProductsByCreator: builder.query<{ data: Product[] }, { creatorId: string }>({
-      query: ({ creatorId }) => ({
-        url: `/products/creator/${creatorId}`,
-        method: Methods.Get,
-      }),
-      providesTags: ["PRODUCTS"],
-    }),
-    getProductStats: builder.query<{ data: Product[] }, void>({
+    getProductStats: builder.query<ProductStats, void>({
       query: () => ({
         url: `/product/stats`,
         method: Methods.Get,
@@ -166,6 +178,25 @@ export const productApi = baseApi.injectEndpoints({
       providesTags: ["PRODUCTS"],
     }),
 
+    // Staff only. Verification is the platform's call, so it has its own
+    // route and is never part of a product edit.
+    // The seller is emailed either way; `reason` explains a removal
+    setProductVerified: builder.mutation<{ message: string }, { id: string; verified: boolean; reason?: string }>({
+      query: ({ id, verified, reason }) => ({
+        url: `/product/${id}/verify`,
+        method: Methods.Post,
+        body: { verified, reason },
+      }),
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          toast.success(data?.message ?? "Updated", { position: "top-right" });
+        } catch (err: any) {
+          toast.error(err?.error?.data?.error || err?.error?.data?.message || err?.error?.data?.message || "Could not update verification", { position: "top-right" });
+        }
+      },
+    }),
     deleteProductById: builder.mutation<
       { message: string; deletedProductId: string },
       { id: string }
@@ -174,7 +205,7 @@ export const productApi = baseApi.injectEndpoints({
         url: `/product/${id}`,
         method: Methods.Delete,
       }),
-      invalidatesTags: ["PRODUCTS"],
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -182,7 +213,7 @@ export const productApi = baseApi.injectEndpoints({
             position: "top-right",
           });
         } catch (err: any) {
-          const errorMessage = err?.error?.data?.error || "Failed to delete product";
+          const errorMessage = err?.error?.data?.error || err?.error?.data?.message || "Failed to delete product";
           toast.error(errorMessage, {
             position: "top-right",
           });
@@ -197,7 +228,7 @@ export const {
   useUpdateProductMutation,
   useGetProductQuery,
   useGetProductsQuery,
-  useGetProductsByCreatorQuery,
   useDeleteProductByIdMutation,
+  useSetProductVerifiedMutation,
   useGetProductStatsQuery,
 } = productApi;

@@ -1,114 +1,134 @@
-import { useState, useRef, useEffect } from "react";
-import { MoreHorizontal, X } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { MoreHorizontal } from "lucide-react";
 
 type DropdownItem = {
   label: string;
   action: () => void;
   icon?: React.ReactNode;
+  danger?: boolean;
 };
 
 interface TableDropdownProps {
   items?: DropdownItem[];
+  label?: string;
 }
 
-export default function TableDropdown({ items = [] }: TableDropdownProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
+const MENU_WIDTH = 208;
+const GAP = 6;
+
+/**
+ * The row "⋯" menu. It opens next to its button, not as a centred modal: a
+ * `position: fixed` overlay inside the page is positioned against any
+ * transformed ancestor (the page-enter animation is one), which put the old
+ * modal below the fold. This renders into document.body and places itself
+ * from the button's position on screen, flipping above when there is no room
+ * below. Esc, a click outside, scrolling or resizing closes it.
+ */
+export default function TableDropdown({ items = [], label = "Actions" }: TableDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Handle click outside to close modal
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node)
-      ) {
-        setIsModalOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+  const close = useCallback((focusTrigger = false) => {
+    setOpen(false);
+    if (focusTrigger) triggerRef.current?.focus();
   }, []);
 
-  // Close on ESC key
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    const height = menuRef.current?.offsetHeight ?? items.length * 40 + 12;
+    const below = r.bottom + GAP + height <= window.innerHeight - 8;
+    const top = below ? r.bottom + GAP : Math.max(8, r.top - GAP - height);
+    const left = Math.min(Math.max(8, r.right - MENU_WIDTH), window.innerWidth - MENU_WIDTH - 8);
+    setPos({ top, left });
+  }, [open, items.length]);
+
   useEffect(() => {
-    function handleEscKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsModalOpen(false);
-      }
-    }
-
-    if (isModalOpen) {
-      document.addEventListener("keydown", handleEscKey);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscKey);
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!menuRef.current?.contains(t) && !triggerRef.current?.contains(t)) close();
     };
-  }, [isModalOpen]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close(true);
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const buttons = Array.from(menuRef.current?.querySelectorAll("button") ?? []);
+        const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        const next = e.key === "ArrowDown" ? (i + 1) % buttons.length : (i - 1 + buttons.length) % buttons.length;
+        buttons[next]?.focus();
+      }
+    };
+    const onScroll = () => close();
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [open, close]);
 
-  // Toggle modal
-  const toggleModal = () => setIsModalOpen(!isModalOpen);
+  // Keyboard users land on the first action
+  useEffect(() => {
+    if (open && pos) menuRef.current?.querySelector("button")?.focus();
+  }, [open, pos]);
 
   return (
-    <div className="relative inline-block m-auto w-full text-center">
-      {/* Trigger button */}
+    <>
       <button
         ref={triggerRef}
         type="button"
-        className="inline-flex items-center justify-center p-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-sm w-12 shadow-sm hover:bg-gray-50 cursor-pointer"
-        onClick={toggleModal}
-        aria-expanded={isModalOpen}
-        aria-haspopup="dialog"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        className={`inline-grid h-8 w-8 cursor-pointer place-items-center rounded-lg transition-colors ${
+          open ? "bg-paper-deep text-ink" : "text-ink-soft hover:bg-paper-deep hover:text-ink"
+        }`}
       >
         <MoreHorizontal size={18} />
       </button>
 
-      {/* Mini-modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center">
-          {" "}
+      {open &&
+        createPortal(
           <div
-            ref={modalRef}
-            className="bg-white rounded-lg shadow-lg w-64 max-w-sm z-50 overflow-hidden"
-            role="dialog"
-            aria-modal="true"
+            ref={menuRef}
+            role="menu"
+            aria-label={label}
+            onClick={(e) => e.stopPropagation()}
+            style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999, width: MENU_WIDTH }}
+            className="fixed z-[70] animate-fade overflow-hidden rounded-xl bg-white py-1.5 font-sans shadow-lift"
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium">Actions</h3>
+            {items.map((item) => (
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-500"
+                key={item.label}
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  close();
+                  item.action();
+                }}
+                className={`flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px] font-medium outline-none transition-colors focus:bg-paper-deep ${
+                  item.danger ? "text-danger hover:bg-danger-soft" : "text-ink hover:bg-paper-deep"
+                }`}
               >
-                <X size={18} />
+                {item.icon && <span className={item.danger ? "text-danger" : "text-ink-faint"}>{item.icon}</span>}
+                {item.label}
               </button>
-            </div>
-
-            <div className="py-2">
-              {items.map((item, index) => (
-                <button
-                  key={index}
-                  className="block w-full px-4 py-3 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  onClick={() => {
-                    item.action();
-                    setIsModalOpen(false);
-                  }}
-                >
-                  <div className="flex items-center">
-                    {item.icon && <span className="mr-3">{item.icon}</span>}
-                    {item.label}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+            ))}
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

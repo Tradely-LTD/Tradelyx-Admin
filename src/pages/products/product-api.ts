@@ -2,6 +2,41 @@ import { toast } from "react-toastify";
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";
 
+/**
+ * Listing quality (backend services/listingQuality). The same codes are what
+ * the screening flags and what staff tick in "Request changes".
+ */
+export type QualityCode =
+  | "contact_details"
+  | "screenshot"
+  | "low_quality_photo"
+  | "no_photo"
+  | "image_mismatch"
+  | "multiple_products"
+  | "missing_info"
+  | "other";
+
+export const QUALITY_LABELS: Record<QualityCode, string> = {
+  contact_details: "Contact details in the listing",
+  screenshot: "Screenshot instead of a photo",
+  low_quality_photo: "Photo is blurry, dark or too small",
+  no_photo: "No product photo",
+  image_mismatch: "Photo doesn't show the product",
+  multiple_products: "Several products in one listing",
+  missing_info: "Information missing",
+  other: "Something else (add a note)",
+};
+
+export type QualityFlag = { code: QualityCode; severity: "block" | "warn"; source: "rules" | "ai"; detail: string };
+
+export type ChangeRequest = {
+  reasons: QualityCode[];
+  note?: string | null;
+  at: string;
+  by?: string;
+  resubmittedAt?: string;
+};
+
 // Interfaces based on ProductsTable schema and backend responses
 interface Product {
   id: string;
@@ -56,6 +91,9 @@ export interface AdminProduct extends Product {
   uploaderFirstName?: string | null;
   uploaderLastName?: string | null;
   uploaderRole?: string | null;
+  qualityFlags?: QualityFlag[] | null;
+  qualityCheckedAt?: string | null;
+  changesRequested?: ChangeRequest | null;
 }
 
 export interface ProductStats {
@@ -63,6 +101,8 @@ export interface ProductStats {
   verifiedProducts: number;
   unverifiedProducts: number;
   recentProducts: number;
+  needsAttention?: number;
+  changesRequested?: number;
 }
 
 interface ProductsResponse {
@@ -197,6 +237,54 @@ export const productApi = baseApi.injectEndpoints({
         }
       },
     }),
+    // Staff tell the seller what to fix; the seller is emailed each reason
+    // with how to fix it, and their next edit comes back as a resubmission
+    requestProductChanges: builder.mutation<{ message: string }, { id: string; reasons: QualityCode[]; note?: string }>({
+      query: ({ id, reasons, note }) => ({
+        url: `/product/${id}/request-changes`,
+        method: Methods.Post,
+        body: { reasons, note },
+      }),
+      invalidatesTags: ["PRODUCTS", "ACTIVITY"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("Seller asked to make changes. They've been emailed the list.", { position: "top-right" });
+        } catch (err: any) {
+          toast.error(err?.error?.data?.error || "Could not send the request", { position: "top-right" });
+        }
+      },
+    }),
+
+    // Run the screening on one listing now (it also runs after every edit)
+    screenProduct: builder.mutation<{ data: { qualityFlags: QualityFlag[]; qualityCheckedAt: string } }, { id: string }>({
+      query: ({ id }) => ({ url: `/product/${id}/screen`, method: Methods.Post }),
+      invalidatesTags: ["PRODUCTS"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const n = data?.data?.qualityFlags?.length ?? 0;
+          toast.success(n ? `Screening found ${n} thing${n === 1 ? "" : "s"} to check` : "Screening found nothing to fix", { position: "top-right" });
+        } catch (err: any) {
+          toast.error(err?.error?.data?.error || "Screening failed", { position: "top-right" });
+        }
+      },
+    }),
+
+    // Screen every listing not screened yet, in the background
+    screenPendingProducts: builder.mutation<{ data: { pending: number } }, void>({
+      query: () => ({ url: `/product/admin/screen-pending`, method: Methods.Post }),
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const n = data?.data?.pending ?? 0;
+          toast.success(n ? `Screening ${n} listings. Refresh in a few minutes.` : "Every listing is already screened", { position: "top-right" });
+        } catch (err: any) {
+          toast.error(err?.error?.data?.error || "Could not start screening", { position: "top-right" });
+        }
+      },
+    }),
+
     deleteProductById: builder.mutation<
       { message: string; deletedProductId: string },
       { id: string }
@@ -231,4 +319,7 @@ export const {
   useDeleteProductByIdMutation,
   useSetProductVerifiedMutation,
   useGetProductStatsQuery,
+  useRequestProductChangesMutation,
+  useScreenProductMutation,
+  useScreenPendingProductsMutation,
 } = productApi;

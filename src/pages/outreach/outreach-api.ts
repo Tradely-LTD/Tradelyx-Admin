@@ -64,6 +64,18 @@ export interface Preview {
   emptyBlock: boolean;
 }
 
+/** GET /outreach/email-status: the email allowance and whether mail is being held back. */
+export interface EmailStatus {
+  today: number | null;
+  month: number | null;
+  dailyLimit: number | null;
+  monthlyLimit: number | null;
+  reserve: number;
+  pausedUntil: string | null;
+  pauseReason: string | null;
+  fallback: { email: boolean; sms: boolean };
+}
+
 export interface Campaign {
   id: string;
   templateKey: string | null;
@@ -149,6 +161,16 @@ export const outreachApi = baseApi.injectEndpoints({
       query: (params) => ({ url: "/outreach/campaigns", params }),
       providesTags: ["OUTREACH"],
     }),
+    getEmailStatus: builder.query<EmailStatus, void>({
+      query: () => ({ url: "/outreach/email-status" }),
+      transformResponse: (r: { data: EmailStatus }) => r.data,
+      providesTags: ["OUTREACH"],
+    }),
+    // Emails refused because the quota was spent go back in the queue
+    retryCampaign: builder.mutation<{ data: { requeued: number } }, string>({
+      query: (id) => ({ url: `/outreach/campaigns/${id}/retry`, method: Methods.Post }),
+      invalidatesTags: ["OUTREACH", "ACTIVITY"],
+    }),
     getUserOverview: builder.query<UserOverview, string>({
       query: (id) => ({ url: `/outreach/users/${id}` }),
       transformResponse: (r: { data: UserOverview }) => r.data,
@@ -166,4 +188,6 @@ export const {
   useCreateCampaignMutation,
   useGetCampaignsQuery,
   useGetUserOverviewQuery,
+  useGetEmailStatusQuery,
+  useRetryCampaignMutation,
 } = outreachApi;

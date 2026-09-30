@@ -16,6 +16,7 @@ const defaultTags = [
   "OUTREACH",
   "ACTIVITY",
   "REQUESTS",
+  "AGENTS",
 ] as const;
 type DefaultTags = (typeof defaultTags)[number];
 

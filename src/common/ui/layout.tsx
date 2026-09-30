@@ -5,6 +5,7 @@ import { LogOut, Menu, X } from "lucide-react";
 
 import { logout, useUserSlice } from "@/pages/auth/authSlice";
 import { useGetKycSubmissionsQuery } from "@/pages/kyc/kyc-api";
+import { useGetAgentsQuery } from "@/pages/agents/agents-api";
 import { findMenuItem, getMenuGroups } from "./menuItems";
 import { initials } from "./kit";
 
@@ -21,7 +22,8 @@ const Layout = () => {
 
   // Live counts for the badges; only admins can read the KYC queue
   const { data: kyc } = useGetKycSubmissionsQuery({ status: "pending", page: 1, limit: 1 }, { skip: role !== "admin", pollingInterval: 120_000 });
-  const badges = { kycPending: kyc?.pagination?.total ?? 0 };
+  const { data: applied } = useGetAgentsQuery("applied", { skip: role !== "admin", pollingInterval: 300_000 });
+  const badges = { kycPending: kyc?.pagination?.total ?? 0, agentsApplied: applied?.data.length ?? 0 };
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 

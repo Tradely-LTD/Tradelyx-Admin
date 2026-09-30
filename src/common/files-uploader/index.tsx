@@ -1,15 +1,17 @@
 //@ts-nocheck
 
 import { useState, useEffect } from "react";
-import { Control, UseFormSetValue, UseFormWatch } from "react-hook-form";
+import { Control, FieldValues, UseFormSetValue, UseFormWatch } from "react-hook-form";
 import FileIcon from "@/assets/file-folder.svg";
 import { Trash2 } from "lucide-react";
 import { useUploadsFileMutation } from "@/store/uploads";
 
-interface FileUploaderProps {
-  control: Control<any>;
-  watch: UseFormWatch<any>;
-  setValue: UseFormSetValue<any>;
+// Generic over the form's values so a typed form (useForm<SellerProfile>) can
+// pass its own control; newer react-hook-form rejects Control<X> as Control<any>.
+interface FileUploaderProps<T extends FieldValues = FieldValues> {
+  control: Control<T>;
+  watch: UseFormWatch<T>;
+  setValue: UseFormSetValue<T>;
   uploadsFile: ReturnType<typeof useUploadsFileMutation>[0];
   productData?: any;
   fieldName?: string; // For single file uploads (e.g., thumbnail, certificationfiles)
@@ -20,7 +22,7 @@ interface FileUploaderProps {
   accept?: string; // File input accept attribute (e.g., "image/*")
 }
 
-function FileUploader({
+function FileUploader<T extends FieldValues>({
   control,
   watch,
   setValue,
@@ -32,7 +34,7 @@ function FileUploader({
   maxFiles = Infinity,
   label,
   accept = "*/*",
-}: FileUploaderProps) {
+}: FileUploaderProps<T>) {
   // File Upload State Management
   const [file, setFile] = useState<File | null>(null); // For single file
   const [files, setFiles] = useState<File[]>([]); // For multiple files

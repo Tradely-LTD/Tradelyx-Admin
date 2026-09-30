@@ -74,6 +74,16 @@ export interface EmailStatus {
   pausedUntil: string | null;
   pauseReason: string | null;
   fallback: { email: boolean; sms: boolean };
+  /** Each sender on its own: Resend first, Brevo when Resend can't */
+  providers?: Record<"resend" | "brevo", {
+    configured: boolean;
+    today: number | null;
+    month: number | null;
+    dailyLimit: number | null;
+    monthlyLimit: number | null;
+    pausedUntil: string | null;
+    pauseReason: string | null;
+  }>;
 }
 
 export interface Campaign {

@@ -16,7 +16,6 @@ export default function EmailAllowance() {
   const paused = !!data.pausedUntil;
   const limit = data.dailyLimit ?? null;
   const used = data.today ?? 0;
-  const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : null;
   const low = limit != null && used >= limit - data.reserve;
 
   if (paused || low) {
@@ -37,18 +36,24 @@ export default function EmailAllowance() {
     );
   }
 
+  const senders = data.providers
+    ? (["resend", "brevo"] as const).filter((p) => data.providers![p].configured).map((p) => ({ key: p, name: p === "resend" ? "Resend" : "Brevo", ...data.providers![p] }))
+    : [];
+
   return (
     <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-ink-soft">
       <span className="inline-flex items-center gap-1.5">
         <Mail size={14} className="text-brand-900" />
-        <span className="tnum">{formatNumber(used)}</span> emails sent today
-        {limit ? <span className="tnum">of {formatNumber(limit)} ({pct}%)</span> : null}
+        <span className="tnum">{formatNumber(data.today ?? 0)}</span> emails sent today
+        {data.month != null && <span className="tnum">· {formatNumber(data.month)} this month</span>}
       </span>
-      {data.month != null && (
-        <span className="tnum">
-          {formatNumber(data.month)} this month{data.monthlyLimit ? ` of ${formatNumber(data.monthlyLimit)}` : ""}
+      {senders.map((p) => (
+        <span key={p.key} className="tnum" title={p.pauseReason ?? undefined}>
+          {p.name}: {formatNumber(p.today ?? 0)}
+          {p.dailyLimit ? `/${formatNumber(p.dailyLimit)}` : ""} today
+          {p.pausedUntil ? <span className="font-semibold text-attention-deep"> · paused until {formatDate(p.pausedUntil, true)}</span> : null}
         </span>
-      )}
+      ))}
     </div>
   );
 }

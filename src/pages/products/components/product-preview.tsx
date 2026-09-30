@@ -1,41 +1,151 @@
-//@ts-nocheck
 import { useState } from "react";
-import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
-import Button from "@/common/button/button";
-import { useGetProductQuery, useSetProductVerifiedMutation } from "../product-api";
+import {
+  AlertOctagon,
+  AlertTriangle,
+  BadgeCheck,
+  Check,
+  Edit2,
+  ExternalLink,
+  FileText,
+  ImageOff,
+  Mail,
+  MessageSquareWarning,
+  Phone,
+  RefreshCw,
+  Sparkles,
+  X,
+} from "lucide-react";
+
+import { Btn, Pill, Skeleton, formatDate } from "@/common/ui/kit";
 import { useUserSlice } from "@/pages/auth/authSlice";
 import { useGetActivityQuery } from "@/pages/activity/activity-api";
+import {
+  AdminProduct,
+  QUALITY_LABELS,
+  QualityFlag,
+  useGetProductQuery,
+  useScreenProductMutation,
+  useSetProductVerifiedMutation,
+} from "../product-api";
+import RequestChanges from "./request-changes";
 
 /**
- * One product, for staff. `listing` is the row from the admin list, which
- * carries who sells it, how to reach them and who uploaded it.
+ * One product, laid out for the review decision: the photos first (most
+ * problems are visible there), then what the automatic screening found and
+ * any open change request, then who sells it and the listing's details.
+ *
+ * `listing` is the row from the admin list: it carries the seller's contact,
+ * who uploaded it and the review fields, which the public product endpoint
+ * leaves out.
  */
-const ProductPreview = ({ productId, onClose, onEdit, listing }: { productId: string; onClose: () => void; onEdit?: () => void; listing?: any }) => {
+
+const WEB_URL = "https://web.tradelyx.com";
+
+const label = (v: unknown) => (v && typeof v === "object" && "label" in (v as any) ? String((v as any).label) : v ? String(v) : "");
+const qty = (v: any) => (v && (v.value || v.unit) ? `${v.value ?? ""} ${label(v.unit)}`.trim() : "");
+
+function Field({ name, value }: { name: string; value?: string | null }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11.5px] font-semibold uppercase tracking-[0.05em] text-ink-faint">{name}</dt>
+      <dd className={`mt-0.5 break-words text-[13.5px] ${value ? "text-ink" : "text-ink-faint"}`}>{value || "Not given"}</dd>
+    </div>
+  );
+}
+
+function Finding({ flag }: { flag: QualityFlag }) {
+  const block = flag.severity === "block";
+  return (
+    <li className="flex gap-2.5 py-2">
+      <span className={`mt-0.5 shrink-0 ${block ? "text-danger" : "text-attention-deep"}`}>
+        {block ? <AlertOctagon size={16} /> : <AlertTriangle size={16} />}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[13.5px] font-semibold text-ink">
+          {QUALITY_LABELS[flag.code] ?? flag.code}
+          {flag.source === "ai" && (
+            <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[11px] font-semibold text-sky-700">
+              <Sparkles size={11} /> AI
+            </span>
+          )}
+        </p>
+        <p className="text-[12.5px] leading-snug text-ink-soft">{flag.detail}</p>
+      </div>
+    </li>
+  );
+}
+
+export default function ProductPreview({
+  productId,
+  onClose,
+  onEdit,
+  listing,
+}: {
+  productId: string;
+  onClose: () => void;
+  onEdit?: () => void;
+  listing?: AdminProduct;
+}) {
+  const [photo, setPhoto] = useState(0);
   const [askReason, setAskReason] = useState(false);
   const [reason, setReason] = useState("");
-  const [activeDocument, setActiveDocument] = useState(null);
-  const [documentLoading, setDocumentLoading] = useState(false);
-  const [setVerified, { isLoading: updatingProduct }] = useSetProductVerifiedMutation();
+  const [requesting, setRequesting] = useState(false);
+
   const { data, isLoading } = useGetProductQuery({ id: productId });
-
+  const [setVerified, { isLoading: verifying }] = useSetProductVerifiedMutation();
+  const [screen, { isLoading: screening }] = useScreenProductMutation();
   const { loginResponse } = useUserSlice();
-  const userRole = loginResponse?.user.roles;
-  const product = data?.data;
-  // Who last changed verification, from the activity log (admins only)
-  const { data: verification } = useGetActivityQuery(
-    { targetType: "product", targetId: productId, action: "product.", limit: 5 },
-    { skip: userRole !== "admin" }
-  );
-  const lastVerification = verification?.data?.find((a) => a.action === "product.verified" || a.action === "product.unverified");
+  const role = loginResponse?.user.roles;
+  const canModerate = role === "admin" || role === "country_admin";
 
-  const handleVerifyToggle = async (verified) => {
+  // Who last changed verification, from the activity log (admins only)
+  const { data: activity } = useGetActivityQuery(
+    { targetType: "product", targetId: productId, action: "product.", limit: 5 },
+    { skip: role !== "admin" }
+  );
+  const lastDecision = activity?.data?.find((a: any) =>
+    ["product.verified", "product.unverified", "product.changes_requested"].includes(a.action)
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-40" />
+      </div>
+    );
+  }
+
+  const product: any = data?.data ?? listing;
+  if (!product) return <p className="p-6 text-sm text-ink-soft">This product could not be loaded.</p>;
+
+  const photos: string[] = [product.thumbnail, ...(product.images ?? [])].filter(
+    (u: unknown, i: number, all: unknown[]): u is string => typeof u === "string" && !!u && all.indexOf(u) === i
+  );
+  const documents: string[] = [...(product.documents ?? []), ...(product.relevant_documents ?? [])].filter(Boolean);
+  const flags = listing?.qualityFlags ?? [];
+  const request = listing?.changesRequested ?? null;
+  const verified = !!product.productVerified;
+
+  const sellerName =
+    listing?.sellerCompany || [listing?.sellerFirstName, listing?.sellerLastName].filter(Boolean).join(" ") || product.seller?.name || "Seller";
+  const uploader =
+    listing?.uploadedBy && listing.uploadedBy !== listing.creatorId
+      ? `${[listing.uploaderFirstName, listing.uploaderLastName].filter(Boolean).join(" ") || "Staff"}${
+          listing.uploaderRole && listing.uploaderRole !== "seller" ? ` (${listing.uploaderRole.replace("_", " ")})` : ""
+        }`
+      : "The seller";
+  const phone = (listing?.sellerPhone || "").replace(/[^\d+]/g, "");
+
+  const verify = async (next: boolean) => {
     // Taking the tick away: say why first, so the seller's email explains it
-    if (!verified && !askReason) {
+    if (!next && !askReason) {
       setAskReason(true);
       return;
     }
     try {
-      await setVerified({ id: productId, verified, reason: verified ? undefined : reason.trim() || undefined }).unwrap();
+      await setVerified({ id: productId, verified: next, reason: next ? undefined : reason.trim() || undefined }).unwrap();
       setAskReason(false);
       onClose();
     } catch {
@@ -43,503 +153,252 @@ const ProductPreview = ({ productId, onClose, onEdit, listing }: { productId: st
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const getFileType = (url) => {
-    if (!url) return "unknown";
-    const extension = url.split(".").pop().toLowerCase();
-    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(extension)) {
-      return "image";
-    } else if (extension === "pdf") {
-      return "pdf";
-    } else {
-      return "other";
-    }
-  };
-
-  const openDocumentPreview = (docUrl) => {
-    setDocumentLoading(true);
-    setActiveDocument(docUrl);
-    setTimeout(() => setDocumentLoading(false), 1000);
-  };
-
-  const closeDocumentPreview = () => {
-    setActiveDocument(null);
-  };
-
-  const renderDocumentLinks = (documents) => {
-    if (!documents || documents.length === 0)
-      return <span className="text-gray-400">No documents uploaded</span>;
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        {documents.map((doc, index) => {
-          const fileType = getFileType(doc);
-          const fileName = doc.split("/").pop();
-
-          let Icon = FileText;
-          let bgColor = "bg-blue-50";
-          let textColor = "text-blue-600";
-
-          if (fileType === "image") {
-            Icon = () => (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            );
-            bgColor = "bg-green-50";
-            textColor = "text-green-600";
-          } else if (fileType === "pdf") {
-            Icon = () => (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="9" y1="15" x2="15" y2="15" />
-                <line x1="9" y1="11" x2="15" y2="11" />
-                <line x1="9" y1="19" x2="10" y2="19" />
-              </svg>
-            );
-            bgColor = "bg-red-50";
-            textColor = "text-red-600";
-          }
-
-          return (
-            <button
-              key={index}
-              className={`flex items-center px-3 py-1 ${bgColor} ${textColor} rounded-md hover:opacity-80 transition-colors text-xs md:text-sm`}
-              title={fileName}
-              onClick={() => openDocumentPreview(doc)}
-            >
-              <Icon size={14} className="mr-1" />
-              <span className="truncate max-w-28">
-                {fileName.length > 15 ? fileName.substring(0, 12) + "..." : fileName}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const DocumentPreview = () => {
-    if (!activeDocument) return null;
-
-    const fileType = getFileType(activeDocument);
-    const fileName = activeDocument.split("/").pop();
-    const [previewError, setPreviewError] = useState(false);
-
-    const renderDocumentContent = () => {
-      switch (fileType) {
-        case "image":
-          return (
-            <div className="flex flex-col items-center justify-center">
-              <img
-                src={activeDocument}
-                alt="Document preview"
-                className="max-w-full max-h-screen object-contain border shadow-sm rounded"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/api/placeholder/300/400";
-                  e.target.className += " border-red-300";
-                  setPreviewError(true);
-                }}
-              />
-              {previewError && (
-                <div className="mt-2 text-red-600 text-sm">
-                  Could not load this image. It may be due to browser security restrictions.
+  return (
+    // Cancels the modal's own padding so the action bar spans the width and
+    // sits flush with the bottom while the details scroll behind it
+    <div className="-mx-6 -my-4 font-sans">
+      <div className="space-y-5 p-5 sm:p-6">
+        {/* Photos: the biggest source of problems, so they lead */}
+        <div className="grid gap-4 md:grid-cols-[1.35fr_1fr]">
+          <div>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-paper-deep">
+              {photos.length ? (
+                <a href={photos[photo]} target="_blank" rel="noreferrer" title="Open the full-size photo">
+                  <img src={photos[photo]} alt={`${product.title}, photo ${photo + 1}`} className="h-full w-full object-contain" />
+                </a>
+              ) : (
+                <div className="grid h-full place-items-center text-ink-faint">
+                  <div className="text-center">
+                    <ImageOff size={28} className="mx-auto" />
+                    <p className="mt-2 text-[13px]">No photo</p>
+                  </div>
                 </div>
               )}
-              <p className="mt-3 text-gray-700">{fileName}</p>
             </div>
-          );
-
-        case "pdf":
-          return (
-            <div className="flex flex-col items-center w-full h-full">
-              <div className="bg-gray-50 border rounded-lg p-6 flex flex-col items-center justify-center w-full">
-                <div className="bg-red-50 p-8 rounded-full mb-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-red-500"
+            {photos.length > 1 && (
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {photos.map((src, i) => (
+                  <button
+                    key={src}
+                    onClick={() => setPhoto(i)}
+                    aria-label={`Show photo ${i + 1}`}
+                    aria-pressed={photo === i}
+                    className={`h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-lg ring-2 transition ${photo === i ? "ring-brand-900" : "ring-transparent opacity-70 hover:opacity-100"}`}
                   >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="9" y1="15" x2="15" y2="15" />
-                    <line x1="9" y1="11" x2="15" y2="11" />
-                    <line x1="9" y1="19" x2="10" y2="19" />
-                  </svg>
-                </div>
-                <p className="text-gray-700 font-medium">{fileName}</p>
-                <p className="text-sm text-gray-500 mt-2 mb-6 text-center max-w-lg">
-                  PDF documents cannot be previewed directly in this interface.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                  <a
-                    href={activeDocument}
-                    download={fileName}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(activeDocument, "_blank");
-                    }}
-                  >
-                    <Download size={16} className="mr-2" />
-                    Download PDF
-                  </a>
-                  <a
-                    href={activeDocument}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center hover:bg-gray-700 transition-colors"
-                  >
-                    <Eye size={16} className="mr-2" />
-                    View in Browser
-                  </a>
-                </div>
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
               </div>
-            </div>
-          );
-
-        default:
-          return (
-            <div className="bg-gray-50 border rounded-lg p-6 flex flex-col items-center justify-center">
-              <div className="bg-gray-100 p-8 rounded-full mb-4">
-                <FileText size={48} className="text-gray-500" />
-              </div>
-              <p className="text-gray-700 font-medium">{fileName}</p>
-              <p className="text-sm text-gray-500 mt-2 mb-6 text-center max-w-lg">
-                This document format cannot be previewed directly.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                <a
-                  href={activeDocument}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(activeDocument, "_blank");
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center hover:bg-blue-700 transition-colors"
-                >
-                  <Download size={16} className="mr-2" />
-                  Download File
-                </a>
-                <a
-                  href={activeDocument}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center hover:bg-gray-700 transition-colors"
-                >
-                  <Eye size={16} className="mr-2" />
-                  Open in Browser
-                </a>
-              </div>
-            </div>
-          );
-      }
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center">
-              <h3 className="font-medium">Document Preview</h3>
-              <span className="ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full capitalize">
-                {fileType}
-              </span>
-            </div>
-            <button
-              onClick={closeDocumentPreview}
-              className="p-1 rounded-full hover:bg-gray-100"
-              aria-label="Close preview"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="flex-1 p-4 overflow-auto">
-            {documentLoading ? (
-              <div className="flex flex-col items-center justify-center h-96">
-                <Loader size={40} className="text-blue-500 animate-spin" />
-                <p className="mt-4 text-gray-600">Loading document...</p>
-              </div>
-            ) : (
-              <div className="min-h-96">{renderDocumentContent()}</div>
             )}
           </div>
 
-          <div className="border-t p-3 flex justify-end">
-            <button
-              onClick={closeDocumentPreview}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {verified ? (
+                <Pill tone="green" dot>Verified</Pill>
+              ) : request && !request.resubmittedAt ? (
+                <Pill tone="orange" dot>Changes requested</Pill>
+              ) : request?.resubmittedAt ? (
+                <Pill tone="blue" dot>Resubmitted</Pill>
+              ) : (
+                <Pill tone="orange" dot>Awaiting review</Pill>
+              )}
+              {label(product.category) && <Pill>{label(product.category)}</Pill>}
+            </div>
+            <h2 className="mt-2 text-xl font-bold leading-snug tracking-[-0.01em] text-ink">{product.title}</h2>
+            <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-line text-[13.5px] leading-relaxed text-ink-soft">
+              {product.description || "No description."}
+            </p>
+            <a
+              href={`${WEB_URL}/product/${product.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand-900 hover:underline"
             >
-              Close
-            </button>
+              See it on TradelyX <ExternalLink size={12} />
+            </a>
           </div>
         </div>
-      </div>
-    );
-  };
 
-  if (isLoading) {
-    return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-96">
-        <Loader size={40} className="text-blue-500 animate-spin" />
-        <p className="mt-4 text-gray-600">Loading product information...</p>
-      </div>
-    );
-  }
+        {/* What the screening found, and any open change request */}
+        {canModerate && (
+          <section className="rounded-xl ring-1 ring-inset ring-rule">
+            <div className="flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5">
+              <div>
+                <h3 className="text-[13.5px] font-bold text-ink">Quality check</h3>
+                <p className="text-[12px] text-ink-faint">
+                  {listing?.qualityCheckedAt ? `Screened ${formatDate(listing.qualityCheckedAt, true)}` : "Not screened yet"}
+                </p>
+              </div>
+              <Btn size="sm" variant="ghost" icon={<RefreshCw size={14} />} loading={screening} onClick={() => screen({ id: productId })}>
+                Screen again
+              </Btn>
+            </div>
+            <div className="px-4">
+              {flags.length ? (
+                <ul className="divide-y divide-rule">{flags.map((f) => <Finding key={f.code} flag={f} />)}</ul>
+              ) : (
+                <p className="flex items-center gap-2 py-3 text-[13px] text-ink-soft">
+                  <BadgeCheck size={16} className="text-brand-900" />
+                  {listing?.qualityCheckedAt ? "Nothing found. Still look at the photos before verifying." : "Findings appear here within a few minutes."}
+                </p>
+              )}
+            </div>
+            {request && (
+              <div className={`border-t border-rule px-4 py-3 ${request.resubmittedAt ? "bg-sky-50/60" : "bg-attention-soft/50"}`}>
+                <p className="text-[13px] font-semibold text-ink">
+                  {request.resubmittedAt
+                    ? `The seller edited it on ${formatDate(request.resubmittedAt, true)}, after being asked on ${formatDate(request.at)}`
+                    : `Changes asked for on ${formatDate(request.at, true)}; waiting for the seller`}
+                </p>
+                <p className="mt-0.5 text-[12.5px] text-ink-soft">
+                  {request.reasons.map((r) => QUALITY_LABELS[r] ?? r).join(" · ")}
+                  {request.note ? ` — "${request.note}"` : ""}
+                </p>
+              </div>
+            )}
+          </section>
+        )}
 
-  const sellerName =
-    listing?.sellerCompany || [listing?.sellerFirstName, listing?.sellerLastName].filter(Boolean).join(" ") || product?.seller?.name || "Seller";
-  const uploader = listing?.uploadedBy && listing.uploadedBy !== listing.creatorId
-    ? `${[listing.uploaderFirstName, listing.uploaderLastName].filter(Boolean).join(" ") || "Staff"}${listing.uploaderRole && listing.uploaderRole !== "seller" ? ` (${listing.uploaderRole.replace("_", " ")})` : ""}`
-    : "The seller";
-  const phone = (listing?.sellerPhone || "").replace(/[^\d+]/g, "");
-
-  return (
-    <div className="max-h-screen overflow-auto">
-      <div className="p-6 space-y-6">
         {/* Who sells it, how to reach them, who put it up */}
-        <div className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-3">
+        <section className="grid gap-4 rounded-xl bg-paper px-4 py-3.5 sm:grid-cols-3">
           <div className="min-w-0">
-            <p className="text-xs text-gray-500">Seller</p>
-            <p className="truncate font-semibold text-gray-900">{sellerName}</p>
-            {listing ? <p className="text-xs text-gray-500">{listing.sellerVerified ? "ID verified" : "ID not verified"}</p> : null}
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.05em] text-ink-faint">Seller</p>
+            <p className="truncate text-[13.5px] font-semibold text-ink">{sellerName}</p>
+            {listing && <p className="text-[12px] text-ink-soft">{listing.sellerVerified ? "KYC verified" : "Not KYC verified"}</p>}
           </div>
-          <div className="min-w-0">
-            <p className="text-xs text-gray-500">Contact</p>
-            {listing?.sellerEmail ? <a href={`mailto:${listing.sellerEmail}`} className="block truncate text-[#009051] hover:underline">{listing.sellerEmail}</a> : <p className="text-gray-400">—</p>}
-            {phone ? (
-              <p className="truncate">
-                <a href={`tel:${phone}`} className="text-[#009051] hover:underline">{listing.sellerPhone}</a>
-                {" · "}
-                <a href={`https://wa.me/${phone.replace(/^\+/, "").replace(/^0/, "234")}`} target="_blank" rel="noreferrer" className="text-[#009051] hover:underline">WhatsApp</a>
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.05em] text-ink-faint">Contact</p>
+            {listing?.sellerEmail ? (
+              <a href={`mailto:${listing.sellerEmail}`} className="flex items-center gap-1.5 truncate text-[13px] text-brand-900 hover:underline">
+                <Mail size={13} className="shrink-0" /> <span className="truncate">{listing.sellerEmail}</span>
+              </a>
+            ) : (
+              <p className="text-[13px] text-ink-faint">No email</p>
+            )}
+            {phone && (
+              <p className="flex items-center gap-1.5 text-[13px]">
+                <Phone size={13} className="shrink-0 text-brand-900" />
+                <a href={`tel:${phone}`} className="text-brand-900 hover:underline">{listing?.sellerPhone}</a>
+                <span className="text-ink-faint">·</span>
+                <a
+                  href={`https://wa.me/${phone.replace(/^\+/, "").replace(/^0/, "234")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-900 hover:underline"
+                >
+                  WhatsApp
+                </a>
               </p>
-            ) : null}
+            )}
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-gray-500">Uploaded by</p>
-            <p className="truncate font-medium text-gray-900">{uploader}</p>
-            <p className="text-xs text-gray-500">on {formatDate(product?.createdAt ?? listing?.createdAt)}</p>
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.05em] text-ink-faint">Uploaded by</p>
+            <p className="truncate text-[13.5px] font-medium text-ink">{uploader}</p>
+            <p className="text-[12px] text-ink-soft">on {formatDate(product.createdAt ?? listing?.createdAt)}</p>
           </div>
-        </div>
-        <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
-          {product?.thumbnail ? (
-            <img
-              src={product.thumbnail}
-              alt="Product Thumbnail"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              No thumbnail image
-            </div>
-          )}
-          <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg p-3 shadow-md">
-            <h2 className="text-lg font-semibold">{product?.title || "N/A"}</h2>
-            <p className="text-sm text-gray-600">{product?.category?.label || "N/A"}</p>
-          </div>
-        </div>
+        </section>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-800">Product Information</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Description</p>
-                <p className="text-sm">{product?.description || "No description provided"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Tags</p>
-                {product?.tags?.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {product.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm">No tags</p>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Certifications</p>
-                <p>{product?.certifications || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Specification</p>
-                <p>{product?.specification || "N/A"}</p>
-              </div>
+        {/* The listing's details: what a buyer needs to quote */}
+        <section>
+          <h3 className="mb-2.5 text-[13.5px] font-bold text-ink">Listing details</h3>
+          <dl className="grid grid-cols-2 gap-x-5 gap-y-3.5 sm:grid-cols-3">
+            <Field name="Specification" value={product.specification} />
+            <Field name="Minimum order" value={qty(product.minimum_order)} />
+            <Field name="Supply capacity" value={qty(product.supply_capacity)} />
+            <Field name="Packaging" value={label(product.packaging_type)} />
+            <Field name="Place of origin" value={product.place_of_origin} />
+            <Field name="Year of origin" value={product.year_of_origin} />
+            <Field name="Landmark" value={product.land_mark} />
+            <Field name="Delivery date" value={product.delivery_date ? formatDate(product.delivery_date) : null} />
+            <Field name="Certifications" value={product.certifications} />
+          </dl>
+          {product.tags?.length ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {product.tags.map((t: string) => <Pill key={t}>{t}</Pill>)}
             </div>
-          </div>
+          ) : null}
+        </section>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-800">Supply Details</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Supply Capacity</p>
-                <p>
-                  {product?.supply_capacity
-                    ? `${product.supply_capacity.value} ${product.supply_capacity.unit}`
-                    : "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Minimum Order</p>
-                <p>
-                  {product?.minimum_order
-                    ? `${product.minimum_order.value} ${product.minimum_order.unit}`
-                    : "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Packaging Type</p>
-                <p>{product?.packaging_type?.label || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Delivery Date</p>
-                <p>{formatDate(product?.delivery_date)}</p>
-              </div>
+        {documents.length > 0 && (
+          <section>
+            <h3 className="mb-2 text-[13.5px] font-bold text-ink">Documents</h3>
+            <div className="flex flex-wrap gap-2">
+              {documents.map((doc, i) => (
+                <a
+                  key={`${doc}-${i}`}
+                  href={doc}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12.5px] font-medium text-ink ring-1 ring-inset ring-rule hover:bg-paper"
+                  title={doc.split("/").pop()}
+                >
+                  <FileText size={14} className="shrink-0 text-ink-soft" />
+                  <span className="truncate">{decodeURIComponent(doc.split("/").pop() || `Document ${i + 1}`)}</span>
+                </a>
+              ))}
             </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">Origin Details</h3>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Year of Origin</p>
-                <p>{product?.year_of_origin || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Place of Origin</p>
-                <p>{product?.place_of_origin || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Landmark</p>
-                <p>{product?.land_mark || "N/A"}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">Documents & Images</h3>
-          <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Product Documents</p>
-              {renderDocumentLinks(product?.documents)}
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Relevant Documents</p>
-              {renderDocumentLinks(product?.relevant_documents)}
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 mb-2">Product Images</p>
-              {renderDocumentLinks(product?.images)}
-            </div>
-          </div>
-        </div>
+          </section>
+        )}
       </div>
 
-      {askReason ? (
-        <div className="border-t bg-amber-50 p-4">
-          <label className="block text-sm font-semibold text-gray-900" htmlFor="unverify-reason">Why is the verified tick coming off?</label>
-          <p className="mb-2 text-xs text-gray-600">The seller is emailed this, so they know what to fix.</p>
+      {askReason && (
+        <div className="border-t border-rule bg-attention-soft/60 px-5 py-4 sm:px-6">
+          <label className="block text-[13.5px] font-semibold text-ink" htmlFor="unverify-reason">
+            Why is the verified tick coming off?
+          </label>
+          <p className="mb-2 text-[12px] text-ink-soft">The seller is emailed this, so they know what to fix.</p>
           <textarea
             id="unverify-reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
             placeholder="e.g. The photos show a different product from the title"
-            className="w-full rounded-md border border-gray-300 p-2 text-sm"
+            className="w-full rounded-lg border-0 bg-white p-2.5 text-[13.5px] ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-900"
           />
         </div>
-      ) : null}
-      <div className="border-t p-4 flex flex-wrap items-center justify-end gap-3 bg-gray-50 sticky bottom-0">
-        {onEdit ? (
-          <button onClick={onEdit} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-white transition-colors">
-            Edit product
-          </button>
-        ) : null}
-        {lastVerification && (
-          <p className="mr-auto text-[12.5px] text-ink-soft">
-            {lastVerification.action === "product.verified" ? "Verified" : "Verification removed"} by{" "}
-            <strong className="text-ink">{lastVerification.actorName ?? "staff"}</strong> on{" "}
-            {new Date(lastVerification.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+      )}
+
+      <div className="sticky -bottom-4 z-10 flex flex-wrap items-center justify-end gap-2 border-t border-rule bg-white/95 px-5 py-3.5 backdrop-blur sm:px-6">
+        {lastDecision && (
+          <p className="mr-auto text-[12px] text-ink-soft">
+            {lastDecision.action === "product.verified"
+              ? "Verified"
+              : lastDecision.action === "product.unverified"
+                ? "Verification removed"
+                : "Changes asked for"}{" "}
+            by <strong className="text-ink">{lastDecision.actorName ?? "staff"}</strong> on {formatDate(lastDecision.createdAt)}
           </p>
         )}
-        <button
-          onClick={onClose}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          Close
-        </button>
-        {userRole === "agent" ? null : (
-          <Button
-            onClick={() => handleVerifyToggle(!product?.productVerified)}
-            disabled={updatingProduct}
-            leftIcon={
-              product?.productVerified ? (
-                <X size={18} className="mr-2" />
-              ) : (
-                <CheckCircle size={18} className="mr-2" />
-              )
-            }
-            className={
-              product?.productVerified
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-green-600 hover:bg-green-700"
-            }
-          >
-            {product?.productVerified ? (askReason ? "Remove verification and email seller" : "Unverify Product") : "Verify Product"}
-          </Button>
+        <Btn variant="ghost" onClick={onClose}>Close</Btn>
+        {onEdit && (
+          <Btn variant="secondary" icon={<Edit2 size={14} />} onClick={onEdit}>
+            Edit
+          </Btn>
+        )}
+        {canModerate && (
+          <>
+            <Btn variant="attention" icon={<MessageSquareWarning size={14} />} onClick={() => setRequesting(true)}>
+              Request changes
+            </Btn>
+            {verified ? (
+              <Btn variant="danger" icon={<X size={14} />} loading={verifying} onClick={() => verify(false)}>
+                {askReason ? "Remove and email seller" : "Remove verification"}
+              </Btn>
+            ) : (
+              <Btn icon={<Check size={14} />} loading={verifying} onClick={() => verify(true)}>
+                Verify
+              </Btn>
+            )}
+          </>
         )}
       </div>
 
-      <DocumentPreview />
+      <RequestChanges
+        product={requesting ? { id: productId, title: product.title, qualityFlags: flags } : null}
+        onClose={() => setRequesting(false)}
+        onDone={onClose}
+      />
     </div>
   );
-};
-
-export default ProductPreview;
+}

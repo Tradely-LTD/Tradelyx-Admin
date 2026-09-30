@@ -1,9 +1,10 @@
 import { useState } from "react";
 import Pagination from "rc-pagination";
-import { Megaphone } from "lucide-react";
+import { Megaphone, RotateCw } from "lucide-react";
+import { toast } from "react-toastify";
 
-import { useGetCampaignsQuery, useGetSegmentsQuery } from "../outreach-api";
-import { Card, EmptyState, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
+import { useGetCampaignsQuery, useGetSegmentsQuery, useRetryCampaignMutation } from "../outreach-api";
+import { Btn, Card, EmptyState, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
 
 // Subjects are stored as written; show the placeholders the way staff read them
 const readable = (subject: string) =>
@@ -16,6 +17,20 @@ export default function Campaigns() {
   const sending = data?.data.some((c) => c.status === "sending");
   useGetCampaignsQuery({ page, limit: 10 }, { pollingInterval: sending ? 5000 : 0, skip: !sending });
   const { data: segments } = useGetSegmentsQuery();
+  const [retry, { isLoading: retrying, originalArgs: retryingId }] = useRetryCampaignMutation();
+  const retryFailed = async (id: string) => {
+    try {
+      const { data } = await retry(id).unwrap();
+      toast.success(
+        data.requeued
+          ? `${formatNumber(data.requeued)} emails are back in the queue and go out as the allowance allows.`
+          : "None of the failures were quota refusals, so there's nothing to retry.",
+        { position: "top-right" }
+      );
+    } catch (err: any) {
+      toast.error(err?.data?.error || "Could not retry", { position: "top-right" });
+    }
+  };
   const audience = (key: string) => (key === "one_user" ? "One person" : segments?.find((s) => s.key === key)?.label ?? key);
 
   if (isLoading) return <Card className="space-y-3 p-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</Card>;
@@ -61,7 +76,27 @@ export default function Campaigns() {
                       <div className="bg-brand-700" style={{ width: `${(c.sent / total) * 100}%` }} />
                       {c.failed > 0 && <div className="bg-danger" style={{ width: `${(c.failed / total) * 100}%` }} />}
                     </div>
-                    {c.failed > 0 && <p className="tnum mt-1 text-[11.5px] text-danger-deep">{formatNumber(c.failed)} failed or skipped</p>}
+                    {c.failed > 0 && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className="tnum text-[11.5px] text-danger-deep">{formatNumber(c.failed)} failed or skipped</p>
+                        {c.status === "done" && (
+                          <Btn
+                            size="sm"
+                            variant="ghost"
+                            icon={<RotateCw size={12} />}
+                            loading={retrying && retryingId === c.id}
+                            onClick={() => retryFailed(c.id)}
+                            className="h-6 px-2 text-[11.5px]"
+                            title="Re-send the emails refused because the sending quota was used up"
+                          >
+                            Retry quota failures
+                          </Btn>
+                        )}
+                      </div>
+                    )}
+                    {c.status === "sending" && c.pending > 0 && c.sent + c.failed > 0 && (
+                      <p className="mt-1 text-[11.5px] text-ink-faint">Paused emails resume automatically when the allowance allows.</p>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3.5 text-ink-soft">{formatDate(c.createdAt, true)}</td>
                 </tr>

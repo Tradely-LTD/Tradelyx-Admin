@@ -319,6 +319,17 @@ function AgentDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 Link a person
               </Btn>
             )}
+            {a.status === "approved" && a.referralCode && (
+              <Btn
+                variant="secondary"
+                size="sm"
+                loading={approving}
+                title="Link anyone who has signed up with their code since they were approved"
+                onClick={() => approve(a.id)}
+              >
+                Re-sync referrals
+              </Btn>
+            )}
           </div>
         )
       }

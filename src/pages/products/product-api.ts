@@ -50,6 +50,12 @@ export interface AdminProduct extends Product {
   sellerLastName?: string | null;
   sellerVerified?: boolean | null;
   creatorCountry?: string | null;
+  sellerEmail?: string | null;
+  sellerPhone?: string | null;
+  uploadedBy?: string | null;
+  uploaderFirstName?: string | null;
+  uploaderLastName?: string | null;
+  uploaderRole?: string | null;
 }
 
 export interface ProductStats {
@@ -174,11 +180,12 @@ export const productApi = baseApi.injectEndpoints({
 
     // Staff only. Verification is the platform's call, so it has its own
     // route and is never part of a product edit.
-    setProductVerified: builder.mutation<{ message: string }, { id: string; verified: boolean }>({
-      query: ({ id, verified }) => ({
+    // The seller is emailed either way; `reason` explains a removal
+    setProductVerified: builder.mutation<{ message: string }, { id: string; verified: boolean; reason?: string }>({
+      query: ({ id, verified, reason }) => ({
         url: `/product/${id}/verify`,
         method: Methods.Post,
-        body: { verified },
+        body: { verified, reason },
       }),
       invalidatesTags: ["PRODUCTS", "ACTIVITY"],
       async onQueryStarted(_, { queryFulfilled }) {

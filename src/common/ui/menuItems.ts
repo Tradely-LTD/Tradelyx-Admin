@@ -38,8 +38,8 @@ const ALL_GROUPS: MenuGroup[] = [
       { icon: ShieldCheck, label: "KYC review", path: "/kyc", description: "Approve or reject identity documents", roles: ["admin"], badge: "kycPending" },
       { icon: Award, label: "Certificates", path: "/certificates", description: "Verify the licences and certificates sellers show on their stores", roles: ["admin"] },
       { icon: Handshake, label: "Agents", path: "/agents", description: "Applications, what each agent has brought in and earned, payouts", roles: ["admin"], badge: "agentsApplied" },
-      // The older referral list, for country admins and agents; admins use Agents
-      { icon: Share2, label: "Referrals", path: "/referrals", description: "People who signed up with a referral code", roles: ["country_admin", "agent"] },
+      // Admins see every referrer and can make one an agent; other roles see their list
+      { icon: Share2, label: "Referrals", path: "/referrals", description: "Everyone whose referral code brought people in" },
     ],
   },
   {

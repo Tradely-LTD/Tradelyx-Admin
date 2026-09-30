@@ -85,6 +85,35 @@ export interface PayoutDue {
   meetsMinimum: boolean;
 }
 
+export interface Referrer {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  role: string | null;
+  kycCompleted: boolean;
+  code: string;
+  agentStatus: AgentStatus | null;
+  signups: number;
+  sellers: number;
+  recent: number;
+  lastSignup: string | null;
+}
+
+export interface ReferredPerson {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  isSeller: boolean;
+  kycCompleted: boolean;
+  joinedAt: string | null;
+  sales: number;
+}
+
 export interface Terms {
   rate: number;
   windowMonths: number;
@@ -120,10 +149,39 @@ export const agentsApi = baseApi.injectEndpoints({
       query: () => ({ url: "/agents/admin/payouts/due" }),
       providesTags: ["AGENTS"],
     }),
-    approveAgent: builder.mutation<{ data: { referralCode: string; backfilled: number } }, string>({
+    approveAgent: builder.mutation<{ data: { referralCode: string; backfilled: number; earning: number } }, string>({
       query: (id) => ({ url: `/agents/admin/${id}/approve`, method: Methods.Post }),
       invalidatesTags: ["AGENTS", "ACTIVITY"],
-      onQueryStarted: action("Approved: they now have a link to share", "Could not approve"),
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const n = data.data.backfilled;
+          toast.success(n ? `Done: ${n} people who used their code are now linked to them` : "Done: they can switch to Agent now", { position: "top-right" });
+        } catch (err) {
+          fail(err, "Could not approve");
+        }
+      },
+    }),
+    getReferrers: builder.query<{ data: Referrer[]; windowMonths: number }, void>({
+      query: () => ({ url: "/agents/admin/referrers" }),
+      providesTags: ["AGENTS"],
+    }),
+    getReferredPeople: builder.query<ReferredPerson[], string>({
+      query: (id) => ({ url: `/agents/admin/referrers/${id}/people` }),
+      transformResponse: (r: { data: ReferredPerson[] }) => r.data,
+      providesTags: ["AGENTS"],
+    }),
+    enrollAgent: builder.mutation<{ data: { referralCode: string; backfilled: number; earning: number } }, string>({
+      query: (id) => ({ url: `/agents/admin/referrers/${id}/enroll`, method: Methods.Post }),
+      invalidatesTags: ["AGENTS", "ACTIVITY"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          toast.success(`Now an agent: ${data.data.backfilled} people linked, ${data.data.earning} still earning commission`, { position: "top-right" });
+        } catch (err) {
+          fail(err, "Could not make them an agent");
+        }
+      },
     }),
     rejectAgent: builder.mutation<unknown, { id: string; reason?: string }>({
       query: ({ id, reason }) => ({ url: `/agents/admin/${id}/reject`, method: Methods.Post, body: { reason } }),
@@ -163,6 +221,9 @@ export const {
   useGetAgentQuery,
   useGetPayoutsDueQuery,
   useApproveAgentMutation,
+  useGetReferrersQuery,
+  useGetReferredPeopleQuery,
+  useEnrollAgentMutation,
   useRejectAgentMutation,
   useSuspendAgentMutation,
   useSetAgentRateMutation,

@@ -1,3 +1,4 @@
+import { reportInvalid } from "@/common/forms/report-invalid";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -97,7 +98,7 @@ function UserForm({ id, onClose }: { id: string; onClose?: () => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(processSubmit, reportInvalid)} className="space-y-4">
       {isLoadingUser ? (
         <Loader />
       ) : (

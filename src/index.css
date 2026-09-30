@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-paper font-sans text-ink;
+  }
+  .radix-themes {
+    --default-font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  :focus-visible {
+    outline: 2px solid #009051;
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint;
+  }
+  /* The sidebar's quiet texture: a fine diagonal hatch, like a ledger's ruling */
+  .hatch {
+    background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

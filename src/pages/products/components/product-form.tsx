@@ -1,4 +1,6 @@
 //@ts-nocheck
+import { reportInvalid } from "@/common/forms/report-invalid";
+import { toast } from "react-toastify";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -49,8 +51,12 @@ const validationSchema = yup.object({
   documents: yup.array().of(yup.string().max(255)).default([]),
   images: yup.array().of(yup.string().max(255)).default([]),
   specification: yup.string().nullable(),
+  // Optional: left empty (both parts blank) it is simply not given. The inputs
+  // used to be required in the browser, so a product saved without them could
+  // never be edited: the save silently did nothing.
   supply_capacity: yup
     .object()
+    .transform((v) => (!v || (!v.unit && !v.value) ? null : v))
     .shape({
       unit: yup.string().required("Unit is required"),
       value: yup
@@ -59,8 +65,12 @@ const validationSchema = yup.object({
         .matches(/^[0-9]+$/, "Value must be a number"),
     })
     .nullable(),
+  // Optional: left empty (both parts blank) it is simply not given. The inputs
+  // used to be required in the browser, so a product saved without them could
+  // never be edited: the save silently did nothing.
   minimum_order: yup
     .object()
+    .transform((v) => (!v || (!v.unit && !v.value) ? null : v))
     .shape({
       unit: yup.string().required("Unit is required"),
       value: yup
@@ -180,11 +190,11 @@ function ProductForm({ id, onClose }: ProductFormProps) {
         images: formData.images || [],
         relevant_documents: formData.relevant_documents || [],
         supply_capacity:
-          formData.supply_capacity.unit && formData.supply_capacity.value
+          formData.supply_capacity?.unit && formData.supply_capacity?.value
             ? { unit: formData.supply_capacity.unit, value: formData.supply_capacity.value }
             : null,
         minimum_order:
-          formData.minimum_order.unit && formData.minimum_order.value
+          formData.minimum_order?.unit && formData.minimum_order?.value
             ? { unit: formData.minimum_order.unit, value: formData.minimum_order.value }
             : null,
       };
@@ -211,14 +221,16 @@ function ProductForm({ id, onClose }: ProductFormProps) {
           });
       }
     } catch (error) {
+      // API errors already toast (product-api); anything else must not fail silently
       console.error(isEditMode ? "Failed to update product:" : "Failed to create product:", error);
+      if (error instanceof Error) toast.error(`Couldn't save: ${error.message}`, { position: "top-right" });
     }
   };
 
   const isSubmitDisabled = isCreating || isUpdating;
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(processSubmit, reportInvalid)} className="space-y-6">
       {isLoadingProduct ? (
         <Loader />
       ) : (
@@ -432,7 +444,6 @@ function ProductForm({ id, onClose }: ProductFormProps) {
                           label: unit.title,
                           value: unit.value,
                         }))}
-                        required
                         value={
                           field.value
                             ? {
@@ -454,7 +465,6 @@ function ProductForm({ id, onClose }: ProductFormProps) {
                         type="text"
                         label="Value"
                         error={errors.supply_capacity?.value?.message}
-                        required
                         {...field}
                       />
                     )}
@@ -477,7 +487,6 @@ function ProductForm({ id, onClose }: ProductFormProps) {
                           label: unit.title,
                           value: unit.value,
                         }))}
-                        required
                         value={
                           field.value
                             ? {
@@ -499,7 +508,6 @@ function ProductForm({ id, onClose }: ProductFormProps) {
                         type="text"
                         label="Value"
                         error={errors.minimum_order?.value?.message}
-                        required
                         {...field}
                       />
                     )}

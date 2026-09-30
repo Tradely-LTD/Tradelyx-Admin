@@ -1,4 +1,3 @@
-//@ts-nocheck
 import {
   UserCheck,
   Loader,
@@ -20,7 +19,7 @@ import { useGetUserQuery, useUpdateUserMutation } from "../user-api";
 import Button from "@/common/button/button";
 
 interface SellerPreviewProps {
-  sellerId: number;
+  sellerId: string;
   onClose: () => void;
 }
 
@@ -41,7 +40,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -50,9 +49,9 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
     });
   };
 
-  const getFileType = (url) => {
+  const getFileType = (url?: string | null) => {
     if (!url) return "unknown";
-    const extension = url.split(".").pop().toLowerCase();
+    const extension = (url.split(".").pop() ?? "").toLowerCase();
     if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(extension)) return "image";
     if (extension === "pdf") return "pdf";
     if (["doc", "docx"].includes(extension)) return "word";
@@ -61,7 +60,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
     return "other";
   };
 
-  const renderDocumentLinks = (documents) => {
+  const renderDocumentLinks = (documents: string | string[] | null | undefined) => {
     // Convert single string to array if necessary
     const docArray = Array.isArray(documents) ? documents : documents ? [documents] : [];
 
@@ -112,7 +111,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-medium truncate">
-                  {fileName.length > 20 ? fileName.substring(0, 17) + "..." : fileName}
+                  {(fileName ?? "").length > 20 ? (fileName ?? "").substring(0, 17) + "..." : fileName}
                 </p>
                 <p className="text-xs capitalize">{fileType} file</p>
               </div>
@@ -281,7 +280,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                   <MapPin size={16} className="text-gray-600 mr-2" />
                   <p className="text-sm text-gray-500">Address</p>
                 </div>
-                <p className="font-medium text-gray-900">{seller?.personalInfo.address || "N/A"}</p>
+                <p className="font-medium text-gray-900">{seller?.personalInfo?.address || "N/A"}</p>
               </div>
             </div>
           </div>
@@ -316,7 +315,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                 <Award size={16} className="text-gray-600 mr-2" />
                 <p className="text-sm text-gray-500">Services</p>
               </div>
-              {seller?.businessDetails?.services?.length > 0 ? (
+              {(seller?.businessDetails?.services?.length ?? 0) > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {seller?.businessDetails.services.slice(0, 3).map((service, idx) => (
                     <span
@@ -326,9 +325,9 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                       {service}
                     </span>
                   ))}
-                  {seller?.businessDetails?.services?.length > 3 && (
+                  {(seller?.businessDetails?.services?.length ?? 0) > 3 && (
                     <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
-                      +{seller?.businessDetails?.services?.length - 3} more
+                      +{(seller?.businessDetails?.services?.length ?? 0) - 3} more
                     </span>
                   )}
                 </div>
@@ -342,7 +341,7 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                 <Globe size={16} className="text-gray-600 mr-2" />
                 <p className="text-sm text-gray-500">Main Markets</p>
               </div>
-              {seller?.businessDetails?.mainMarkets?.length > 0 ? (
+              {(seller?.businessDetails?.mainMarkets?.length ?? 0) > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {seller?.businessDetails.mainMarkets.slice(0, 3).map((market, idx) => (
                     <span
@@ -352,9 +351,9 @@ export default function SellerPreview({ sellerId, onClose }: SellerPreviewProps)
                       {market}
                     </span>
                   ))}
-                  {seller?.businessDetails.mainMarkets.length > 3 && (
+                  {(seller?.businessDetails?.mainMarkets?.length ?? 0) > 3 && (
                     <span className="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
-                      +{seller?.businessDetails.mainMarkets.length - 3} more
+                      +{(seller?.businessDetails?.mainMarkets?.length ?? 0) - 3} more
                     </span>
                   )}
                 </div>

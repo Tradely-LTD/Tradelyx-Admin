@@ -2,33 +2,44 @@
 import { useState } from "react";
 import { X, CheckCircle, Loader, FileText, Download, Eye } from "lucide-react";
 import Button from "@/common/button/button";
-import { useGetProductQuery, useUpdateProductMutation } from "../product-api";
+import { useGetProductQuery, useSetProductVerifiedMutation } from "../product-api";
 import { useUserSlice } from "@/pages/auth/authSlice";
+import { useGetActivityQuery } from "@/pages/activity/activity-api";
 
-const ProductPreview = ({ productId, onClose }) => {
+/**
+ * One product, for staff. `listing` is the row from the admin list, which
+ * carries who sells it, how to reach them and who uploaded it.
+ */
+const ProductPreview = ({ productId, onClose, onEdit, listing }: { productId: string; onClose: () => void; onEdit?: () => void; listing?: any }) => {
+  const [askReason, setAskReason] = useState(false);
+  const [reason, setReason] = useState("");
   const [activeDocument, setActiveDocument] = useState(null);
   const [documentLoading, setDocumentLoading] = useState(false);
-  const [updateProduct, { isLoading: updatingProduct }] = useUpdateProductMutation();
+  const [setVerified, { isLoading: updatingProduct }] = useSetProductVerifiedMutation();
   const { data, isLoading } = useGetProductQuery({ id: productId });
 
   const { loginResponse } = useUserSlice();
   const userRole = loginResponse?.user.roles;
   const product = data?.data;
+  // Who last changed verification, from the activity log (admins only)
+  const { data: verification } = useGetActivityQuery(
+    { targetType: "product", targetId: productId, action: "product.", limit: 5 },
+    { skip: userRole !== "admin" }
+  );
+  const lastVerification = verification?.data?.find((a) => a.action === "product.verified" || a.action === "product.unverified");
 
-  const handleVerifyToggle = async (verifyStatus) => {
+  const handleVerifyToggle = async (verified) => {
+    // Taking the tick away: say why first, so the seller's email explains it
+    if (!verified && !askReason) {
+      setAskReason(true);
+      return;
+    }
     try {
-      // Exclude creatorId from update to preserve the original seller's ID
-      const { creatorId, ...productWithoutCreatorId } = product;
-      await updateProduct({
-        id: productId,
-        data: { ...productWithoutCreatorId, produtVerified: verifyStatus },
-      })
-        .unwrap()
-        .then(() => {
-          onClose();
-        });
-    } catch (error) {
-      console.error(`Failed to ${verifyStatus ? "verify" : "unverify"} product:`, error);
+      await setVerified({ id: productId, verified, reason: verified ? undefined : reason.trim() || undefined }).unwrap();
+      setAskReason(false);
+      onClose();
+    } catch {
+      // the toast says why
     }
   };
 
@@ -313,9 +324,40 @@ const ProductPreview = ({ productId, onClose }) => {
     );
   }
 
+  const sellerName =
+    listing?.sellerCompany || [listing?.sellerFirstName, listing?.sellerLastName].filter(Boolean).join(" ") || product?.seller?.name || "Seller";
+  const uploader = listing?.uploadedBy && listing.uploadedBy !== listing.creatorId
+    ? `${[listing.uploaderFirstName, listing.uploaderLastName].filter(Boolean).join(" ") || "Staff"}${listing.uploaderRole && listing.uploaderRole !== "seller" ? ` (${listing.uploaderRole.replace("_", " ")})` : ""}`
+    : "The seller";
+  const phone = (listing?.sellerPhone || "").replace(/[^\d+]/g, "");
+
   return (
     <div className="max-h-screen overflow-auto">
       <div className="p-6 space-y-6">
+        {/* Who sells it, how to reach them, who put it up */}
+        <div className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-3">
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">Seller</p>
+            <p className="truncate font-semibold text-gray-900">{sellerName}</p>
+            {listing ? <p className="text-xs text-gray-500">{listing.sellerVerified ? "ID verified" : "ID not verified"}</p> : null}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">Contact</p>
+            {listing?.sellerEmail ? <a href={`mailto:${listing.sellerEmail}`} className="block truncate text-[#009051] hover:underline">{listing.sellerEmail}</a> : <p className="text-gray-400">—</p>}
+            {phone ? (
+              <p className="truncate">
+                <a href={`tel:${phone}`} className="text-[#009051] hover:underline">{listing.sellerPhone}</a>
+                {" · "}
+                <a href={`https://wa.me/${phone.replace(/^\+/, "").replace(/^0/, "234")}`} target="_blank" rel="noreferrer" className="text-[#009051] hover:underline">WhatsApp</a>
+              </p>
+            ) : null}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">Uploaded by</p>
+            <p className="truncate font-medium text-gray-900">{uploader}</p>
+            <p className="text-xs text-gray-500">on {formatDate(product?.createdAt ?? listing?.createdAt)}</p>
+          </div>
+        </div>
         <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
           {product?.thumbnail ? (
             <img
@@ -440,7 +482,33 @@ const ProductPreview = ({ productId, onClose }) => {
         </div>
       </div>
 
-      <div className="border-t p-4 flex justify-end gap-3 bg-gray-50 sticky bottom-0">
+      {askReason ? (
+        <div className="border-t bg-amber-50 p-4">
+          <label className="block text-sm font-semibold text-gray-900" htmlFor="unverify-reason">Why is the verified tick coming off?</label>
+          <p className="mb-2 text-xs text-gray-600">The seller is emailed this, so they know what to fix.</p>
+          <textarea
+            id="unverify-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={2}
+            placeholder="e.g. The photos show a different product from the title"
+            className="w-full rounded-md border border-gray-300 p-2 text-sm"
+          />
+        </div>
+      ) : null}
+      <div className="border-t p-4 flex flex-wrap items-center justify-end gap-3 bg-gray-50 sticky bottom-0">
+        {onEdit ? (
+          <button onClick={onEdit} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-white transition-colors">
+            Edit product
+          </button>
+        ) : null}
+        {lastVerification && (
+          <p className="mr-auto text-[12.5px] text-ink-soft">
+            {lastVerification.action === "product.verified" ? "Verified" : "Verification removed"} by{" "}
+            <strong className="text-ink">{lastVerification.actorName ?? "staff"}</strong> on{" "}
+            {new Date(lastVerification.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        )}
         <button
           onClick={onClose}
           className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
@@ -464,7 +532,7 @@ const ProductPreview = ({ productId, onClose }) => {
                 : "bg-green-600 hover:bg-green-700"
             }
           >
-            {product?.productVerified ? "Unverify Product" : "Verify Product"}
+            {product?.productVerified ? (askReason ? "Remove verification and email seller" : "Unverify Product") : "Verify Product"}
           </Button>
         )}
       </div>

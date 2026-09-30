@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail, MailCheck, MailWarning, Clock, Send, SlidersHorizontal } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import Button from "@/common/button/button";
+import { Btn, PageHeader } from "@/common/ui/kit";
 import { appPaths } from "@/utils/app-paths";
 import { useEmailStats, useEmailHistory } from "@/hooks/email";
 import EmailHistoryTable from "./components/email-history-table";
@@ -62,16 +63,18 @@ const EmailLandingPage = () => {
     typeof val === "number" ? new Intl.NumberFormat().format(val) : val;
 
   return (
-    <div className="min-h-screen space-y-6 py-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="max-w-3xl">
-          <h1 className="text-2xl font-semibold text-gray-900">Email Dashboard</h1>
-          <p className="text-gray-600">
-            Choose an email task below. Head into Email Mode to compose messages or review your delivery history.
-          </p>
-        </div>
-        <Button onClick={() => navigate(appPaths.emailCompose)}>Open Email Mode</Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Communication"
+        title="Direct email"
+        description="Write to one person or a hand-picked list, and see every email staff have sent. For a whole group, use Outreach."
+        actions={
+          <>
+            <Btn variant="secondary" onClick={() => navigate(appPaths.outreach)}>Outreach</Btn>
+            <Btn onClick={() => navigate(appPaths.emailCompose)}>Write an email</Btn>
+          </>
+        }
+      />
 
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3">

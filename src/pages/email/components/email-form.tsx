@@ -1,4 +1,5 @@
 import { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { Globe, Mail, Search, Shield, Users } from "lucide-react";
 import Button from "@/common/button/button";
 import Input, { SelectOption } from "@/common/input/input";
@@ -41,11 +42,6 @@ const emailModes: { value: EmailComposerMode; label: string; description: string
     value: "bulk",
     label: "Bulk",
     description: "Select multiple users to receive the same email.",
-  },
-  {
-    value: "all_users",
-    label: "All Users",
-    description: "Broadcast an email to everyone (optional filters available).",
   },
 ];
 
@@ -140,7 +136,12 @@ const EmailForm = ({
         <Text h2 className="block mb-3">
           Email Mode
         </Text>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <p className="mb-3 text-sm text-gray-500">
+          Emailing a whole group, like sellers without products or all buyers? Use{" "}
+          <Link to="/outreach" className="font-semibold text-[#009051] hover:underline">Outreach</Link>: it
+          personalises each email, adds an unsubscribe link and sends at a pace the mail provider accepts.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {emailModes.map((modeOption) => (
             <button
               key={modeOption.value}

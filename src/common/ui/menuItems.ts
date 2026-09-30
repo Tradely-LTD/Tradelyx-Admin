@@ -1,127 +1,75 @@
-import { BarChart2, FileText, LogOut, Package, ShellIcon, BellIcon, Users, Mail, ShieldCheck, Award } from "lucide-react";
-import { IoTimeSharp } from "react-icons/io5";
+import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
-// Define user roles as a constant enum-like object
-export const UserRoles = {
-  AGENT: "agent",
-  SUPER_ADMIN: "admin",
-  ADMIN: "country_admin",
-} as const;
+/**
+ * The sidebar, grouped by the job a staff member is doing. `roles` limits an
+ * item to those roles; the API enforces the same limits, so hiding an item is
+ * a courtesy, not the protection.
+ */
 
-// Type for user role keys
-type UserRoleType = keyof typeof UserRoles;
+export type StaffRole = "admin" | "country_admin" | "agent";
 
-// Interface for submenu items
-interface SubmenuItem {
-  label: string;
-  path: string;
-  icon: typeof FileText;
-  color?: string; // Optional color for submenu items
-}
-
-// Interface for menu items
-interface MenuItem {
-  icon: typeof FileText | typeof IoTimeSharp;
+export interface MenuItem {
+  icon: typeof Users;
   label: string;
   path: string;
   description: string;
-  privilege?: UserRoleType[]; // Optional roles that can access this menu
-  hasSubmenu?: boolean;
-  submenuItems?: SubmenuItem[];
+  roles?: StaffRole[];
+  /** Key into the live counts the layout fetches, shown as a badge */
+  badge?: "kycPending" | "agentsApplied";
 }
 
-export const getMenuItems = (userRole?: string | null): MenuItem[] => {
-  // If no user role is provided or user is not admin/country_admin, return empty array
-  if (!userRole || (userRole !== "admin" && userRole !== "country_admin" && userRole !== "agent")) {
-    return [];
-  }
+export interface MenuGroup {
+  label: string;
+  items: MenuItem[];
+}
 
-  const allMenuItems: MenuItem[] = [
-    {
-      icon: BarChart2,
-      label: "Dashboard",
-      path: "/",
-      description: "Overview of key metrics and performance indicators",
-    },
-    {
-      icon: Users,
-      label: "User Management",
-      path: "/users",
-      description: "Manage and monitor system users",
-    },
-    {
-      icon: Package,
-      label: "Product",
-      path: "/product",
-      description: "Manage product inventory and details",
-    },
-    {
-      icon: ShellIcon,
-      label: "Sell Offers",
-      path: "/sell-offer",
-      description: "Manage sell offer inventory and details",
-    },
-    {
-      icon: ShieldCheck,
-      label: "KYC Review",
-      path: "/kyc",
-      description: "Approve or reject seller identity documents",
-      privilege: ["SUPER_ADMIN"], // the API allows admin only
-    },
-    {
-      icon: Award,
-      label: "Certificates",
-      path: "/certificates",
-      description: "Verify the licences and certificates sellers show on their stores",
-      privilege: ["SUPER_ADMIN"],
-    },
-    {
-      icon: IoTimeSharp,
-      label: "Referrals",
-      path: "/referrals",
-      description: "Manage referral inventory and details",
-    },
-    {
-      icon: BellIcon,
-      label: "Notifications",
-      path: "/notifications",
-      description: "Manage notification inventory and details",
-      privilege: ["SUPER_ADMIN"], // Only admin can access notifications
-    },
-    {
-      icon: Mail,
-      label: "Emails",
-      path: "/emails",
-      description: "Send and track email communications",
-      privilege: ["SUPER_ADMIN"],
-    },
-    {
-      icon: LogOut,
-      label: "Logout",
-      path: "/login",
-      description: "Sign out of the application",
-    },
-  ];
+const ALL_GROUPS: MenuGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { icon: BarChart2, label: "Dashboard", path: "/", description: "What needs attention today, and how the platform is growing" },
+      { icon: History, label: "Activity", path: "/activity", description: "What staff have done, to whom and when", roles: ["admin"] },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { icon: Users, label: "Users", path: "/users", description: "Everyone on TradelyX, and how far each person has got with setting up" },
+      { icon: ShieldCheck, label: "KYC review", path: "/kyc", description: "Approve or reject identity documents", roles: ["admin"], badge: "kycPending" },
+      { icon: Award, label: "Certificates", path: "/certificates", description: "Verify the licences and certificates sellers show on their stores", roles: ["admin"] },
+      { icon: Handshake, label: "Agents", path: "/agents", description: "Applications, what each agent has brought in and earned, payouts", roles: ["admin"], badge: "agentsApplied" },
+      // Admins see every referrer and can make one an agent; other roles see their list
+      { icon: Share2, label: "Referrals", path: "/referrals", description: "Everyone whose referral code brought people in" },
+    ],
+  },
+  {
+    label: "Marketplace",
+    items: [
+      { icon: FileQuestion, label: "Buyer requests", path: "/requests", description: "What buyers asked for; unclear requests flagged", roles: ["admin", "country_admin"] },
+      { icon: Package, label: "Products", path: "/product", description: "Every product listed on TradelyX" },
+      { icon: ShellIcon, label: "Sell offers", path: "/sell-offer", description: "Stock sellers have ready, with price and quantity" },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      { icon: Megaphone, label: "Outreach", path: "/outreach", description: "Ready-made emails that get people to finish setting up", roles: ["admin"] },
+      { icon: Mail, label: "Direct email", path: "/emails", description: "Write to one person or a hand-picked list, and the send history", roles: ["admin"] },
+      { icon: BellIcon, label: "Push notifications", path: "/notifications", description: "Broadcast in-app notifications", roles: ["admin"] },
+    ],
+  },
+];
 
-  // Filter menu items based on user role
-  return allMenuItems.filter((item) => {
-    // If no privilege is specified, all admin/country_admin can access
-    if (!item.privilege) {
-      return true;
-    }
+export const isStaffRole = (role?: string | null): role is StaffRole =>
+  role === "admin" || role === "country_admin" || role === "agent";
 
-    // Check if user role matches the required privileges
-    if (userRole === "admin" && item.privilege.includes("SUPER_ADMIN")) {
-      return true;
-    }
-    if (userRole === "agent" && item.privilege.includes("AGENT")) {
-      return true;
-    }
-
-    if (userRole === "country_admin" && item.privilege.includes("ADMIN")) {
-      return true;
-    }
-
-    return false;
-  });
+export const getMenuGroups = (role?: string | null): MenuGroup[] => {
+  if (!isStaffRole(role)) return [];
+  return ALL_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !i.roles || i.roles.includes(role)) })).filter((g) => g.items.length);
 };
+
+/** The menu item a path belongs to, for the page title. Sub-paths match their parent. */
+export const findMenuItem = (path: string) =>
+  ALL_GROUPS.flatMap((g) => g.items)
+    .filter((i) => (i.path === "/" ? path === "/" : path === i.path || path.startsWith(`${i.path}/`)))
+    .sort((a, b) => b.path.length - a.path.length)[0];

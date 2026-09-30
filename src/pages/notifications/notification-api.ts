@@ -1,106 +1,47 @@
-import { toast } from "react-toastify";
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";
+import type { SegmentKey } from "../outreach/outreach-api";
 
-// Define notification interfaces
-export interface Notification {
-  id: string;
-  userId: string;
+/**
+ * Staff broadcasts (TradelyBackend notifications/broadcast.ts): an inbox
+ * notification plus a phone push, to one audience, optionally opening a
+ * TradelyX page when tapped.
+ */
+export interface Broadcast {
+  title: string | null;
+  message: string | null;
+  thumbnail: string | null;
+  path: string | null;
+  sentAt: string | null;
+  recipients: number;
+  read: number;
+}
+
+export interface BroadcastDraft {
   title: string;
   message: string;
-  thumbnail: string | null;
-  createdAt: string; // ISO date string
+  segment: SegmentKey;
+  path?: string | null;
 }
 
-interface NotificationsResponse {
-  data: Notification[];
-  pagination: any;
-}
-
-interface GetNotificationsQueryParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  userId?: string;
-}
+export const LIMITS = { title: 80, message: 240 } as const;
 
 export const notificationApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // New notification endpoints
-    getNotifications: builder.query<NotificationsResponse, GetNotificationsQueryParams>({
-      query: (params) => ({
-        url: `/notifications`,
-        method: Methods.Get,
-        params,
-      }),
+    getBroadcasts: builder.query<{ data: Broadcast[]; pagination: { total: number; totalPages: number } }, { page: number; limit: number }>({
+      query: (params) => ({ url: "/notifications/broadcasts", params }),
       providesTags: ["NOTIFICATIONS"],
     }),
-
-    getNotification: builder.query<
-      {
-        data: Notification;
-        success: boolean;
-      },
-      { id: string }
-    >({
-      query: ({ id }) => ({
-        url: `/notifications/${id}`,
-        method: Methods.Get,
-      }),
-      providesTags: ["NOTIFICATIONS"],
+    getBroadcastAudience: builder.query<{ people: number; withApp: number }, SegmentKey>({
+      query: (segment) => ({ url: "/notifications/broadcast/audience", params: { segment } }),
+      transformResponse: (r: { data: { people: number; withApp: number } }) => r.data,
     }),
-
-    createNotification: builder.mutation<any, { data: Partial<Notification> }>({
-      query: ({ data }) => ({
-        url: `/notifications`,
-        method: Methods.Post,
-        body: data,
-      }),
-      invalidatesTags: ["NOTIFICATIONS"],
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          toast.success("Notification Created Successfully", {
-            position: "top-right",
-          });
-        } catch (err: any) {
-          const errorMessage =
-            err?.error?.data?.error || err?.error || "Failed to create notification";
-          toast.error(errorMessage, {
-            position: "top-right",
-          });
-        }
-      },
-    }),
-
-    updateNotification: builder.mutation<any, { id: string; data: Partial<Notification> }>({
-      query: ({ id, data }) => ({
-        url: `/notifications/${id}`,
-        method: Methods.Put,
-        body: data,
-      }),
-      invalidatesTags: ["NOTIFICATIONS"],
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          toast.success("Notification Updated Successfully", {
-            position: "top-right",
-          });
-        } catch (err: any) {
-          const errorMessage =
-            err?.error?.data?.error || err?.error || "Failed to update notification";
-          toast.error(errorMessage, {
-            position: "top-right",
-          });
-        }
-      },
+    // Errors are shown by the caller, next to the form
+    sendBroadcast: builder.mutation<{ message: string; data: { people: number; pushed: number } }, BroadcastDraft>({
+      query: (body) => ({ url: "/notifications/broadcast", method: Methods.Post, body }),
+      invalidatesTags: ["NOTIFICATIONS", "ACTIVITY"],
     }),
   }),
 });
 
-export const {
-  useGetNotificationsQuery,
-  useGetNotificationQuery,
-  useCreateNotificationMutation,
-  useUpdateNotificationMutation,
-} = notificationApi;
+export const { useGetBroadcastsQuery, useGetBroadcastAudienceQuery, useSendBroadcastMutation } = notificationApi;

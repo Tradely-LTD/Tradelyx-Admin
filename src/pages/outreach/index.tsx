@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import Composer from "./components/composer";
 import Campaigns from "./components/campaigns";
+import EmailAllowance from "./components/email-allowance";
 import { PageHeader, Tabs } from "@/common/ui/kit";
 
 /**
@@ -31,6 +32,7 @@ export default function OutreachPage() {
         title="Outreach"
         description="Get people over the line: finish their store, list a product, verify, post a first request. Each email is personalised, carries an unsubscribe link, and never reaches the same person twice in a week."
       />
+      <EmailAllowance />
       <div className="mb-6">
         <Tabs
           value={tab}

@@ -1,17 +1,20 @@
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
 import Pagination from "rc-pagination";
-import { BadgeCheck, Check, Edit2, ExternalLink, Eye, Package, Plus, Search, ShieldCheck, Store, Trash2, X } from "lucide-react";
+import { AlertOctagon, AlertTriangle, BadgeCheck, Check, Edit2, ExternalLink, Eye, MessageSquareWarning, Package, Plus, ScanSearch, Search, ShieldCheck, Store, Trash2, X } from "lucide-react";
 
 import {
   AdminProduct,
+  QUALITY_LABELS,
   useDeleteProductByIdMutation,
+  useScreenPendingProductsMutation,
   useGetProductStatsQuery,
   useGetProductsQuery,
   useSetProductVerifiedMutation,
 } from "./product-api";
 import ProductForm from "./components/product-form";
 import ProductPreview from "./components/product-preview";
+import RequestChanges from "./components/request-changes";
 import Modal from "@/common/modal/modal";
 import TableDropdown from "@/common/dropdown";
 import { useUserSlice } from "../auth/authSlice";
@@ -20,14 +23,16 @@ import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate,
 /**
  * Products: review what sellers list, verify the good ones, remove the bad.
  *
- * Opens on "Awaiting review" because that is the job; everything else is a
- * filter away. Verifying is one click on the row, or several at once from a
- * selection. Every verify, edit and removal is recorded in the activity log.
+ * Opens on "Needs attention": listings the automatic screening flagged
+ * (contact details, screenshots, small photos, several products in one) and
+ * sellers' resubmissions after a change request. Staff verify the good ones
+ * and send the rest back with "Request changes", which tells the seller
+ * exactly what to fix. Every decision is recorded in the activity log.
  */
 
 const WEB_URL = "https://web.tradelyx.com";
 
-type Filter = "unverified" | "verified" | "";
+type Filter = "attention" | "unverified" | "changes_requested" | "verified" | "";
 
 const price = (p: AdminProduct["price"]) => {
   if (!p || p.amount == null || p.amount === "") return null;
@@ -45,7 +50,7 @@ export default function ProductManagement() {
   const role = loginResponse?.user.roles;
   const canModerate = role === "admin" || role === "country_admin";
 
-  const [filter, setFilter] = useState<Filter>(canModerate ? "unverified" : "");
+  const [filter, setFilter] = useState<Filter>(canModerate ? "attention" : "");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [seller, setSeller] = useState<{ id: string; name: string } | null>(null);
@@ -56,6 +61,7 @@ export default function ProductManagement() {
   const [formFor, setFormFor] = useState<{ id?: string } | null>(null);
   const [deleting, setDeleting] = useState<AdminProduct | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [requesting, setRequesting] = useState<AdminProduct | null>(null);
 
   useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 350, [search]);
 
@@ -69,6 +75,7 @@ export default function ProductManagement() {
   const { data: stats, isLoading: statsLoading } = useGetProductStatsQuery();
   const [setVerified, { isLoading: verifying }] = useSetProductVerifiedMutation();
   const [deleteProduct, { isLoading: deletingNow }] = useDeleteProductByIdMutation();
+  const [screenPending, { isLoading: screeningAll }] = useScreenPendingProductsMutation();
 
   const rows = useMemo(() => data?.data ?? [], [data]);
   const total = Number(data?.pagination?.total ?? 0);
@@ -93,11 +100,12 @@ export default function ProductManagement() {
     }
   };
 
-  const tiles = [
-    { label: "All products", value: stats?.totalProducts, icon: Package },
-    { label: "Awaiting review", value: stats?.unverifiedProducts, icon: ShieldCheck, attention: true },
-    { label: "Verified", value: stats?.verifiedProducts, icon: BadgeCheck },
-    { label: "Added in 30 days", value: stats?.recentProducts, icon: Plus },
+  const tiles: { label: string; value?: number; icon: typeof Package; attention?: boolean; filter: Filter }[] = [
+    { label: "Needs attention", value: stats?.needsAttention, icon: AlertTriangle, attention: true, filter: "attention" },
+    { label: "Awaiting review", value: stats?.unverifiedProducts, icon: ShieldCheck, filter: "unverified" },
+    { label: "Waiting on seller", value: stats?.changesRequested, icon: MessageSquareWarning, filter: "changes_requested" },
+    { label: "Verified", value: stats?.verifiedProducts, icon: BadgeCheck, filter: "verified" },
+    { label: "All products", value: stats?.totalProducts, icon: Package, filter: "" },
   ];
 
   return (
@@ -108,16 +116,29 @@ export default function ProductManagement() {
         description="Check what sellers list. Verified products carry the verified tick buyers look for."
         actions={
           canModerate && (
-            <Btn icon={<Plus size={16} />} onClick={() => setFormFor({})}>
-              Add product for a seller
-            </Btn>
+            <>
+              <Btn variant="secondary" icon={<ScanSearch size={16} />} loading={screeningAll} onClick={() => screenPending()}>
+                Screen unchecked listings
+              </Btn>
+              <Btn icon={<Plus size={16} />} onClick={() => setFormFor({})}>
+                Add product for a seller
+              </Btn>
+            </>
           )
         }
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {tiles.map((t) => (
-          <Card key={t.label} className="flex items-center gap-3 px-4 py-3.5">
+          <Card
+            key={t.label}
+            role="button"
+            tabIndex={0}
+            aria-pressed={filter === t.filter}
+            onClick={() => { setFilter(t.filter); setPage(1); setSelected(new Set()); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFilter(t.filter); setPage(1); setSelected(new Set()); } }}
+            className={`flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-900 ${filter === t.filter ? "ring-2 ring-brand-900" : ""}`}
+          >
             <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${t.attention && t.value ? "bg-attention-soft text-attention-deep" : "bg-brand-50 text-brand-900"}`}>
               <t.icon size={17} />
             </span>
@@ -132,7 +153,9 @@ export default function ProductManagement() {
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter">
           {([
+            ["attention", "Needs attention"],
             ["unverified", "Awaiting review"],
+            ["changes_requested", "Waiting on seller"],
             ["verified", "Verified"],
             ["", "All"],
           ] as [Filter, string][]).map(([value, label]) => (
@@ -216,8 +239,15 @@ export default function ProductManagement() {
               ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={7}>
-                    <EmptyState icon={<Package size={20} />} title={filter === "unverified" ? "Nothing waiting for review" : "No products match"}>
-                      {filter === "unverified" ? "Every product has been checked." : "Try another search or filter."}
+                    <EmptyState
+                      icon={<Package size={20} />}
+                      title={filter === "attention" ? "Nothing flagged" : filter === "unverified" ? "Nothing waiting for review" : "No products match"}
+                    >
+                      {filter === "attention"
+                        ? "The screening found nothing to fix. Check Awaiting review for listings that still need a look."
+                        : filter === "unverified"
+                          ? "Every product has been checked."
+                          : "Try another search or filter."}
                     </EmptyState>
                   </td>
                 </tr>
@@ -242,6 +272,27 @@ export default function ProductManagement() {
                           <div className="min-w-0">
                             <p className="max-w-[280px] truncate font-semibold text-ink">{p.title}</p>
                             <p className="truncate text-[12.5px] text-ink-soft">{[p.category, p.place_of_origin].filter(Boolean).join(" · ")}</p>
+                            {!!p.qualityFlags?.length && (
+                              <div className="mt-1 flex max-w-[320px] flex-wrap gap-1">
+                                {p.qualityFlags.slice(0, 2).map((f) => (
+                                  <span
+                                    key={f.code}
+                                    title={f.detail}
+                                    className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+                                      f.severity === "block" ? "bg-danger-soft text-danger-deep" : "bg-attention-soft text-attention-deep"
+                                    }`}
+                                  >
+                                    {f.severity === "block" ? <AlertOctagon size={11} /> : <AlertTriangle size={11} />}
+                                    {QUALITY_LABELS[f.code] ?? f.code}
+                                  </span>
+                                ))}
+                                {p.qualityFlags.length > 2 && (
+                                  <span className="rounded-md bg-paper-deep px-1.5 py-0.5 text-[11px] font-semibold text-ink-soft" title={p.qualityFlags.slice(2).map((f) => QUALITY_LABELS[f.code]).join(", ")}>
+                                    +{p.qualityFlags.length - 2}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -261,6 +312,8 @@ export default function ProductManagement() {
                       <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                         {p.productVerified ? (
                           <Pill tone="green" dot>Verified</Pill>
+                        ) : p.changesRequested && !p.changesRequested.resubmittedAt ? (
+                          <Pill tone="orange" dot>Waiting on seller</Pill>
                         ) : canModerate ? (
                           <Btn size="sm" variant="secondary" icon={<Check size={14} />} disabled={verifying} onClick={() => setVerified({ id: p.id, verified: true })}>
                             Verify
@@ -277,6 +330,7 @@ export default function ProductManagement() {
                             { label: "This seller's products", icon: <Store size={16} />, action: () => { setSeller({ id: p.creatorId, name: sellerName }); setPage(1); } },
                             ...(canModerate
                               ? [
+                                  { label: "Request changes", icon: <MessageSquareWarning size={16} />, action: () => setRequesting(p) },
                                   ...(p.productVerified ? [{ label: "Remove verification", icon: <X size={16} />, action: () => setVerified({ id: p.id, verified: false }) }] : []),
                                   { label: "Edit", icon: <Edit2 size={16} />, action: () => setFormFor({ id: p.id }) },
                                   { label: "Remove", icon: <Trash2 size={16} />, action: () => setDeleting(p), danger: true },
@@ -317,6 +371,8 @@ export default function ProductManagement() {
       <Modal isOpen={!!formFor} onClose={() => setFormFor(null)} title={formFor?.id ? "Edit product" : "Add a product for a seller"} className="!max-w-[860px]">
         {formFor && <ProductForm id={formFor.id} onClose={() => setFormFor(null)} />}
       </Modal>
+
+      <RequestChanges product={requesting} onClose={() => setRequesting(null)} />
 
       <Confirm
         open={!!deleting}

@@ -16,6 +16,7 @@ import CertificateReview from "./pages/certificates";
 import OutreachPage from "./pages/outreach";
 import ActivityPage from "./pages/activity";
 import RequestsPage from "./pages/requests";
+import AgentsPage from "./pages/agents";
 
 function AppRouter() {
   return (
@@ -42,6 +43,7 @@ function AppRouter() {
           <Route path="outreach" element={<OutreachPage />} />
           <Route path="activity" element={<ActivityPage />} />
           <Route path="requests" element={<RequestsPage />} />
+          <Route path="agents" element={<AgentsPage />} />
           <Route path="emails" element={<EmailLandingPage />} />
           <Route path="emails/compose" element={<EmailComposePage />} />
           <Route path="*" element={<Navigate replace to="/" />} />

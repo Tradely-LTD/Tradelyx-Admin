@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 
@@ -142,8 +143,11 @@ export function Drawer({ open, onClose, title, subtitle, children, footer, width
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
+  // Rendered at the document root: inside the page, a transformed ancestor
+  // (the page-enter animation) would pin a fixed overlay to the page, not the
+  // screen, cutting the drawer off on short pages
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex justify-end font-sans" role="dialog" aria-modal="true">
       <div className="absolute inset-0 animate-fade bg-ink/40" onClick={onClose} />
       <aside className={`relative flex h-full w-full ${width} animate-slide-in flex-col bg-white shadow-lift`}>
         <header className="flex items-start justify-between gap-4 border-b border-rule px-6 py-5">
@@ -158,7 +162,8 @@ export function Drawer({ open, onClose, title, subtitle, children, footer, width
         <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && <footer className="border-t border-rule bg-paper px-6 py-4">{footer}</footer>}
       </aside>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -179,8 +184,8 @@ export function Confirm({ open, title, children, confirmLabel, onConfirm, onCanc
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onCancel]);
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[60] grid place-items-center p-4" role="alertdialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-[60] grid place-items-center p-4 font-sans" role="alertdialog" aria-modal="true">
       <div className="absolute inset-0 animate-fade bg-ink/50" onClick={onCancel} />
       <div className="relative w-full max-w-md animate-rise rounded-2xl bg-white p-6 shadow-lift">
         <h2 className="text-lg font-bold text-ink">{title}</h2>
@@ -190,7 +195,8 @@ export function Confirm({ open, title, children, confirmLabel, onConfirm, onCanc
           <Btn onClick={onConfirm} loading={loading}>{confirmLabel}</Btn>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

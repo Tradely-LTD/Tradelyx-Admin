@@ -1,4 +1,5 @@
 //@ts-nocheck
+import { reportInvalid } from "@/common/forms/report-invalid";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -304,7 +305,7 @@ function SellOfferForm({ id, onClose }: SellOfferFormProps) {
   const isSubmitDisabled = isCreating || isUpdating;
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(processSubmit, reportInvalid)} className="space-y-6">
       {isLoadingOffer ? (
         <Loader />
       ) : (

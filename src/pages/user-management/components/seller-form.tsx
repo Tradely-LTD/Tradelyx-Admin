@@ -1,3 +1,4 @@
+import { reportInvalid } from "@/common/forms/report-invalid";
 import { format } from "date-fns";
 import { useForm, Controller, Resolver } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -250,7 +251,7 @@ function SellerProfileForm({ id, onClose }: SellerProfileFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(processSubmit, reportInvalid)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Company Details */}
         <div>

@@ -248,6 +248,11 @@ export default function ProductManagement() {
                       <td className="px-3 py-3">
                         <p className="max-w-[200px] truncate text-ink">{sellerName}</p>
                         <p className="text-[12px]">{p.sellerVerified ? <span className="text-brand-900">KYC verified</span> : <span className="text-ink-faint">Not KYC verified</span>}</p>
+                        {p.uploadedBy && p.uploadedBy !== p.creatorId && (
+                          <p className="truncate text-[11.5px] text-ink-faint">
+                            uploaded by {[p.uploaderFirstName, p.uploaderLastName].filter(Boolean).join(" ") || "staff"}
+                          </p>
+                        )}
                       </td>
                       <td className="tnum whitespace-nowrap px-3 py-3 text-ink-soft">
                         {cost ?? <span className="text-ink-faint">Ask for a quote</span>}
@@ -299,7 +304,14 @@ export default function ProductManagement() {
       </Card>
 
       <Modal isOpen={!!previewId} onClose={() => setPreviewId(null)} title="Product" className="!max-w-[860px]">
-        {previewId && <ProductPreview productId={previewId} onClose={() => setPreviewId(null)} />}
+        {previewId && (
+          <ProductPreview
+            productId={previewId}
+            listing={rows.find((r) => r.id === previewId)}
+            onClose={() => setPreviewId(null)}
+            onEdit={canModerate ? () => { const id = previewId; setPreviewId(null); setFormFor({ id }); } : undefined}
+          />
+        )}
       </Modal>
 
       <Modal isOpen={!!formFor} onClose={() => setFormFor(null)} title={formFor?.id ? "Edit product" : "Add a product for a seller"} className="!max-w-[860px]">

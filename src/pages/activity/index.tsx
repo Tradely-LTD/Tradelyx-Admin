@@ -22,6 +22,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "campaign.", label: "Outreach" },
   { value: "notification.", label: "Push notifications" },
   { value: "request.", label: "Buyer requests" },
+  { value: "agent.", label: "Agents" },
 ];
 
 const ICON: Record<string, { icon: typeof History; tone: string }> = {
@@ -41,6 +42,13 @@ const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "campaign.sent": { icon: Megaphone, tone: "bg-brand-50 text-brand-900" },
   "notification.broadcast": { icon: Bell, tone: "bg-brand-50 text-brand-900" },
   "request.closed": { icon: FileX, tone: "bg-danger-soft text-danger-deep" },
+  "agent.approved": { icon: ShieldCheck, tone: "bg-brand-50 text-brand-900" },
+  "agent.paid": { icon: Bell, tone: "bg-brand-50 text-brand-900" },
+  "agent.suspended": { icon: ShieldX, tone: "bg-attention-soft text-attention-deep" },
+  "agent.rejected": { icon: ShieldX, tone: "bg-paper-deep text-ink-soft" },
+  "agent.commission_reversed": { icon: Trash2, tone: "bg-danger-soft text-danger-deep" },
+  "agent.person_linked": { icon: UserCog, tone: "bg-sky-50 text-sky-800" },
+  "agent.rate_changed": { icon: Edit3, tone: "bg-paper-deep text-ink-soft" },
 };
 
 export default function ActivityPage() {

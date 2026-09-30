@@ -1,4 +1,5 @@
 import { FC, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { IoClose } from "react-icons/io5";
 
 interface ModalProps {
@@ -12,7 +13,9 @@ interface ModalProps {
 const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
   if (!isOpen) return null;
 
-  return (
+  // At the document root, so no transformed ancestor (the page-enter
+  // animation) can pin this overlay to the page instead of the screen
+  return createPortal(
     <div
       className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex justify-center items-center transition-opacity duration-300 ease-in-out"
       style={{ opacity: isOpen ? 1 : 0 }}
@@ -36,7 +39,8 @@ const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, className }) 
         {/* Content */}
         <div className="px-6 py-4 overflow-y-auto max-h-[70vh]">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

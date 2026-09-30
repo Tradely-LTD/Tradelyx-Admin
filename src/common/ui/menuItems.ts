@@ -1,4 +1,4 @@
-import { Award, BarChart2, FileQuestion, History, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 /**
  * The sidebar, grouped by the job a staff member is doing. `roles` limits an
@@ -15,7 +15,7 @@ export interface MenuItem {
   description: string;
   roles?: StaffRole[];
   /** Key into the live counts the layout fetches, shown as a badge */
-  badge?: "kycPending";
+  badge?: "kycPending" | "agentsApplied";
 }
 
 export interface MenuGroup {
@@ -37,7 +37,9 @@ const ALL_GROUPS: MenuGroup[] = [
       { icon: Users, label: "Users", path: "/users", description: "Everyone on TradelyX, and how far each person has got with setting up" },
       { icon: ShieldCheck, label: "KYC review", path: "/kyc", description: "Approve or reject identity documents", roles: ["admin"], badge: "kycPending" },
       { icon: Award, label: "Certificates", path: "/certificates", description: "Verify the licences and certificates sellers show on their stores", roles: ["admin"] },
-      { icon: Share2, label: "Referrals", path: "/referrals", description: "Agents and the people they brought in" },
+      { icon: Handshake, label: "Agents", path: "/agents", description: "Applications, what each agent has brought in and earned, payouts", roles: ["admin"], badge: "agentsApplied" },
+      // The older referral list, for country admins and agents; admins use Agents
+      { icon: Share2, label: "Referrals", path: "/referrals", description: "People who signed up with a referral code", roles: ["country_admin", "agent"] },
     ],
   },
   {

@@ -1,7 +1,9 @@
-import { AlertTriangle, Mail } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Mail, Send } from "lucide-react";
+import { toast } from "react-toastify";
 
-import { useGetEmailStatusQuery } from "../outreach-api";
-import { formatDate, formatNumber } from "@/common/ui/kit";
+import { useGetEmailStatusQuery, useTestProviderMutation } from "../outreach-api";
+import { Btn, formatDate, formatNumber } from "@/common/ui/kit";
 
 /**
  * How much of the email allowance is used, and whether campaigns are being
@@ -11,7 +13,22 @@ import { formatDate, formatNumber } from "@/common/ui/kit";
  */
 export default function EmailAllowance() {
   const { data } = useGetEmailStatusQuery(undefined, { pollingInterval: 60_000 });
+  const [testProvider] = useTestProviderMutation();
+  const [testing, setTesting] = useState<string | null>(null);
   if (!data) return null;
+
+  // Proves a provider can send from the server before it's needed as the backup
+  const test = async (provider: "resend" | "brevo", name: string) => {
+    setTesting(provider);
+    try {
+      const { data: sent } = await testProvider(provider).unwrap();
+      toast.success(`${name} works. A test email went to ${sent.to}.`, { position: "top-right" });
+    } catch (err: any) {
+      toast.error(`${name} could not send: ${err?.data?.error || "unknown error"}`, { position: "top-right", autoClose: 15000 });
+    } finally {
+      setTesting(null);
+    }
+  };
 
   const paused = !!data.pausedUntil;
   const limit = data.dailyLimit ?? null;
@@ -52,6 +69,17 @@ export default function EmailAllowance() {
           {p.name}: {formatNumber(p.today ?? 0)}
           {p.dailyLimit ? `/${formatNumber(p.dailyLimit)}` : ""} today
           {p.pausedUntil ? <span className="font-semibold text-attention-deep"> · paused until {formatDate(p.pausedUntil, true)}</span> : null}
+          <Btn
+            size="sm"
+            variant="ghost"
+            icon={<Send size={12} />}
+            loading={testing === p.key}
+            onClick={() => test(p.key, p.name)}
+            className="ml-1 h-6 px-2 text-[11.5px]"
+            title={`Send yourself a test email through ${p.name}`}
+          >
+            Test
+          </Btn>
         </span>
       ))}
     </div>

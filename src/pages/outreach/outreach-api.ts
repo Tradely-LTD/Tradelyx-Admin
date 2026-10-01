@@ -74,6 +74,16 @@ export interface EmailStatus {
   pausedUntil: string | null;
   pauseReason: string | null;
   fallback: { email: boolean; sms: boolean };
+  /** Each sender on its own: Resend first, Brevo when Resend can't */
+  providers?: Record<"resend" | "brevo", {
+    configured: boolean;
+    today: number | null;
+    month: number | null;
+    dailyLimit: number | null;
+    monthlyLimit: number | null;
+    pausedUntil: string | null;
+    pauseReason: string | null;
+  }>;
 }
 
 export interface Campaign {
@@ -166,6 +176,11 @@ export const outreachApi = baseApi.injectEndpoints({
       transformResponse: (r: { data: EmailStatus }) => r.data,
       providesTags: ["OUTREACH"],
     }),
+    // One test email to me through one provider (checks key, domain and IPs)
+    testProvider: builder.mutation<{ data: { provider: string; to: string } }, "resend" | "brevo">({
+      query: (provider) => ({ url: "/outreach/email-test", method: Methods.Post, body: { provider } }),
+      invalidatesTags: ["OUTREACH"],
+    }),
     // Emails refused because the quota was spent go back in the queue
     retryCampaign: builder.mutation<{ data: { requeued: number } }, string>({
       query: (id) => ({ url: `/outreach/campaigns/${id}/retry`, method: Methods.Post }),
@@ -190,4 +205,5 @@ export const {
   useGetUserOverviewQuery,
   useGetEmailStatusQuery,
   useRetryCampaignMutation,
+  useTestProviderMutation,
 } = outreachApi;

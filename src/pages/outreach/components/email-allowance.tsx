@@ -1,7 +1,9 @@
-import { AlertTriangle, Mail } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Mail, Send } from "lucide-react";
+import { toast } from "react-toastify";
 
-import { useGetEmailStatusQuery } from "../outreach-api";
-import { formatDate, formatNumber } from "@/common/ui/kit";
+import { useGetEmailStatusQuery, useTestProviderMutation } from "../outreach-api";
+import { Btn, formatDate, formatNumber } from "@/common/ui/kit";
 
 /**
  * How much of the email allowance is used, and whether campaigns are being
@@ -11,12 +13,26 @@ import { formatDate, formatNumber } from "@/common/ui/kit";
  */
 export default function EmailAllowance() {
   const { data } = useGetEmailStatusQuery(undefined, { pollingInterval: 60_000 });
+  const [testProvider] = useTestProviderMutation();
+  const [testing, setTesting] = useState<string | null>(null);
   if (!data) return null;
+
+  // Proves a provider can send from the server before it's needed as the backup
+  const test = async (provider: "resend" | "brevo", name: string) => {
+    setTesting(provider);
+    try {
+      const { data: sent } = await testProvider(provider).unwrap();
+      toast.success(`${name} works. A test email went to ${sent.to}.`, { position: "top-right" });
+    } catch (err: any) {
+      toast.error(`${name} could not send: ${err?.data?.error || "unknown error"}`, { position: "top-right", autoClose: 15000 });
+    } finally {
+      setTesting(null);
+    }
+  };
 
   const paused = !!data.pausedUntil;
   const limit = data.dailyLimit ?? null;
   const used = data.today ?? 0;
-  const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : null;
   const low = limit != null && used >= limit - data.reserve;
 
   if (paused || low) {
@@ -37,18 +53,35 @@ export default function EmailAllowance() {
     );
   }
 
+  const senders = data.providers
+    ? (["resend", "brevo"] as const).filter((p) => data.providers![p].configured).map((p) => ({ key: p, name: p === "resend" ? "Resend" : "Brevo", ...data.providers![p] }))
+    : [];
+
   return (
     <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-ink-soft">
       <span className="inline-flex items-center gap-1.5">
         <Mail size={14} className="text-brand-900" />
-        <span className="tnum">{formatNumber(used)}</span> emails sent today
-        {limit ? <span className="tnum">of {formatNumber(limit)} ({pct}%)</span> : null}
+        <span className="tnum">{formatNumber(data.today ?? 0)}</span> emails sent today
+        {data.month != null && <span className="tnum">· {formatNumber(data.month)} this month</span>}
       </span>
-      {data.month != null && (
-        <span className="tnum">
-          {formatNumber(data.month)} this month{data.monthlyLimit ? ` of ${formatNumber(data.monthlyLimit)}` : ""}
+      {senders.map((p) => (
+        <span key={p.key} className="tnum" title={p.pauseReason ?? undefined}>
+          {p.name}: {formatNumber(p.today ?? 0)}
+          {p.dailyLimit ? `/${formatNumber(p.dailyLimit)}` : ""} today
+          {p.pausedUntil ? <span className="font-semibold text-attention-deep"> · paused until {formatDate(p.pausedUntil, true)}</span> : null}
+          <Btn
+            size="sm"
+            variant="ghost"
+            icon={<Send size={12} />}
+            loading={testing === p.key}
+            onClick={() => test(p.key, p.name)}
+            className="ml-1 h-6 px-2 text-[11.5px]"
+            title={`Send yourself a test email through ${p.name}`}
+          >
+            Test
+          </Btn>
         </span>
-      )}
+      ))}
     </div>
   );
 }

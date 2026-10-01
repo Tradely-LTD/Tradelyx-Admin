@@ -250,11 +250,11 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-[13px] font-semibold text-ink" htmlFor="btnLabel">Button text</label>
-                <input id="btnLabel" value={state.buttonLabel} onChange={(e) => set({ buttonLabel: e.target.value })} placeholder="Optional" maxLength={60} className={`${field} h-10`} />
+                <input id="btnLabel" value={state.buttonLabel} onChange={(e) => set({ buttonLabel: e.target.value })} placeholder="Open TradelyX" maxLength={60} className={`${field} h-10`} />
               </div>
               <div>
                 <label className="mb-1.5 block text-[13px] font-semibold text-ink" htmlFor="btnPath">Button link</label>
-                <input id="btnPath" value={state.buttonPath} onChange={(e) => set({ buttonPath: e.target.value })} placeholder="/marketplace" className={`${field} h-10 font-mono text-[13px]`} />
+                <input id="btnPath" value={state.buttonPath} onChange={(e) => set({ buttonPath: e.target.value })} placeholder="/dashboard" className={`${field} h-10 font-mono text-[13px]`} />
               </div>
             </div>
             <div>

@@ -124,6 +124,10 @@ export interface UserOverview {
   optedOutAt: string | null;
   checks: { key: string; label: string; done: boolean }[];
   emails: { id: string; subject: string; status: string; emailType: string; templateKey: string | null; createdAt: string; sentAt: string | null }[];
+  /** When they last used TradelyX (signed in), from 4 Oct 2026 */
+  lastActiveAt?: string | null;
+  /** What they've done, newest first, from their own records */
+  activity?: { at: string; kind: string; text: string }[];
 }
 
 type Paged<T> = { data: T[]; pagination: { total: number; currentPage: number; totalPages: number; hasMore: boolean } };

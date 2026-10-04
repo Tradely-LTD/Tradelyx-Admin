@@ -117,6 +117,7 @@ export interface User {
   state: string | null;
   country: string | null;
   createdAt: string; // ISO date string
+  lastActiveAt?: string | null; // last signed-in use, recorded from 4 Oct 2026
   updatedAt: string; // ISO date string
   profileImage: string;
 }

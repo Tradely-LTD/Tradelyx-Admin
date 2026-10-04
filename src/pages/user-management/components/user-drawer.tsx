@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2, Check, Edit2, Eye, HandHelping, Mail, MailX, Phone, MapPin, Calendar } from "lucide-react";
+import { Activity, Building2, Check, Edit2, Eye, HandHelping, Mail, MailX, Phone, MapPin, Calendar } from "lucide-react";
 
 import { useGetUserOverviewQuery } from "@/pages/outreach/outreach-api";
 import { useGetActivityQuery } from "@/pages/activity/activity-api";
@@ -17,6 +17,28 @@ const NUDGE: Record<string, string> = {
 };
 const nudgeFor = (check: string, kind: "buyer" | "seller") =>
   check === "kyc" ? (kind === "seller" ? "seller_verify_identity" : "buyer_verify_identity") : NUDGE[check];
+
+/** "3 hours ago", or the date when it was a while back */
+export const lastActive = (value?: string | null) => {
+  if (!value) return "Not seen since 4 Oct 2026";
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60_000);
+  if (minutes < 15) return "Just now";
+  if (minutes < 60) return `${minutes} minutes ago`;
+  if (minutes < 60 * 24) return `${Math.round(minutes / 60)} hours ago`;
+  if (minutes < 60 * 24 * 14) return `${Math.round(minutes / 1440)} days ago`;
+  return formatDate(value);
+};
+
+const KIND_DOT: Record<string, string> = {
+  signup: "bg-ink-faint",
+  kyc: "bg-sky-500",
+  product: "bg-brand-700",
+  offer: "bg-brand-700",
+  request: "bg-attention",
+  quote: "bg-attention",
+  escrow: "bg-brand-950",
+  staff: "bg-ink-soft",
+};
 
 export const roleTone = (role?: string | null) =>
   role === "seller" ? "blue" : role === "buyer" ? "green" : role ? "gray" : "orange";
@@ -75,6 +97,7 @@ export default function UserDrawer({ user, canOutreach, onClose, onEdit, onProfi
         <Fact icon={Phone} label="Phone" value={user.phone || "—"} />
         <Fact icon={MapPin} label="Country" value={[user.state, user.country].filter(Boolean).join(", ") || "—"} />
         <Fact icon={Calendar} label="Joined" value={formatDate(user.createdAt)} />
+        <Fact icon={Activity} label="Last active" value={lastActive(data?.lastActiveAt ?? user.lastActiveAt)} />
         {user.companyName && <Fact icon={Building2} label="Company" value={user.companyName} />}
       </dl>
 
@@ -117,6 +140,27 @@ export default function UserDrawer({ user, canOutreach, onClose, onEdit, onProfi
                 );
               })}
             </ul>
+          )}
+        </section>
+      )}
+
+      {canOutreach && (
+        <section className="mt-7">
+          <h3 className="mb-3 text-[14px] font-bold text-ink">What they've done</h3>
+          {isLoading ? (
+            <Skeleton className="h-24" />
+          ) : !data?.activity?.length ? (
+            <p className="text-[13px] text-ink-faint">Nothing yet</p>
+          ) : (
+            <ol className="relative space-y-3 border-l border-rule pl-4">
+              {data.activity.map((a, i) => (
+                <li key={`${a.at}-${i}`} className="relative text-[13px]">
+                  <span className={`absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-white ${KIND_DOT[a.kind] ?? "bg-ink-faint"}`} />
+                  <span className="block text-ink">{a.text}</span>
+                  <span className="text-[12px] text-ink-faint">{formatDate(a.at, true)}</span>
+                </li>
+              ))}
+            </ol>
           )}
         </section>
       )}

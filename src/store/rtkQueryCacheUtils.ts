@@ -6,6 +6,7 @@ import { FetchBaseQueryError } from "@reduxjs/toolkit/dist/query";
 
 const defaultTags = [
   "AUTH",
+  "STAFF",
   "USERS",
   "PRODUCTS",
   "SELLOFFER",

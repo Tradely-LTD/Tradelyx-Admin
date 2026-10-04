@@ -7,6 +7,7 @@ import { logout, useUserSlice } from "@/pages/auth/authSlice";
 import { useGetKycSubmissionsQuery } from "@/pages/kyc/kyc-api";
 import { useGetAgentsQuery } from "@/pages/agents/agents-api";
 import { findMenuItem, getMenuGroups } from "./menuItems";
+import { can, useGetMyAccessQuery } from "@/pages/staff/staff-api";
 import { initials } from "./kit";
 
 const roleLabel: Record<string, string> = { admin: "Administrator", country_admin: "Country admin", agent: "Agent" };
@@ -17,12 +18,14 @@ const Layout = () => {
   const { loginResponse } = useUserSlice();
   const user = loginResponse?.user;
   const role = user?.roles ?? null;
-  const groups = getMenuGroups(role);
+  // Which sections this staff member can use; the API enforces the same
+  const { data: access } = useGetMyAccessQuery(undefined, { skip: role !== "admin" && role !== "country_admin" });
+  const groups = getMenuGroups(role, access);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Live counts for the badges; only admins can read the KYC queue
-  const { data: kyc } = useGetKycSubmissionsQuery({ status: "pending", page: 1, limit: 1 }, { skip: role !== "admin", pollingInterval: 120_000 });
-  const { data: applied } = useGetAgentsQuery("applied", { skip: role !== "admin", pollingInterval: 300_000 });
+  const { data: kyc } = useGetKycSubmissionsQuery({ status: "pending", page: 1, limit: 1 }, { skip: role !== "admin" || !can(access, "people"), pollingInterval: 120_000 });
+  const { data: applied } = useGetAgentsQuery("applied", { skip: role !== "admin" || !can(access, "growth"), pollingInterval: 300_000 });
   const badges = { kycPending: kyc?.pagination?.total ?? 0, agentsApplied: applied?.data.length ?? 0 };
 
   useEffect(() => setMobileOpen(false), [location.pathname]);

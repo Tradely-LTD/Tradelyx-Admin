@@ -13,7 +13,7 @@ import UserForm from "./components/user-form";
 import SellerPreview from "./components/seller-preview";
 import SellerProfileForm from "./components/seller-form";
 import UserPreview from "./components/user-preview";
-import UserDrawer, { roleTone } from "./components/user-drawer";
+import UserDrawer, { lastActive, roleTone } from "./components/user-drawer";
 import { Card, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber, initials } from "@/common/ui/kit";
 
 type Row = User & { companyName?: string | null; optedOut?: boolean };
@@ -139,17 +139,18 @@ const UserManagement = () => {
                 <th className="px-3 py-3">Country</th>
                 <th className="px-3 py-3">KYC</th>
                 <th className="px-3 py-3">Joined</th>
+                <th className="px-3 py-3">Last active</th>
                 <th className="w-12 px-3 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className={`divide-y divide-rule transition-opacity ${isFetching && !isLoading ? "opacity-60" : ""}`}>
               {isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}><td colSpan={7} className="px-5 py-3"><Skeleton className="h-9" /></td></tr>
+                  <tr key={i}><td colSpan={8} className="px-5 py-3"><Skeleton className="h-9" /></td></tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <EmptyState icon={<UsersIcon size={20} />} title={segment ? "Nobody is stuck here" : "No users match"}>
                       {segment ? "Everyone has done this step." : "Try another search or clear the filters."}
                     </EmptyState>
@@ -176,6 +177,7 @@ const UserManagement = () => {
                     <td className="px-3 py-3 text-ink-soft">{u.country || "—"}</td>
                     <td className="px-3 py-3">{u.isKYCCompleted ? <Pill tone="green" dot>Verified</Pill> : <Pill tone="gray" dot>No</Pill>}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-ink-soft">{formatDate(u.createdAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-ink-soft">{u.lastActiveAt ? lastActive(u.lastActiveAt) : <span className="text-ink-faint">—</span>}</td>
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       <TableDropdown
                         items={[

@@ -31,6 +31,7 @@ export const lastActive = (value?: string | null) => {
 
 const KIND_DOT: Record<string, string> = {
   signup: "bg-ink-faint",
+  store: "bg-sky-700",
   kyc: "bg-sky-500",
   product: "bg-brand-700",
   offer: "bg-brand-700",

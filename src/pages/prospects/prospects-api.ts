@@ -14,6 +14,7 @@ export type Prospect = {
   kind: "seller" | "buyer";
   source: string;
   notes: string | null;
+  contactName: string | null;
   status: ProspectStatus;
   assignedTo: string | null;
   assigneeName: string | null;
@@ -24,6 +25,10 @@ export type Prospect = {
   signedUpAt: string | null;
   createdAt: string;
 };
+
+export type ProspectEvent = { id: string; kind: "sent" | "reply" | "note"; channel: string | null; body: string | null; at: string; author: string | null };
+export type ProspectDetail = Prospect & { events: ProspectEvent[] };
+export type Channel = "instagram" | "whatsapp" | "email";
 
 export type Assignee = { id: string; name: string; role: string; referralCode: string | null };
 export type ProspectStats = {
@@ -56,8 +61,21 @@ export const prospectsApi = baseApi.injectEndpoints({
       query: ({ id, ...body }) => ({ url: `/prospects/${id}`, method: "PATCH", body }),
       invalidatesTags: ["PROSPECTS"],
     }),
-    markContacted: builder.mutation<unknown, { id: string; via: string }>({
-      query: ({ id, via }) => ({ url: `/prospects/${id}/contacted`, method: Methods.Post, body: { via } }),
+    markContacted: builder.mutation<unknown, { id: string; via: string; message?: string }>({
+      query: ({ id, via, message }) => ({ url: `/prospects/${id}/contacted`, method: Methods.Post, body: { via, message } }),
+      invalidatesTags: ["PROSPECTS"],
+    }),
+    getProspect: builder.query<ProspectDetail, string>({
+      query: (id) => ({ url: `/prospects/${id}` }),
+      transformResponse: (r: { data: ProspectDetail }) => r.data,
+      providesTags: ["PROSPECTS"],
+    }),
+    editProspect: builder.mutation<{ data: ProspectDetail }, { id: string } & Partial<Record<"businessName" | "instagram" | "phone" | "email" | "product" | "location" | "contactName" | "kind", string | null>>>({
+      query: ({ id, ...body }) => ({ url: `/prospects/${id}`, method: Methods.Put, body }),
+      invalidatesTags: ["PROSPECTS"],
+    }),
+    addProspectEvent: builder.mutation<{ data: ProspectDetail }, { id: string; kind: "reply" | "note"; body: string; channel?: string | null; contactName?: string | null }>({
+      query: ({ id, ...body }) => ({ url: `/prospects/${id}/events`, method: Methods.Post, body }),
       invalidatesTags: ["PROSPECTS"],
     }),
     assignProspects: builder.mutation<unknown, { ids: string[]; assignedTo: string | null }>({
@@ -75,4 +93,7 @@ export const {
   useUpdateProspectMutation,
   useMarkContactedMutation,
   useAssignProspectsMutation,
+  useGetProspectQuery,
+  useEditProspectMutation,
+  useAddProspectEventMutation,
 } = prospectsApi;

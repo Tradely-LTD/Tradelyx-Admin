@@ -1,6 +1,6 @@
 import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
-import { can, type Access, type Section } from "@/pages/staff/staff-api";
+import { canSee, type Access, type Section } from "@/pages/staff/staff-api";
 
 /**
  * The sidebar, grouped by the job a staff member is doing. `roles` limits an
@@ -18,6 +18,8 @@ export interface MenuItem {
   roles?: StaffRole[];
   /** Admin-panel section needed (staff permissions); agents are not limited by these */
   section?: Section;
+  /** Hidden from view-only staff (ID documents, staff list) */
+  sensitive?: boolean;
   /** Key into the live counts the layout fetches, shown as a badge */
   badge?: "kycPending" | "agentsApplied";
 }
@@ -39,7 +41,7 @@ const ALL_GROUPS: MenuGroup[] = [
     label: "People",
     items: [
       { icon: Users, label: "Users", path: "/users", description: "Everyone on TradelyX, and how far each person has got with setting up", section: "people" },
-      { icon: ShieldCheck, label: "KYC review", path: "/kyc", description: "Approve or reject identity documents", roles: ["admin"], section: "people", badge: "kycPending" },
+      { icon: ShieldCheck, label: "KYC review", path: "/kyc", description: "Approve or reject identity documents", roles: ["admin"], section: "people", sensitive: true, badge: "kycPending" },
       { icon: Award, label: "Certificates", path: "/certificates", description: "Verify the licences and certificates sellers show on their stores", roles: ["admin"], section: "people" },
       { icon: Handshake, label: "Agents", path: "/agents", description: "Applications, what each agent has brought in and earned, payouts", roles: ["admin"], section: "growth", badge: "agentsApplied" },
       // Admins see every referrer and can make one an agent; other roles see their list
@@ -65,7 +67,7 @@ const ALL_GROUPS: MenuGroup[] = [
   {
     label: "Team",
     items: [
-      { icon: KeyRound, label: "Staff", path: "/staff", description: "Who is staff and which sections each can use", roles: ["admin"], section: "staff" },
+      { icon: KeyRound, label: "Staff", path: "/staff", description: "Who is staff and which sections each can use", roles: ["admin"], section: "staff", sensitive: true },
     ],
   },
 ];
@@ -76,7 +78,7 @@ export const isStaffRole = (role?: string | null): role is StaffRole =>
 /** `access` is the signed-in staff member's sections (undefined while loading = show by role). */
 export const getMenuGroups = (role?: string | null, access?: Access): MenuGroup[] => {
   if (!isStaffRole(role)) return [];
-  const sectionOk = (i: MenuItem) => role === "agent" || !i.section || can(access, i.section);
+  const sectionOk = (i: MenuItem) => role === "agent" || !i.section || canSee(access, i.section, i.sensitive);
   return ALL_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => (!i.roles || i.roles.includes(role)) && sectionOk(i)) })).filter((g) => g.items.length);
 };
 

@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 import {
   AlertOctagon,
   AlertTriangle,
   BadgeCheck,
   Check,
+  Copy,
   Edit2,
   ExternalLink,
   FileText,
@@ -28,6 +30,7 @@ import {
   useSetProductVerifiedMutation,
 } from "../product-api";
 import RequestChanges from "./request-changes";
+import { whatsappNudge, whatsappNumber } from "./whatsapp-nudge";
 
 /**
  * One product, laid out for the review decision: the photos first (most
@@ -137,6 +140,15 @@ export default function ProductPreview({
         }`
       : "The seller";
   const phone = (listing?.sellerPhone || "").replace(/[^\d+]/g, "");
+  // The chat opens with this listing's issues already written
+  const nudge = whatsappNudge({
+    firstName: listing?.sellerFirstName,
+    productId,
+    title: product.title,
+    request: listing?.changesRequested,
+    flags: listing?.qualityFlags,
+    verified: !!product.productVerified,
+  });
 
   const verify = async (next: boolean) => {
     // Taking the tick away: say why first, so the seller's email explains it
@@ -282,13 +294,23 @@ export default function ProductPreview({
                 <a href={`tel:${phone}`} className="text-brand-900 hover:underline">{listing?.sellerPhone}</a>
                 <span className="text-ink-faint">·</span>
                 <a
-                  href={`https://wa.me/${phone.replace(/^\+/, "").replace(/^0/, "234")}`}
+                  href={`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(nudge)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-brand-900 hover:underline"
+                  title="Opens WhatsApp with a message about this listing's issues, ready to edit and send"
                 >
                   WhatsApp
                 </a>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(nudge).then(() => toast.success("Message copied. Paste it into WhatsApp.", { position: "top-right" }))}
+                  className="cursor-pointer text-ink-faint hover:text-brand-900"
+                  aria-label="Copy the WhatsApp message"
+                  title="Copy the message"
+                >
+                  <Copy size={13} />
+                </button>
               </p>
             )}
           </div>

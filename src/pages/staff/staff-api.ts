@@ -49,7 +49,12 @@ export const staffApi = baseApi.injectEndpoints({
       transformResponse: (r: { data: StaffMember[] }) => r.data,
       providesTags: ["STAFF"],
     }),
-    addStaff: builder.mutation<{ data: StaffMember }, { email: string; role: string; permissions: Access }>({
+    /** Existing non-staff accounts matching a name, email or phone */
+    searchCandidates: builder.query<Candidate[], string>({
+      query: (q) => ({ url: "/staff/candidates", params: { q } }),
+      transformResponse: (r: { data: Candidate[] }) => r.data,
+    }),
+    addStaff: builder.mutation<{ data: StaffMember }, { userId: string; role: string; permissions: Access }>({
       query: (body) => ({ url: "/staff", method: Methods.Post, body }),
       invalidatesTags: ["STAFF", "ACTIVITY"],
     }),
@@ -60,4 +65,6 @@ export const staffApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetMyAccessQuery, useGetStaffQuery, useAddStaffMutation, useUpdateStaffMutation } = staffApi;
+export type Candidate = { id: string; firstName: string | null; lastName: string | null; email: string; phone: string | null; role: string | null };
+
+export const { useGetMyAccessQuery, useGetStaffQuery, useAddStaffMutation, useUpdateStaffMutation, useSearchCandidatesQuery } = staffApi;

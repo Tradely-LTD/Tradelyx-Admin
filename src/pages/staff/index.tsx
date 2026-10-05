@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { KeyRound, Plus } from "lucide-react";
+import { useDebounce } from "react-use";
+import { KeyRound, Plus, Search, X } from "lucide-react";
 import { toast } from "react-toastify";
 
 import { Btn, Card, Drawer, EmptyState, PageHeader, Pill, Skeleton, initials } from "@/common/ui/kit";
@@ -7,12 +8,14 @@ import { useUserSlice } from "@/pages/auth/authSlice";
 import { lastActive } from "@/pages/user-management/components/user-drawer";
 import {
   Access,
+  Candidate,
   PRESETS,
   SECTIONS,
   Section,
   StaffMember,
   useAddStaffMutation,
   useGetStaffQuery,
+  useSearchCandidatesQuery,
   useUpdateStaffMutation,
 } from "./staff-api";
 
@@ -30,6 +33,8 @@ const accessLabel = (access: Access) => {
 };
 
 type Draft = { email: string; role: "admin" | "country_admin"; access: Access };
+
+const personName = (p: { firstName: string | null; lastName: string | null; email: string }) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.email;
 
 export default function StaffPage() {
   const { loginResponse } = useUserSlice();
@@ -117,10 +122,19 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
   const [draft, setDraft] = useState<Draft>({ email: "", role: "admin", access: ["people", "catalog"] });
   const [add, { isLoading: adding }] = useAddStaffMutation();
   const [update, { isLoading: updating }] = useUpdateStaffMutation();
+  const [picked, setPicked] = useState<Candidate | null>(null);
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  useDebounce(() => setDebounced(query.trim()), 300, [query]);
+  const { data: matches, isFetching: searching } = useSearchCandidatesQuery(debounced, { skip: !isNew || picked !== null || debounced.length < 2 });
 
   useEffect(() => {
     if (!target) return;
     setDraft(isNew ? { email: "", role: "admin", access: ["people", "catalog"] } : { email: target.email, role: target.role, access: target.staffPermissions });
+    setPicked(null);
+    setQuery("");
+    setProblem(null);
   }, [target, isNew]);
 
   if (!target) return null;
@@ -133,9 +147,11 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
   const preset = PRESETS.find((p) => JSON.stringify([...(p.access ?? ["*"])].sort()) === JSON.stringify([...(draft.access ?? ["*"])].sort()));
 
   const save = async () => {
+    setProblem(null);
     try {
       if (isNew) {
-        await add({ email: draft.email, role: draft.role, permissions: draft.access }).unwrap();
+        if (!picked) return setProblem("Search for the person and choose them from the list.");
+        await add({ userId: picked.id, role: draft.role, permissions: draft.access }).unwrap();
         toast.success("Added. They need to sign out and back in to see the admin panel.", { position: "top-right" });
       } else {
         await update({ id: target.id, role: draft.role, permissions: draft.access }).unwrap();
@@ -143,7 +159,8 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
       }
       onClose();
     } catch (err) {
-      toast.error(errorText(err, "Could not save"), { position: "top-right" });
+      // Shown in the drawer, so it can't be missed
+      setProblem(errorText(err, "Could not save. Try again."));
     }
   };
 
@@ -154,18 +171,64 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
       open
       onClose={onClose}
       title={isNew ? "Add staff" : "Change access"}
-      subtitle={isNew ? "They must already have a TradelyX account." : target.email}
+      subtitle={isNew ? "Choose someone who already has a TradelyX account." : target.email}
       footer={
         <div className="flex justify-end gap-2">
           <Btn variant="secondary" onClick={onClose}>Cancel</Btn>
-          <Btn onClick={save} loading={adding || updating} disabled={isNew && !draft.email.trim()}>{isNew ? "Add staff" : "Save"}</Btn>
+          <Btn onClick={save} loading={adding || updating} disabled={isNew && !picked}>{isNew ? "Add staff" : "Save"}</Btn>
         </div>
       }
     >
+      {problem && (
+        <p role="alert" className="mb-4 rounded-lg bg-danger-soft px-3 py-2.5 text-[13px] font-medium text-danger-deep">{problem}</p>
+      )}
+
       {isNew && (
         <div className="mb-5">
-          <label htmlFor="staff-email" className="mb-1.5 block text-[13px] font-semibold text-ink">Email of their TradelyX account</label>
-          <input id="staff-email" type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="name@company.com" className={`${field} h-10`} />
+          <label htmlFor="staff-search" className="mb-1.5 block text-[13px] font-semibold text-ink">Person</label>
+          {picked ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-50/70 px-3 py-2.5 ring-1 ring-inset ring-brand-200">
+              <span className="min-w-0">
+                <span className="block truncate text-[13.5px] font-semibold text-ink">{personName(picked)}</span>
+                <span className="block truncate text-[12px] text-ink-soft">{picked.email}{picked.role ? ` · ${picked.role}` : ""}</span>
+              </span>
+              <button type="button" onClick={() => setPicked(null)} aria-label="Choose someone else" className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full text-ink-soft hover:bg-white">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="relative">
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+                <input
+                  id="staff-search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by name, email or phone"
+                  autoComplete="off"
+                  className={`${field} h-10 pl-9`}
+                />
+              </div>
+              {debounced.length >= 2 && (
+                <ul className="mt-1.5 max-h-64 overflow-y-auto rounded-xl ring-1 ring-inset ring-rule">
+                  {searching && !matches ? (
+                    <li className="px-3 py-2.5 text-[13px] text-ink-faint">Searching…</li>
+                  ) : !matches?.length ? (
+                    <li className="px-3 py-2.5 text-[13px] text-ink-faint">No account matches. They need to sign up on TradelyX first.</li>
+                  ) : (
+                    matches.map((m) => (
+                      <li key={m.id}>
+                        <button type="button" onClick={() => setPicked(m)} className="block w-full cursor-pointer px-3 py-2 text-left hover:bg-paper">
+                          <span className="block truncate text-[13.5px] font-medium text-ink">{personName(m)}</span>
+                          <span className="block truncate text-[12px] text-ink-soft">{[m.email, m.phone, m.role].filter(Boolean).join(" · ")}</span>
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
+            </>
+          )}
         </div>
       )}
 

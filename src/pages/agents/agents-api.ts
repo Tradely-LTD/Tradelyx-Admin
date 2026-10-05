@@ -145,6 +145,15 @@ export const agentsApi = baseApi.injectEndpoints({
       transformResponse: (r: { data: AgentDetail }) => r.data,
       providesTags: ["AGENTS"],
     }),
+    getLeaderboard: builder.query<{ month: string; agents: LeaderRow[] }, string>({
+      query: (month) => ({ url: "/agents/admin/leaderboard", params: { month } }),
+      transformResponse: (r: { data: { month: string; agents: LeaderRow[] } }) => r.data,
+      providesTags: ["AGENTS"],
+    }),
+    getStatement: builder.query<Statement, { id: string; month: string }>({
+      query: ({ id, month }) => ({ url: `/agents/admin/${id}/statement`, params: { month } }),
+      transformResponse: (r: { data: Statement }) => r.data,
+    }),
     getPayoutsDue: builder.query<{ data: PayoutDue[]; minimums: Record<string, number> }, void>({
       query: () => ({ url: "/agents/admin/payouts/due" }),
       providesTags: ["AGENTS"],
@@ -216,7 +225,20 @@ export const agentsApi = baseApi.injectEndpoints({
   }),
 });
 
+export type AgentFlag = { code: "burst" | "inactive" | "lookalike_emails"; detail: string };
+export type LeaderRow = { id: string; name: string; peopleMonth: number; peopleTotal: number; activeTotal: number; earnedMonth: number; prospectsMonth: number; flags: AgentFlag[] };
+export type Statement = {
+  month: string;
+  agent: { id: string; name: string; email: string; phone: string | null; referralCode: string | null; bank: string | null; accountName: string | null };
+  people: { name: string; role: string | null; joinedAt: string; active: boolean }[];
+  commissions: { created_at: string; order_title: string | null; sides: string; base_fee: number; rate: number; amount: number; currency: string; status: string }[];
+  payouts: { paid_at: string; amount: number; currency: string; reference: string }[];
+  totals: Record<string, { earned: number; reversed: number; paid: number }>;
+};
+
 export const {
+  useGetLeaderboardQuery,
+  useLazyGetStatementQuery,
   useGetAgentsQuery,
   useGetAgentQuery,
   useGetPayoutsDueQuery,

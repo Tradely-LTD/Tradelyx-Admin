@@ -1,4 +1,4 @@
-import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 import { canSee, type Access, type Section } from "@/pages/staff/staff-api";
 
@@ -59,6 +59,7 @@ const ALL_GROUPS: MenuGroup[] = [
   {
     label: "Communication",
     items: [
+      { icon: Target, label: "Prospects", path: "/prospects", description: "Businesses to bring onto TradelyX, contacted one at a time", roles: ["admin", "country_admin", "agent"], section: "growth" },
       { icon: Megaphone, label: "Outreach", path: "/outreach", description: "Ready-made emails that get people to finish setting up", roles: ["admin"], section: "growth" },
       { icon: Mail, label: "Direct email", path: "/emails", description: "Write to one person or a hand-picked list, and the send history", roles: ["admin"], section: "growth" },
       { icon: BellIcon, label: "Push notifications", path: "/notifications", description: "Broadcast in-app notifications", roles: ["admin"], section: "growth" },

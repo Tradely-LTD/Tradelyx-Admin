@@ -8,7 +8,7 @@ import type { Prospect } from "./prospects-api";
 
 const WEB = "https://web.tradelyx.com";
 
-export const signupLink = (p: Prospect, channel: "instagram" | "whatsapp") => {
+export const signupLink = (p: Prospect, channel: "instagram" | "whatsapp" | "email") => {
   const params = new URLSearchParams({ utm_source: channel, utm_medium: "dm", utm_campaign: "prospects" });
   if (p.assigneeReferralCode) params.set("ref", p.assigneeReferralCode);
   params.set("role", p.kind);
@@ -17,9 +17,19 @@ export const signupLink = (p: Prospect, channel: "instagram" | "whatsapp") => {
 
 const what = (p: Prospect) => p.product?.trim() || (p.kind === "seller" ? "your products" : "what you source");
 
-export function firstMessage(p: Prospect, channel: "instagram" | "whatsapp") {
+/** Email: the same message, with a subject and a sign-off */
+export const emailSubject = (p: Prospect) =>
+  p.kind === "buyer" ? `Get quotes from verified suppliers on TradelyX` : `More buyers for ${p.product?.trim() || "your products"} on TradelyX`;
+
+export function firstMessage(p: Prospect, channel: "instagram" | "whatsapp" | "email") {
+  const body = baseMessage(p, channel);
+  return channel === "email" ? `${body}\n\nBest regards,\nThe TradelyX team\nweb.tradelyx.com` : body;
+}
+
+function baseMessage(p: Prospect, channel: "instagram" | "whatsapp" | "email") {
   const link = signupLink(p, channel);
-  const name = p.businessName.replace(/^@/, "");
+  // Greet the person when we know who answers for the business
+  const name = p.contactName?.trim() || p.businessName.replace(/^@/, "");
   if (p.kind === "buyer") {
     return [
       `Hello ${name}, I'm with TradelyX, a marketplace where businesses buy agro commodities from verified African suppliers.`,

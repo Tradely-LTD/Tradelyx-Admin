@@ -1,23 +1,22 @@
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
 import Pagination from "rc-pagination";
-import { Check, Copy, Instagram, MessageCircle, Plus, Search, Target, UserCheck } from "lucide-react";
+import { Check, Instagram, Mail, MessageCircle, Plus, Search, Target, UserCheck } from "lucide-react";
 import { toast } from "react-toastify";
 
 import { Btn, Card, Drawer, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
 import TableDropdown from "@/common/dropdown";
 import { useUserSlice } from "@/pages/auth/authSlice";
-import { firstMessage, waNumber } from "./messages";
+import ProspectDrawer from "./prospect-drawer";
 import {
+  Channel,
   ImportRow,
-  Prospect,
   ProspectStatus,
   useAssignProspectsMutation,
   useGetAssigneesQuery,
   useGetProspectStatsQuery,
   useGetProspectsQuery,
   useImportProspectsMutation,
-  useMarkContactedMutation,
   useUpdateProspectMutation,
 } from "./prospects-api";
 
@@ -61,12 +60,12 @@ export default function ProspectsPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState<{ id: string; channel?: Channel } | null>(null);
   useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 350, [search]);
 
   const { data, isLoading, isFetching } = useGetProspectsQuery({ page, limit: 25, status: status || undefined, search: debounced || undefined, assignee: assignee || undefined });
   const { data: stats } = useGetProspectStatsQuery();
   const { data: assignees } = useGetAssigneesQuery(undefined, { skip: !isStaff });
-  const [markContacted] = useMarkContactedMutation();
   const [update] = useUpdateProspectMutation();
   const [assign, { isLoading: assigning }] = useAssignProspectsMutation();
 
@@ -74,27 +73,6 @@ export default function ProspectsPage() {
   const total = data?.pagination.total ?? 0;
   const count = (s: ProspectStatus) => stats?.byStatus[s] ?? 0;
   const allTotal = Object.values(stats?.byStatus ?? {}).reduce((a, b) => a + (b ?? 0), 0);
-
-  const openInstagram = async (p: Prospect) => {
-    if (!p.instagram) return;
-    try {
-      await navigator.clipboard.writeText(firstMessage(p, "instagram"));
-      toast.success("Message copied. Paste it in the Instagram chat that just opened.", { position: "top-right" });
-    } catch {
-      toast.info("Copy the message from the Copy button, then paste it in Instagram.", { position: "top-right" });
-    }
-    window.open(`https://ig.me/m/${p.instagram}`, "_blank", "noopener");
-    markContacted({ id: p.id, via: "instagram" });
-  };
-
-  const openWhatsApp = (p: Prospect) => {
-    if (!p.phone) return;
-    window.open(`https://wa.me/${waNumber(p.phone)}?text=${encodeURIComponent(firstMessage(p, "whatsapp"))}`, "_blank", "noopener");
-    markContacted({ id: p.id, via: "whatsapp" });
-  };
-
-  const copyMessage = (p: Prospect) =>
-    navigator.clipboard.writeText(firstMessage(p, p.instagram ? "instagram" : "whatsapp")).then(() => toast.success("Message copied", { position: "top-right" }));
 
   const assignSelected = async (to: string) => {
     await assign({ ids: [...selected], assignedTo: to || null }).unwrap().catch(() => toast.error("Could not assign", { position: "top-right" }));
@@ -221,31 +199,32 @@ export default function ProspectsPage() {
                 </td></tr>
               ) : (
                 rows.map((p) => (
-                  <tr key={p.id} className={selected.has(p.id) ? "bg-brand-50/60" : ""}>
+                  <tr key={p.id} className={`cursor-pointer hover:bg-brand-50/40 ${selected.has(p.id) ? "bg-brand-50/60" : ""}`} onClick={() => setOpen({ id: p.id })}>
                     {isStaff && (
-                      <td className="py-3 pl-5"><input type="checkbox" aria-label={`Select ${p.businessName}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} className="h-4 w-4 cursor-pointer accent-brand-900" /></td>
+                      <td className="py-3 pl-5" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.businessName}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} className="h-4 w-4 cursor-pointer accent-brand-900" /></td>
                     )}
                     <td className="px-4 py-3">
                       <p className="max-w-[260px] truncate font-semibold text-ink">{p.businessName}</p>
                       <p className="max-w-[260px] truncate text-[12.5px] text-ink-soft">
-                        {[p.instagram && p.businessName !== `@${p.instagram}` && `@${p.instagram}`, p.product, p.location].filter(Boolean).join(" · ")}
+                        {[p.contactName, p.instagram && p.businessName !== `@${p.instagram}` && `@${p.instagram}`, p.product, p.location].filter(Boolean).join(" · ")}
                       </p>
                       <p className="text-[11.5px] text-ink-faint">{p.kind === "buyer" ? "Buyer" : "Seller"}{p.contactedAt ? ` · contacted ${formatDate(p.contactedAt)}${p.contactedVia ? ` on ${p.contactedVia}` : ""}` : ""}</p>
                     </td>
                     <td className="px-3 py-3 text-ink-soft">{p.assigneeName || <span className="text-ink-faint">—</span>}</td>
                     <td className="px-3 py-3"><Pill tone={STATUS[p.status].tone} dot>{STATUS[p.status].label}</Pill></td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       {p.status === "signed_up" || p.status === "already_user" ? (
                         <span className="text-[12.5px] text-ink-faint">{p.signedUpAt ? `Joined ${formatDate(p.signedUpAt)}` : "Has an account"}</span>
                       ) : (
                         <div className="flex flex-wrap items-center gap-1.5">
-                          {p.instagram && <Btn size="sm" variant="secondary" icon={<Instagram size={14} />} onClick={() => openInstagram(p)}>Instagram</Btn>}
-                          {p.phone && <Btn size="sm" variant="secondary" icon={<MessageCircle size={14} />} onClick={() => openWhatsApp(p)}>WhatsApp</Btn>}
-                          <button type="button" onClick={() => copyMessage(p)} aria-label="Copy the message" title="Copy the message" className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-ink-faint hover:bg-paper hover:text-brand-900"><Copy size={14} /></button>
+                          {p.instagram && <Btn size="sm" variant="secondary" icon={<Instagram size={14} />} onClick={() => setOpen({ id: p.id, channel: "instagram" })}>Instagram</Btn>}
+                          {p.phone && <Btn size="sm" variant="secondary" icon={<MessageCircle size={14} />} onClick={() => setOpen({ id: p.id, channel: "whatsapp" })}>WhatsApp</Btn>}
+                          {p.email && <Btn size="sm" variant="secondary" icon={<Mail size={14} />} onClick={() => setOpen({ id: p.id, channel: "email" })}>Email</Btn>}
+                          {!p.instagram && !p.phone && !p.email && <span className="text-[12.5px] text-ink-faint">Add contact details</span>}
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       {p.status !== "signed_up" && p.status !== "already_user" && (
                         <TableDropdown
                           items={[
@@ -270,30 +249,49 @@ export default function ProspectsPage() {
       </Card>
 
       {adding && <AddProspects onClose={() => setAdding(false)} />}
+      {open && <ProspectDrawer id={open.id} initialChannel={open.channel} onClose={() => setOpen(null)} />}
     </>
   );
 }
 
-/** One business per line: name, Instagram, phone, product, location (comma or tab separated). A line can be just a handle or link. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\+?[\d\s().-]{10,}$/;
+const HANDLE_RE = /(instagram\.com\/|^@)/i;
+
+/**
+ * One business per line, cells separated by commas or tabs. Each cell is
+ * recognised by what it looks like (email, phone, Instagram handle or link),
+ * so the order doesn't matter; the remaining text fills name, product and
+ * location in that order.
+ */
 function parseLines(text: string): ImportRow[] {
   return text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
     .map((line) => {
-      const cells = line.split(/\t|,(?![^(]*\))/).map((c) => c.trim());
-      if (cells.length === 1) {
-        const v = cells[0];
-        if (/instagram\.com|^@/.test(v) || /^[a-z0-9._]{2,30}$/i.test(v)) return { instagram: v };
-        if (/^\+?[\d\s-]{10,}$/.test(v)) return { phone: v, businessName: v };
-        return { businessName: v };
+      const row: ImportRow = {};
+      const words: string[] = [];
+      for (const cell of line.split(/\t|,/).map((c) => c.trim()).filter(Boolean)) {
+        if (EMAIL_RE.test(cell)) row.email = cell;
+        else if (HANDLE_RE.test(cell)) row.instagram = cell;
+        else if (PHONE_RE.test(cell) && cell.replace(/\D/g, "").length >= 10) row.phone = cell;
+        else words.push(cell);
       }
-      const [businessName, instagram, phone, product, location] = cells;
-      return { businessName, instagram, phone, product, location };
+      // A lone bare handle like "kano_grains"
+      if (!row.instagram && !row.phone && !row.email && words.length === 1 && /^[a-z0-9._]{2,30}$/i.test(words[0]) && /[._\d]/.test(words[0])) {
+        row.instagram = words.shift();
+      }
+      [row.businessName, row.product, row.location] = words;
+      return row;
     });
 }
 
+const EMPTY = { businessName: "", instagram: "", phone: "", email: "", product: "", location: "" };
+
 function AddProspects({ onClose }: { onClose: () => void }) {
+  const [mode, setMode] = useState<"one" | "paste">("one");
+  const [one, setOne] = useState(EMPTY);
   const [text, setText] = useState("");
   const [kind, setKind] = useState<"seller" | "buyer">("seller");
   const [assignedTo, setAssignedTo] = useState("");
@@ -301,7 +299,8 @@ function AddProspects({ onClose }: { onClose: () => void }) {
   const [problem, setProblem] = useState<string | null>(null);
   const { data: assignees } = useGetAssigneesQuery();
   const [save, { isLoading }] = useImportProspectsMutation();
-  const rows = useMemo(() => parseLines(text), [text]);
+  const pasted = useMemo(() => parseLines(text), [text]);
+  const rows: ImportRow[] = mode === "one" ? (one.businessName.trim() || one.instagram.trim() ? [one] : []) : pasted;
 
   const submit = async () => {
     setProblem(null);
@@ -316,6 +315,7 @@ function AddProspects({ onClose }: { onClose: () => void }) {
         ].filter(Boolean).join(" · ")
       );
       setText("");
+      setOne(EMPTY);
     } catch (err: any) {
       setProblem(err?.data?.error || "Could not add them. Try again.");
     }
@@ -330,26 +330,61 @@ function AddProspects({ onClose }: { onClose: () => void }) {
       footer={
         <div className="flex justify-end gap-2">
           <Btn variant="secondary" onClick={onClose}>Done</Btn>
-          <Btn onClick={submit} loading={isLoading} disabled={!rows.length}>Add {rows.length || ""}</Btn>
+          <Btn onClick={submit} loading={isLoading} disabled={!rows.length}>{mode === "one" ? "Add business" : `Add ${rows.length || ""}`}</Btn>
         </div>
       }
     >
       {problem && <p role="alert" className="mb-4 rounded-lg bg-danger-soft px-3 py-2.5 text-[13px] font-medium text-danger-deep">{problem}</p>}
       {result && <p role="status" className="mb-4 rounded-lg bg-brand-50 px-3 py-2.5 text-[13px] text-brand-950">{result}</p>}
 
+      <div className="mb-4 flex gap-1.5">
+        {([["one", "One business"], ["paste", "Paste a list"]] as const).map(([m, label]) => (
+          <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m} className={`cursor-pointer rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${mode === m ? "bg-brand-950 text-white" : "bg-white text-ink-soft ring-1 ring-inset ring-rule hover:text-ink"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "one" ? (
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            ["businessName", "Business name", "Kano Grains", "text"],
+            ["instagram", "Instagram", "@kano_grains or link", "text"],
+            ["phone", "Phone / WhatsApp", "0803 123 4567", "tel"],
+            ["email", "Email", "info@business.com", "email"],
+            ["product", "Product", "sesame", "text"],
+            ["location", "Location", "Kano", "text"],
+          ] as const).map(([key, label, placeholder, type]) => (
+            <label key={key} className="block text-[12.5px] font-semibold text-ink">
+              {label}
+              <input
+                type={type}
+                value={one[key]}
+                onChange={(e) => setOne({ ...one, [key]: e.target.value })}
+                placeholder={placeholder}
+                className="mt-1 h-9 w-full rounded-lg border-0 bg-white px-3 text-[13.5px] font-normal ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-900"
+              />
+            </label>
+          ))}
+          <p className="col-span-2 text-[12px] text-ink-faint">Add at least the name or Instagram, and one way to reach them.</p>
+        </div>
+      ) : (
+      <>
       <label htmlFor="prospect-lines" className="mb-1.5 block text-[13px] font-semibold text-ink">One business per line</label>
       <p className="mb-2 text-[12px] text-ink-soft">
-        Name, Instagram, phone, product, location — separated by commas or pasted from a spreadsheet. A line can also be just an Instagram handle or link.
+        Separate details with commas, or paste rows from a spreadsheet. Phones, emails and Instagram handles are recognised wherever they are; other text fills name, product and location in that order. Check each one afterwards in its panel.
       </p>
       <textarea
         id="prospect-lines"
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={9}
-        placeholder={"Kano Grains, @kano_grains, 0803 123 4567, sesame, Kano\nhttps://instagram.com/abuja_agro\n@ginger_hub_ng"}
+        placeholder={"Kano Grains, @kano_grains, 0803 123 4567, sesame, Kano\nAbuja Agro, ginger, 0809 222 1111, info@abujaagro.com\nhttps://instagram.com/ginger_hub_ng"}
         className="w-full rounded-lg border-0 bg-white p-3 font-mono text-[12.5px] text-ink shadow-sm ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-900"
       />
       <p className="mt-1 text-[12px] text-ink-faint">{rows.length} {rows.length === 1 ? "business" : "businesses"} found. Duplicates and existing TradelyX accounts are detected automatically.</p>
+      </>
+      )}
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <label className="text-[13px] font-semibold text-ink">

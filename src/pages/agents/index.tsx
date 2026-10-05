@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Leaderboard from "./leaderboard";
 import { useDebounce } from "react-use";
 import { Banknote, Check, Handshake, Link2, PauseCircle, Search, UserPlus, Users, X } from "lucide-react";
 
@@ -45,7 +46,7 @@ const nameOf = (a: { firstName?: string | null; lastName?: string | null; email?
 
 const owed = (b: Balances) => Object.entries(b).filter(([, v]) => v.payable > 0).map(([c, v]) => money(c, v.payable)).join(" + ") || "—";
 
-type Tab = "applications" | "agents" | "payouts";
+type Tab = "applications" | "agents" | "payouts" | "leaderboard";
 
 export default function AgentsPage() {
   const [tab, setTab] = useState<Tab>("applications");
@@ -79,12 +80,14 @@ export default function AgentsPage() {
             { value: "applications", label: "Applications", count: applied?.data.length },
             { value: "agents", label: "Agents", count: agents.length },
             { value: "payouts", label: "Payouts due", count: payable.length },
+            { value: "leaderboard", label: "Leaderboard" },
           ]}
         />
       </div>
 
       {tab === "applications" && <Applications rows={applied?.data ?? []} loading={appliedLoading} onOpen={setOpenId} />}
       {tab === "agents" && <AgentsTable rows={agents} loading={allLoading} onOpen={setOpenId} />}
+      {tab === "leaderboard" && <Leaderboard />}
       {tab === "payouts" && <PayoutsDue rows={due?.data ?? []} loading={dueLoading} minimums={due?.minimums ?? {}} />}
 
       {openId && <AgentDrawer id={openId} onClose={() => setOpenId(null)} />}

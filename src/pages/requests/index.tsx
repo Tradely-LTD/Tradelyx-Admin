@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useDebounce } from "react-use";
 import Pagination from "rc-pagination";
-import { ExternalLink, FileQuestion, Mail, Search, XCircle } from "lucide-react";
+import { Download, ExternalLink, FileQuestion, Mail, Search, XCircle } from "lucide-react";
 
 import { RequestFilter, StaffRequest, useCloseRequestMutation, useGetStaffRequestsQuery } from "./requests-api";
 import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
@@ -120,6 +120,14 @@ export default function RequestsPage() {
                   <div className="flex shrink-0 flex-wrap gap-1.5">
                     <a href={`${WEB_URL}/rfq/${r.id}`} target="_blank" rel="noreferrer">
                       <Btn size="sm" variant="ghost" icon={<ExternalLink size={14} />}>View</Btn>
+                    </a>
+                    {/* The web app draws the image with the caller's own session, so it needs a staff sign-in there */}
+                    <a
+                      href={`${WEB_URL}/api/rfq/${r.id}/image`}
+                      rel="noreferrer"
+                      title="Sign in to web.tradelyx.com with your staff account first"
+                    >
+                      <Btn size="sm" variant="ghost" icon={<Download size={14} />}>Download image</Btn>
                     </a>
                     {!r.closedAt && r.problems.length > 0 && (
                       <Link to={`/outreach?template=buyer_request_needs_detail&user=${r.buyerId}&name=${encodeURIComponent(name)}&path=${encodeURIComponent(`/rfq/${r.id}`)}`}>

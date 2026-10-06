@@ -124,6 +124,7 @@ export default function RequestsPage() {
                     {/* The web app draws the image with the caller's own session, so it needs a staff sign-in there */}
                     <a
                       href={`${WEB_URL}/api/rfq/${r.id}/image`}
+                      target="_blank"
                       rel="noreferrer"
                       title="Sign in to web.tradelyx.com with your staff account first"
                     >

@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 
 import { Btn, Drawer, Pill, Skeleton, formatDate } from "@/common/ui/kit";
 import { emailSubject, firstMessage, waNumber } from "./messages";
-import { Channel, ProspectDetail, useAddProspectEventMutation, useEditProspectMutation, useGetProspectQuery, useMarkContactedMutation } from "./prospects-api";
+import { Channel, ProspectDetail, SOURCES, useAddProspectEventMutation, useEditProspectMutation, useGetProspectQuery, useMarkContactedMutation } from "./prospects-api";
 
 /**
  * One prospect: fix their details, send a message you can edit first, log
@@ -53,7 +53,7 @@ function Body({ p, initialChannel }: { p: ProspectDetail; initialChannel?: Chann
   return (
     <div className="space-y-7">
       {/* Re-mounts when saved details change, so the form shows what's stored */}
-      <Details key={[p.businessName, p.contactName, p.instagram, p.phone, p.email, p.product, p.location, p.kind].join("|")} p={p} />
+      <Details key={[p.businessName, p.contactName, p.instagram, p.phone, p.email, p.product, p.location, p.kind, p.source].join("|")} p={p} />
 
       {!done && (
         <section>
@@ -99,17 +99,19 @@ function Details({ p }: { p: ProspectDetail }) {
     product: p.product ?? "",
     location: p.location ?? "",
     kind: p.kind,
+    source: p.source,
   });
   const [problem, setProblem] = useState<string | null>(null);
   const [save, { isLoading }] = useEditProspectMutation();
   const changed =
     f.businessName !== p.businessName || f.contactName !== (p.contactName ?? "") || f.instagram !== (p.instagram ? `@${p.instagram}` : "") ||
-    f.phone !== (p.phone ?? "") || f.email !== (p.email ?? "") || f.product !== (p.product ?? "") || f.location !== (p.location ?? "") || f.kind !== p.kind;
+    f.phone !== (p.phone ?? "") || f.email !== (p.email ?? "") || f.product !== (p.product ?? "") || f.location !== (p.location ?? "") || f.kind !== p.kind || f.source !== p.source;
 
   const submit = async () => {
     setProblem(null);
     try {
-      await save({ id: p.id, ...f, instagram: f.instagram || null, phone: f.phone || null, email: f.email || null }).unwrap();
+      // Older rows may hold a free-text source the backend no longer accepts; leave those untouched.
+      await save({ id: p.id, ...f, source: f.source in SOURCES ? f.source : undefined, instagram: f.instagram || null, phone: f.phone || null, email: f.email || null }).unwrap();
       toast.success("Saved", { position: "top-right" });
     } catch (err: any) {
       setProblem(err?.data?.error || "Could not save");
@@ -128,7 +130,7 @@ function Details({ p }: { p: ProspectDetail }) {
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-[14px] font-bold text-ink">Details</h3>
         <Pill tone={p.status === "signed_up" ? "green" : p.status === "replied" ? "orange" : p.status === "contacted" ? "blue" : "gray"} dot>
-          {p.status.replace("_", " ")}
+          {p.status.replace(/_/g, " ")}
         </Pill>
       </div>
       {problem && <p role="alert" className="mb-2 rounded-lg bg-danger-soft px-3 py-2 text-[13px] text-danger-deep">{problem}</p>}
@@ -145,6 +147,13 @@ function Details({ p }: { p: ProspectDetail }) {
           <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as "seller" | "buyer" })} className={`${field} mt-1 h-9 cursor-pointer font-normal`}>
             <option value="seller">A seller</option>
             <option value="buyer">A buyer</option>
+          </select>
+        </label>
+        <label className="block text-[12.5px] font-semibold text-ink">
+          Found on
+          <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className={`${field} mt-1 h-9 cursor-pointer font-normal`}>
+            {Object.entries(SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            {!(f.source in SOURCES) && <option value={f.source}>{f.source}</option>}
           </select>
         </label>
       </div>

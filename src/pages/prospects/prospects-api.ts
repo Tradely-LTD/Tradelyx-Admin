@@ -1,7 +1,20 @@
 import { baseApi } from "@/store/baseApi";
 import { Methods } from "@/utils/enums";
 
-export type ProspectStatus = "new" | "contacted" | "replied" | "signed_up" | "not_interested" | "already_user";
+export type ProspectStatus = "new" | "contacted" | "replied" | "demo_scheduled" | "signed_up" | "not_interested" | "already_user";
+
+/** Where a lead came from — matches the backend's fixed list (prospects/rules.ts SOURCES). */
+export const SOURCES = {
+  instagram: "Instagram",
+  explee: "Explee",
+  agent_bounty: "Agent bounty",
+  referral: "Referral",
+  demo_request: "Demo request",
+  manual: "Added by hand",
+  other: "Other",
+} as const;
+export type ProspectSource = keyof typeof SOURCES;
+export const sourceLabel = (s: string) => SOURCES[s as ProspectSource] ?? s;
 
 export type Prospect = {
   id: string;
@@ -35,12 +48,12 @@ export type ProspectStats = {
   byStatus: Partial<Record<ProspectStatus, number>>;
   byAssignee: { id: string | null; name: string; total: number; contacted: number; signed_up: number }[];
 };
-export type ImportRow = { businessName?: string; instagram?: string; phone?: string; email?: string; product?: string; location?: string; kind?: string };
+export type ImportRow = { businessName?: string; instagram?: string; phone?: string; email?: string; product?: string; location?: string; kind?: string; source?: string };
 export type ImportResult = { added: number; duplicates: number; alreadyUsers: number; skipped: { row: number; reason: string }[] };
 
 export const prospectsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProspects: builder.query<{ data: Prospect[]; pagination: { total: number; currentPage: number; totalPages: number } }, { page: number; limit: number; status?: string; search?: string; assignee?: string }>({
+    getProspects: builder.query<{ data: Prospect[]; pagination: { total: number; currentPage: number; totalPages: number } }, { page: number; limit: number; status?: string; source?: string; search?: string; assignee?: string }>({
       query: (params) => ({ url: "/prospects", params }),
       providesTags: ["PROSPECTS"],
     }),
@@ -70,7 +83,7 @@ export const prospectsApi = baseApi.injectEndpoints({
       transformResponse: (r: { data: ProspectDetail }) => r.data,
       providesTags: ["PROSPECTS"],
     }),
-    editProspect: builder.mutation<{ data: ProspectDetail }, { id: string } & Partial<Record<"businessName" | "instagram" | "phone" | "email" | "product" | "location" | "contactName" | "kind", string | null>>>({
+    editProspect: builder.mutation<{ data: ProspectDetail }, { id: string } & Partial<Record<"businessName" | "instagram" | "phone" | "email" | "product" | "location" | "contactName" | "kind" | "source", string | null>>>({
       query: ({ id, ...body }) => ({ url: `/prospects/${id}`, method: Methods.Put, body }),
       invalidatesTags: ["PROSPECTS"],
     }),

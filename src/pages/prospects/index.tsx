@@ -11,7 +11,10 @@ import ProspectDrawer from "./prospect-drawer";
 import {
   Channel,
   ImportRow,
+  ProspectSource,
   ProspectStatus,
+  SOURCES,
+  sourceLabel,
   useAssignProspectsMutation,
   useGetAssigneesQuery,
   useGetProspectStatsQuery,
@@ -34,6 +37,7 @@ const STATUS: Record<ProspectStatus, { label: string; tone: "gray" | "blue" | "o
   new: { label: "New", tone: "gray" },
   contacted: { label: "Contacted", tone: "blue" },
   replied: { label: "Replied", tone: "orange" },
+  demo_scheduled: { label: "Demo scheduled", tone: "blue" },
   signed_up: { label: "Signed up", tone: "green" },
   not_interested: { label: "Not interested", tone: "red" },
   already_user: { label: "Already on TradelyX", tone: "gray" },
@@ -44,6 +48,7 @@ const FILTERS: [ProspectStatus | "", string][] = [
   ["new", "New"],
   ["contacted", "Contacted"],
   ["replied", "Replied"],
+  ["demo_scheduled", "Demo scheduled"],
   ["signed_up", "Signed up"],
   ["not_interested", "Not interested"],
 ];
@@ -55,6 +60,7 @@ export default function ProspectsPage() {
 
   const [status, setStatus] = useState<ProspectStatus | "">("");
   const [assignee, setAssignee] = useState("");
+  const [source, setSource] = useState("");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
@@ -63,7 +69,7 @@ export default function ProspectsPage() {
   const [open, setOpen] = useState<{ id: string; channel?: Channel } | null>(null);
   useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 350, [search]);
 
-  const { data, isLoading, isFetching } = useGetProspectsQuery({ page, limit: 25, status: status || undefined, search: debounced || undefined, assignee: assignee || undefined });
+  const { data, isLoading, isFetching } = useGetProspectsQuery({ page, limit: 25, status: status || undefined, source: source || undefined, search: debounced || undefined, assignee: assignee || undefined });
   const { data: stats } = useGetProspectStatsQuery();
   const { data: assignees } = useGetAssigneesQuery(undefined, { skip: !isStaff });
   const [update] = useUpdateProspectMutation();
@@ -143,6 +149,10 @@ export default function ProspectsPage() {
           ))}
         </div>
         <div className="flex flex-1 flex-wrap gap-2 lg:justify-end">
+          <select value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }} aria-label="Source" className="h-10 cursor-pointer rounded-lg border-0 bg-white pl-3 pr-8 text-[13px] ring-1 ring-inset ring-rule">
+            <option value="">All sources</option>
+            {Object.entries(SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
           {isStaff && (
             <select value={assignee} onChange={(e) => { setAssignee(e.target.value); setPage(1); }} aria-label="Assigned to" className="h-10 cursor-pointer rounded-lg border-0 bg-white pl-3 pr-8 text-[13px] ring-1 ring-inset ring-rule">
               <option value="">Everyone's</option>
@@ -208,7 +218,7 @@ export default function ProspectsPage() {
                       <p className="max-w-[260px] truncate text-[12.5px] text-ink-soft">
                         {[p.contactName, p.instagram && p.businessName !== `@${p.instagram}` && `@${p.instagram}`, p.product, p.location].filter(Boolean).join(" · ")}
                       </p>
-                      <p className="text-[11.5px] text-ink-faint">{p.kind === "buyer" ? "Buyer" : "Seller"}{p.contactedAt ? ` · contacted ${formatDate(p.contactedAt)}${p.contactedVia ? ` on ${p.contactedVia}` : ""}` : ""}</p>
+                      <p className="text-[11.5px] text-ink-faint">{p.kind === "buyer" ? "Buyer" : "Seller"} · {sourceLabel(p.source)}{p.contactedAt ? ` · contacted ${formatDate(p.contactedAt)}${p.contactedVia ? ` on ${p.contactedVia}` : ""}` : ""}</p>
                     </td>
                     <td className="px-3 py-3 text-ink-soft">{p.assigneeName || <span className="text-ink-faint">—</span>}</td>
                     <td className="px-3 py-3"><Pill tone={STATUS[p.status].tone} dot>{STATUS[p.status].label}</Pill></td>
@@ -229,6 +239,7 @@ export default function ProspectsPage() {
                         <TableDropdown
                           items={[
                             { label: "They replied", icon: <Check size={16} />, action: () => update({ id: p.id, status: "replied" }) },
+                            { label: "Demo scheduled", icon: <Check size={16} />, action: () => update({ id: p.id, status: "demo_scheduled" }) },
                             { label: "Not interested", icon: <Target size={16} />, action: () => update({ id: p.id, status: "not_interested" }) },
                             { label: "Back to new", icon: <Target size={16} />, action: () => update({ id: p.id, status: "new" }) },
                           ]}
@@ -294,6 +305,7 @@ function AddProspects({ onClose }: { onClose: () => void }) {
   const [one, setOne] = useState(EMPTY);
   const [text, setText] = useState("");
   const [kind, setKind] = useState<"seller" | "buyer">("seller");
+  const [importSource, setImportSource] = useState<ProspectSource>("instagram");
   const [assignedTo, setAssignedTo] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -305,7 +317,7 @@ function AddProspects({ onClose }: { onClose: () => void }) {
   const submit = async () => {
     setProblem(null);
     try {
-      const { data } = await save({ rows: rows.map((r) => ({ ...r, kind })), assignedTo: assignedTo || null }).unwrap();
+      const { data } = await save({ rows: rows.map((r) => ({ ...r, kind, source: importSource })), assignedTo: assignedTo || null }).unwrap();
       setResult(
         [
           `${data.added} added`,
@@ -392,6 +404,12 @@ function AddProspects({ onClose }: { onClose: () => void }) {
           <select value={kind} onChange={(e) => setKind(e.target.value as "seller" | "buyer")} className="mt-1.5 h-10 w-full cursor-pointer rounded-lg border-0 bg-white px-3 text-[13px] font-normal ring-1 ring-inset ring-rule">
             <option value="seller">Sellers (suppliers)</option>
             <option value="buyer">Buyers</option>
+          </select>
+        </label>
+        <label className="text-[13px] font-semibold text-ink">
+          Found on
+          <select value={importSource} onChange={(e) => setImportSource(e.target.value as ProspectSource)} className="mt-1.5 h-10 w-full cursor-pointer rounded-lg border-0 bg-white px-3 text-[13px] font-normal ring-1 ring-inset ring-rule">
+            {Object.entries(SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
         <label className="text-[13px] font-semibold text-ink">

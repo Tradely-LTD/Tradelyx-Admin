@@ -3,16 +3,19 @@ import { Instagram, Mail, MessageCircle, MessageSquareReply, StickyNote, Send } 
 import { toast } from "react-toastify";
 
 import { Btn, Drawer, Pill, Skeleton, formatDate } from "@/common/ui/kit";
+import ExpleeConversation, { TradelyxEmail } from "./explee-conversation";
 import { emailSubject, firstMessage, waNumber } from "./messages";
 import { Channel, ProspectDetail, SOURCES, useAddProspectEventMutation, useEditProspectMutation, useGetProspectQuery, useMarkContactedMutation } from "./prospects-api";
 
 /**
  * One prospect: fix their details, send a message you can edit first, log
  * what they reply (and who answered), and see everything that happened.
+ * Hot leads from Explee show their email conversation instead of the
+ * prepared first message: they've already been written to.
  */
 
 const field = "w-full rounded-lg border-0 bg-white px-3 text-[13.5px] text-ink shadow-sm ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-900";
-const CHANNEL_LABEL: Record<string, string> = { instagram: "Instagram", whatsapp: "WhatsApp", email: "Email", call: "Call" };
+const CHANNEL_LABEL: Record<string, string> = { instagram: "Instagram", whatsapp: "WhatsApp", email: "Email", call: "Call", explee: "Explee email" };
 
 export default function ProspectDrawer({ id, initialChannel, onClose }: { id: string; initialChannel?: Channel; onClose: () => void }) {
   const { data: p, isLoading } = useGetProspectQuery(id);
@@ -55,7 +58,9 @@ function Body({ p, initialChannel }: { p: ProspectDetail; initialChannel?: Chann
       {/* Re-mounts when saved details change, so the form shows what's stored */}
       <Details key={[p.businessName, p.contactName, p.instagram, p.phone, p.email, p.product, p.location, p.kind, p.source].join("|")} p={p} />
 
-      {!done && (
+      {p.explee && <ExpleeConversation p={p} />}
+
+      {!done && !p.explee && (
         <section>
           <h3 className="mb-2 text-[14px] font-bold text-ink">Send a message</h3>
           {!channels.length ? (
@@ -69,6 +74,18 @@ function Body({ p, initialChannel }: { p: ProspectDetail; initialChannel?: Chann
                   </button>
                 ))}
               </div>
+              {channel === "email" ? (
+                <>
+                  <TradelyxEmail key={p.id} p={p} defaultSubject={emailSubject(p)} defaultBody={firstMessage(p, "email")} />
+                  <p className="mt-2 text-right text-[12.5px] text-ink-soft">
+                    Or{" "}
+                    <button type="button" onClick={send} className="cursor-pointer font-semibold text-brand-900 underline-offset-2 hover:underline">
+                      open the prepared message in your own email app
+                    </button>
+                  </p>
+                </>
+              ) : (
+              <>
               <label htmlFor="prospect-message" className="sr-only">Message</label>
               <textarea id="prospect-message" value={message} onChange={(e) => setMessage(e.target.value)} rows={9} className={`${field} py-2.5 leading-relaxed`} />
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -78,6 +95,8 @@ function Body({ p, initialChannel }: { p: ProspectDetail; initialChannel?: Chann
                 </Btn>
               </div>
               <p className="mt-1.5 text-[12px] text-ink-faint">Edit anything before sending. What you send is saved in the history below.</p>
+              </>
+              )}
             </>
           )}
         </section>

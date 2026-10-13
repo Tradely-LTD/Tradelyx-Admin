@@ -24,11 +24,18 @@ export type Prospect = {
   contactedVia: string | null;
   signedUpAt: string | null;
   createdAt: string;
+  /** Came in as an Explee hot lead (cold email); suppressedAt = Explee told to stop emailing them */
+  explee: { hotAt: string | null; suppressedAt: string | null } | null;
 };
 
 export type ProspectEvent = { id: string; kind: "sent" | "reply" | "note"; channel: string | null; body: string | null; at: string; author: string | null };
 export type ProspectDetail = Prospect & { events: ProspectEvent[] };
 export type Channel = "instagram" | "whatsapp" | "email";
+
+export type ThreadMessage = { id: string | null; from: "us" | "them"; fromEmail: string | null; subject: string | null; body: string | null; at: string | null; attachments: string[] };
+export type Thread = { canReply: boolean; blockedReason: string | null; messages: ThreadMessage[] };
+/** What a send returns: whether Explee was told to stop, and a warning if that failed */
+export type SendResult = { data: { suppressed: boolean; warning: string | null; prospect: ProspectDetail } };
 
 export type Assignee = { id: string; name: string; role: string; referralCode: string | null };
 export type ProspectStats = {
@@ -78,6 +85,23 @@ export const prospectsApi = baseApi.injectEndpoints({
       query: ({ id, ...body }) => ({ url: `/prospects/${id}/events`, method: Methods.Post, body }),
       invalidatesTags: ["PROSPECTS"],
     }),
+    getProspectThread: builder.query<Thread, string>({
+      query: (id) => ({ url: `/prospects/${id}/thread` }),
+      transformResponse: (r: { data: Thread }) => r.data,
+      providesTags: ["PROSPECTS"],
+    }),
+    replyInExplee: builder.mutation<SendResult, { id: string; body: string; close?: boolean }>({
+      query: ({ id, ...body }) => ({ url: `/prospects/${id}/reply`, method: Methods.Post, body }),
+      invalidatesTags: ["PROSPECTS", "ACTIVITY"],
+    }),
+    emailProspect: builder.mutation<SendResult, { id: string; subject: string; body: string }>({
+      query: ({ id, ...body }) => ({ url: `/prospects/${id}/email`, method: Methods.Post, body }),
+      invalidatesTags: ["PROSPECTS", "ACTIVITY"],
+    }),
+    syncExplee: builder.mutation<{ data: { added: number; linked: number; known: number; skipped: number } }, void>({
+      query: () => ({ url: "/prospects/explee/sync", method: Methods.Post }),
+      invalidatesTags: ["PROSPECTS"],
+    }),
     assignProspects: builder.mutation<unknown, { ids: string[]; assignedTo: string | null }>({
       query: (body) => ({ url: "/prospects/assign", method: Methods.Post, body }),
       invalidatesTags: ["PROSPECTS"],
@@ -96,4 +120,8 @@ export const {
   useGetProspectQuery,
   useEditProspectMutation,
   useAddProspectEventMutation,
+  useGetProspectThreadQuery,
+  useReplyInExpleeMutation,
+  useEmailProspectMutation,
+  useSyncExpleeMutation,
 } = prospectsApi;

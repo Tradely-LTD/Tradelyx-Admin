@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
 import Pagination from "rc-pagination";
-import { Check, Instagram, Mail, MessageCircle, Plus, Search, Target, UserCheck } from "lucide-react";
+import { Check, Flame, Instagram, Mail, MessageCircle, Plus, Search, Target, UserCheck } from "lucide-react";
 import { toast } from "react-toastify";
 
 import { Btn, Card, Drawer, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
@@ -17,6 +17,7 @@ import {
   useGetProspectStatsQuery,
   useGetProspectsQuery,
   useImportProspectsMutation,
+  useSyncExpleeMutation,
   useUpdateProspectMutation,
 } from "./prospects-api";
 
@@ -93,7 +94,14 @@ export default function ProspectsPage() {
         eyebrow="Growth"
         title="Prospects"
         description="Businesses to bring onto TradelyX. Each is contacted one at a time with a prepared message, never in bulk: mass messages get Instagram and WhatsApp accounts blocked."
-        actions={isStaff && <Btn icon={<Plus size={16} />} onClick={() => setAdding(true)}>Add prospects</Btn>}
+        actions={
+          isStaff && (
+            <div className="flex flex-wrap gap-2">
+              <CheckExplee />
+              <Btn icon={<Plus size={16} />} onClick={() => setAdding(true)}>Add prospects</Btn>
+            </div>
+          )
+        }
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -208,7 +216,7 @@ export default function ProspectsPage() {
                       <p className="max-w-[260px] truncate text-[12.5px] text-ink-soft">
                         {[p.contactName, p.instagram && p.businessName !== `@${p.instagram}` && `@${p.instagram}`, p.product, p.location].filter(Boolean).join(" · ")}
                       </p>
-                      <p className="text-[11.5px] text-ink-faint">{p.kind === "buyer" ? "Buyer" : "Seller"}{p.contactedAt ? ` · contacted ${formatDate(p.contactedAt)}${p.contactedVia ? ` on ${p.contactedVia}` : ""}` : ""}</p>
+                      <p className="text-[11.5px] text-ink-faint">{p.explee && <span className="mr-1 inline-flex items-center gap-0.5 font-semibold text-attention-deep"><Flame size={11} />Explee hot lead ·</span>}{p.kind === "buyer" ? "Buyer" : "Seller"}{p.contactedAt ? ` · contacted ${formatDate(p.contactedAt)}${p.contactedVia ? ` on ${p.contactedVia}` : ""}` : ""}</p>
                     </td>
                     <td className="px-3 py-3 text-ink-soft">{p.assigneeName || <span className="text-ink-faint">—</span>}</td>
                     <td className="px-3 py-3"><Pill tone={STATUS[p.status].tone} dot>{STATUS[p.status].label}</Pill></td>
@@ -251,6 +259,25 @@ export default function ProspectsPage() {
       {adding && <AddProspects onClose={() => setAdding(false)} />}
       {open && <ProspectDrawer id={open.id} initialChannel={open.channel} onClose={() => setOpen(null)} />}
     </>
+  );
+}
+
+/** Hot leads arrive from Explee every 10 minutes on their own; this fetches them now. */
+function CheckExplee() {
+  const [sync, { isLoading }] = useSyncExpleeMutation();
+  const run = async () => {
+    try {
+      const { data } = await sync().unwrap();
+      const fresh = data.added + data.linked;
+      toast.success(fresh ? `${fresh} new hot lead${fresh === 1 ? "" : "s"} from Explee.` : "No new hot leads from Explee.", { position: "top-right" });
+    } catch (err: any) {
+      toast.error(err?.data?.error || "Couldn't reach Explee", { position: "top-right" });
+    }
+  };
+  return (
+    <Btn variant="secondary" icon={<Flame size={16} />} onClick={run} loading={isLoading}>
+      Check Explee now
+    </Btn>
   );
 }
 

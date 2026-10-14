@@ -32,6 +32,8 @@ const UserManagement = () => {
   const isAdmin = loginResponse?.user.roles === "admin";
 
   const segment = (isAdmin ? params.get("segment") : null) as SegmentKey | null;
+  // From the dashboard map: one country ("Not set": none given)
+  const country = segment ? null : params.get("country");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [role, setRole] = useState("");
@@ -45,7 +47,7 @@ const UserManagement = () => {
   useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 400, [search]);
 
   const { data: segments } = useGetSegmentsQuery(undefined, { skip: !isAdmin });
-  const all = useGetUsersQuery({ page, limit, search: debounced, status: verified, role }, { skip: !!segment });
+  const all = useGetUsersQuery({ page, limit, search: debounced, status: verified, role, country: country ?? undefined }, { skip: !!segment });
   const inSegment = useGetSegmentUsersQuery({ key: segment as SegmentKey, page, limit, search: debounced }, { skip: !segment });
   const { data, isFetching, isLoading } = segment ? inSegment : all;
   const rows = (data?.data ?? []) as Row[];
@@ -56,6 +58,7 @@ const UserManagement = () => {
     const next = new URLSearchParams(params);
     if (key) next.set("segment", key);
     else next.delete("segment");
+    next.delete("country");
     setParams(next, { replace: true });
     setPage(1);
   };
@@ -115,6 +118,25 @@ const UserManagement = () => {
         )}
         <div className="tnum text-[13px] text-ink-soft lg:ml-auto">{isLoading ? "" : `${formatNumber(total)} ${total === 1 ? "person" : "people"}`}</div>
       </div>
+
+      {country && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-brand-50 px-4 py-2.5 text-[13px] text-brand-950 ring-1 ring-inset ring-brand-100">
+          <span>
+            {country === "Not set" ? <><strong>No country set.</strong> People who haven't said where they operate.</> : <>People in <strong>{country}</strong>.</>}
+          </span>
+          <button
+            onClick={() => {
+              const next = new URLSearchParams(params);
+              next.delete("country");
+              setParams(next, { replace: true });
+              setPage(1);
+            }}
+            className="inline-flex cursor-pointer items-center gap-1 font-semibold hover:underline"
+          >
+            <X size={14} /> All countries
+          </button>
+        </div>
+      )}
 
       {segmentInfo && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-attention-soft px-4 py-2.5 text-[13px] text-attention-deep ring-1 ring-inset ring-attention/20">

@@ -242,9 +242,7 @@ export default function SellOfferManagement() {
         </div>
       </Card>
 
-      <Modal isOpen={!!previewId} onClose={() => setPreviewId(null)} title="Sell offer" className="!max-w-[860px]">
-        {previewId && <SellOfferPreview offerId={previewId} onClose={() => setPreviewId(null)} />}
-      </Modal>
+      {previewId && <SellOfferPreview offerId={previewId} onClose={() => setPreviewId(null)} />}
 
       <Modal isOpen={!!formFor} onClose={() => setFormFor(null)} title={formFor?.id ? "Edit sell offer" : "Post an offer for a seller"} className="!max-w-[860px]">
         {formFor && <SellOfferForm id={formFor.id} onClose={() => setFormFor(null)} />}

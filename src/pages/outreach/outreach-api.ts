@@ -53,13 +53,18 @@ export interface Draft {
   templateKey?: string | null;
 }
 
-/** An audience, or one person nudged from their profile */
-export type Target = { segment: SegmentKey; userId?: undefined } | { userId: string; segment?: undefined };
+/** An audience, one person nudged from their profile, or people picked by hand (Direct email, up to 200) */
+export type Target =
+  | { segment: SegmentKey; userId?: undefined; userIds?: undefined }
+  | { userId: string; segment?: undefined; userIds?: undefined }
+  | { userIds: string[]; segment?: undefined; userId?: undefined };
 
 export interface Preview {
   subject: string;
   html: string;
   recipients: number;
+  /** People picked by hand who won't get it (unsubscribed, staff, or sent this template recently) */
+  skipped?: number;
   sampleName: string | null;
   emptyBlock: boolean;
 }

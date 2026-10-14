@@ -17,6 +17,7 @@ import {
   useSendTestEmailMutation,
 } from "../outreach-api";
 import { Btn, Card, Confirm, Skeleton, formatNumber } from "@/common/ui/kit";
+import PeoplePicker, { Picked } from "@/pages/email/components/people-picker";
 
 type State = {
   templateKey: string | null;
@@ -53,11 +54,16 @@ type Props = {
   /** Overrides the template's button link, e.g. /rfq/<id> for a nudge about one request */
   initialPath?: string | null;
   person?: { id: string; name: string } | null;
-  onClearPerson: () => void;
+  onClearPerson?: () => void;
+  /** Direct email: people picked by hand instead of an audience */
+  picked?: Picked[];
+  onPickedChange?: (next: Picked[]) => void;
   onSent: () => void;
 };
 
-export default function Composer({ initialTemplate, initialPath, person, onClearPerson, onSent }: Props) {
+export default function Composer({ initialTemplate, initialPath, person, onClearPerson, picked, onPickedChange, onSent }: Props) {
+  const pickedMode = picked !== undefined;
+  const pickedIds = (picked ?? []).map((p) => p.id);
   const { data: templates, isLoading: templatesLoading } = useGetTemplatesQuery();
   const { data: segments } = useGetSegmentsQuery();
   const [state, setState] = useState<State>(BLANK);
@@ -81,9 +87,9 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
     }
   }, [templates, initialTemplate, initialPath]);
 
-  const target: Target = person ? { userId: person.id } : { segment: state.segment };
+  const target: Target = pickedMode ? { userIds: pickedIds } : person ? { userId: person.id } : { segment: state.segment };
   const draft = useMemo(() => toDraft(state), [state]);
-  const ready = state.subject.trim() && state.body.trim();
+  const ready = state.subject.trim() && state.body.trim() && (!pickedMode || pickedIds.length > 0);
 
   // Live preview, rendered by the server exactly as it will be sent
   useEffect(() => {
@@ -96,7 +102,7 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, state.segment, person?.id, ready]);
+  }, [draft, state.segment, person?.id, pickedIds.join(","), ready]);
 
   const set = (patch: Partial<State>) => {
     setState((s) => ({ ...s, ...patch }));
@@ -148,9 +154,13 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
-      <div className="min-w-0 space-y-6">
+      <div className="flex min-w-0 flex-col gap-6">
         {/* 1 · Template */}
-        <Step n={1} title="Start from a template" hint="Each one is written for a step people get stuck on. Edit anything before sending.">
+        <Step
+          n={pickedMode ? 2 : 1}
+          title={pickedMode ? "Start from a template (optional)" : "Start from a template"}
+          hint="Each one is written for a step people get stuck on. Edit anything before sending."
+        >
           {templatesLoading ? (
             <div className="grid gap-2 sm:grid-cols-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[68px]" />)}</div>
           ) : (
@@ -172,15 +182,17 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
           )}
         </Step>
 
-        {/* 2 · Audience */}
-        <Step n={2} title="Who it goes to">
-          {person ? (
+        {/* 2 · Audience (first when picking people) */}
+        <Step n={pickedMode ? 1 : 2} title="Who it goes to" className={pickedMode ? "order-first" : ""}>
+          {pickedMode ? (
+            <PeoplePicker picked={picked} onChange={(next) => onPickedChange?.(next)} />
+          ) : person ? (
             <div className="flex items-center justify-between gap-3 rounded-lg bg-brand-50 px-4 py-3 ring-1 ring-inset ring-brand-200">
               <div className="flex items-center gap-2.5 text-sm">
                 <UserRound size={16} className="text-brand-900" />
                 <span className="font-semibold text-ink">Only {person.name}</span>
               </div>
-              <Btn size="sm" variant="ghost" icon={<X size={14} />} onClick={onClearPerson}>
+              <Btn size="sm" variant="ghost" icon={<X size={14} />} onClick={() => onClearPerson?.()}>
                 Send to an audience instead
               </Btn>
             </div>
@@ -304,9 +316,14 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
                 {latest ? `${formatNumber(recipients)} ${recipients === 1 ? "person" : "people"}` : "—"}
               </span>
             </div>
+            {pickedMode && !!latest?.skipped && recipients > 0 && (
+              <p className="text-[12.5px] text-ink-soft">
+                {formatNumber(latest.skipped)} of the people you picked won't get it: they unsubscribed, are staff, or got this template in the last 7 days.
+              </p>
+            )}
             {latest && recipients === 0 && (
               <p className="text-[12.5px] text-ink-soft">
-                {person ? "This person unsubscribed, or already got this template in the last 7 days." : "Nobody right now: everyone in this audience unsubscribed or got this template in the last 7 days."}
+                {pickedMode ? "None of the people you picked can be emailed: they unsubscribed, are staff, or got this template in the last 7 days." : person ? "This person unsubscribed, or already got this template in the last 7 days." : "Nobody right now: everyone in this audience unsubscribed or got this template in the last 7 days."}
               </p>
             )}
             <div className="flex gap-2">
@@ -333,7 +350,7 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
           <strong className="text-ink">{latest?.subject}</strong>
         </p>
         <p className="mt-2">
-          {person ? `Goes to ${person.name} only.` : `Goes to ${segment?.label.toLowerCase() ?? "this audience"}.`} It can't be recalled once sent. Each email has an
+          {pickedMode ? `Goes to the ${recipients === 1 ? "person" : "people"} you picked.` : person ? `Goes to ${person.name} only.` : `Goes to ${segment?.label.toLowerCase() ?? "this audience"}.`} It can't be recalled once sent. Each email has an
           unsubscribe link, and nobody gets the same template twice within 7 days.
         </p>
       </Confirm>
@@ -341,9 +358,9 @@ export default function Composer({ initialTemplate, initialPath, person, onClear
   );
 }
 
-function Step({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
+function Step({ n, title, hint, className = "", children }: { n: number; title: string; hint?: string; className?: string; children: React.ReactNode }) {
   return (
-    <Card className="p-5">
+    <Card className={`p-5 ${className}`}>
       <div className="mb-4 flex items-start gap-3">
         <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-950 text-[12px] font-bold text-white">{n}</span>
         <div>

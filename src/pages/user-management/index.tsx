@@ -10,9 +10,8 @@ import { useUserSlice } from "../auth/authSlice";
 import Modal from "@/common/modal/modal";
 import TableDropdown from "@/common/dropdown";
 import UserForm from "./components/user-form";
-import SellerPreview from "./components/seller-preview";
 import SellerProfileForm from "./components/seller-form";
-import UserPreview from "./components/user-preview";
+import FullProfile from "./components/full-profile";
 import UserDrawer, { lastActive, roleTone } from "./components/user-drawer";
 import { Card, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber, initials } from "@/common/ui/kit";
 
@@ -215,13 +214,7 @@ const UserManagement = () => {
       <Modal isOpen={modal === "edit"} onClose={() => setModal(null)} title="Edit user">
         <UserForm id={selected?.id ?? ""} onClose={() => setModal(null)} />
       </Modal>
-      <Modal isOpen={modal === "profile"} onClose={() => setModal(null)} title={selected?.role === "seller" ? "Seller profile" : "User profile"} className="!max-w-[800px]">
-        {selected?.role === "seller" ? (
-          <SellerPreview sellerId={selected.id} onClose={() => setModal(null)} />
-        ) : (
-          <UserPreview userId={selected?.id ?? ""} onClose={() => setModal(null)} />
-        )}
-      </Modal>
+      {modal === "profile" && selected && <FullProfile userId={selected.id} onClose={() => setModal(null)} onEdit={() => setModal("edit")} />}
       <Modal isOpen={modal === "onboard"} onClose={() => setModal(null)} title="Onboard seller" className="!max-w-[800px]">
         <SellerProfileForm onClose={() => setModal(null)} id={selected?.id} />
       </Modal>

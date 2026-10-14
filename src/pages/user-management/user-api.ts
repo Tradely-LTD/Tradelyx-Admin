@@ -149,6 +149,8 @@ interface GetUsersQueryParams {
   search?: string;
   status?: string;
   role?: string;
+  /** One country as the dashboard map names it; "Not set" for people with none */
+  country?: string;
 }
 export interface PasswordResetArgs {
   token: string;

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { twMerge } from "tailwind-merge";
@@ -162,6 +162,63 @@ export function Drawer({ open, onClose, title, subtitle, children, footer, width
         <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && <footer className="border-t border-rule bg-paper px-6 py-4">{footer}</footer>}
       </aside>
+    </div>,
+    document.body
+  );
+}
+
+/**
+ * A centred window for a view or form too wide for a Drawer (a full profile,
+ * a product form). Same frame as the Drawer: title and close at the top, the
+ * body scrolls, an optional footer for the actions. Esc and the backdrop
+ * close it; focus moves into it and back to where it was on close.
+ */
+export function Modal({ open, onClose, title, subtitle, children, footer, width = "max-w-2xl" }: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  /** Tailwind max-width class */
+  width?: string;
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  // Callers pass a new onClose each render; reading it from a ref keeps the
+  // effect below to open and close, so it never pulls focus out of a form
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const before = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close.current();
+    document.addEventListener("keydown", onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panel.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+      before?.focus?.();
+    };
+  }, [open]);
+  if (!open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50 grid place-items-center p-3 font-sans sm:p-6" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 animate-fade bg-ink/50" onClick={onClose} />
+      <div ref={panel} tabIndex={-1} className={`relative flex max-h-[92dvh] w-full ${width} animate-rise flex-col overflow-hidden rounded-2xl bg-white shadow-lift outline-none`}>
+        <header className="flex items-start justify-between gap-4 border-b border-rule px-6 py-4">
+          <div className="min-w-0">
+            <div className="text-lg font-bold tracking-[-0.01em] text-ink">{title}</div>
+            {subtitle && <div className="mt-0.5 text-[13px] text-ink-soft">{subtitle}</div>}
+          </div>
+          <button onClick={onClose} aria-label="Close" className="-mr-2 grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg text-ink-soft hover:bg-paper-deep hover:text-ink">
+            <X size={18} />
+          </button>
+        </header>
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {footer && <footer className="border-t border-rule bg-paper px-6 py-3.5">{footer}</footer>}
+      </div>
     </div>,
     document.body
   );

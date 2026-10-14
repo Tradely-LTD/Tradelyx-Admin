@@ -1,7 +1,12 @@
 import { FC, ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { IoClose } from "react-icons/io5";
 
+import { Modal as KitModal } from "@/common/ui/kit";
+
+/**
+ * The older modal API (isOpen, className for the width), kept so existing
+ * screens work unchanged, drawn with the kit's Modal so every window in the
+ * admin looks and behaves the same. New code uses Modal from common/ui/kit.
+ */
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -10,38 +15,13 @@ interface ModalProps {
   className?: string;
 }
 
-const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
-  if (!isOpen) return null;
+/** Callers' width class (e.g. "!max-w-[860px]"), passed as written so Tailwind has generated it */
+const widthFrom = (className?: string) => className?.split(/\s+/).find((c) => /max-w-/.test(c));
 
-  // At the document root, so no transformed ancestor (the page-enter
-  // animation) can pin this overlay to the page instead of the screen
-  return createPortal(
-    <div
-      className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex justify-center items-center transition-opacity duration-300 ease-in-out"
-      style={{ opacity: isOpen ? 1 : 0 }}
-    >
-      <div
-        className={`bg-white rounded-md shadow-xl w-full max-w-lg mx-4 transition-transform duration-300 ease-in-out scale-100 ${className}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100"
-            aria-label="Close"
-          >
-            <IoClose size={25} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="px-6 py-4 overflow-y-auto max-h-[70vh]">{children}</div>
-      </div>
-    </div>,
-    document.body
-  );
-};
+const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => (
+  <KitModal open={isOpen} onClose={onClose} title={title} width={widthFrom(className) ?? "max-w-lg"}>
+    {children}
+  </KitModal>
+);
 
 export default Modal;

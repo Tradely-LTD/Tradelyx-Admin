@@ -168,7 +168,6 @@ export interface SellerResponse {
 }
 
 export interface PersonalInfo {
-  address?: string | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -184,6 +183,25 @@ export interface CompanyInfo {
   overview: string | null;
   incorporationDate: string | null;
   registrationNumber: string | null;
+  companyVerified: boolean | null;
+  /** Public store: web.tradelyx.com/@<storeSlug> */
+  storeSlug: string | null;
+  gallery: string[];
+  /** Certificates buyers see on the store */
+  certifications: SellerCertificate[];
+}
+
+export interface SellerCertificate {
+  id: string;
+  type: string;
+  typeLabel: string;
+  name: string | null;
+  number: string | null;
+  issuer: string | null;
+  expiresAt: string | null;
+  expired: boolean;
+  fileUrl: string | null;
+  verified: boolean;
 }
 
 export interface BusinessDetails {
@@ -195,10 +213,10 @@ export interface BusinessDetails {
 }
 
 export interface SellerDocuments {
-  registrationDocuments: string[];
-  exportLicenses: string | null;
-  identityDocuments: string[];
-  certifications: string[];
+  registrationDocuments: string | string[] | null;
+  exportLicenses: string | string[] | null;
+  identityDocuments: string | string[] | null;
+  certifications: string | string[] | null;
 }
 
 export interface SellerProfile {

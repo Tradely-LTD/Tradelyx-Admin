@@ -3,6 +3,7 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { ArrowRight, Award, Mail, Megaphone, ShieldCheck, Store, ShoppingBag } from "lucide-react";
 
 import { useGetStatsChartQuery, useGetStatsQuery } from "./stats-api";
+import CountryMap from "./country-map";
 import { useUserSlice } from "../auth/authSlice";
 import { useGetKycSubmissionsQuery } from "../kyc/kyc-api";
 import { useGetCertificationsQuery } from "../certificates/certificates-api";
@@ -73,6 +74,8 @@ export default function AdminDashboard() {
           </div>
         ))}
       </Card>
+
+      {(isAdmin || loginResponse?.user.roles === "country_admin") && <CountryMap />}
 
       {isAdmin && (
         <>

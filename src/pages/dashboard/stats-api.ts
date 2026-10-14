@@ -14,6 +14,15 @@ interface AgentStatsResponse {
   error?: string;
 }
 
+/** GET /stats/countries: people per country ("Not set": none given), biggest first */
+export interface CountryCount {
+  country: string;
+  users: number;
+  buyers: number;
+  sellers: number;
+  joinedLast30: number;
+}
+
 export const statsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getStats: builder.query({
@@ -37,7 +46,12 @@ export const statsApi = baseApi.injectEndpoints({
         };
       },
     }),
+    getUsersByCountry: builder.query<CountryCount[], void>({
+      query: () => ({ url: `stats/countries` }),
+      transformResponse: (r: { data: CountryCount[] }) => r.data,
+      providesTags: ["USERS"],
+    }),
   }),
 });
 
-export const { useGetStatsQuery, useGetAgentStatsQuery, useGetStatsChartQuery } = statsApi;
+export const { useGetStatsQuery, useGetAgentStatsQuery, useGetStatsChartQuery, useGetUsersByCountryQuery } = statsApi;

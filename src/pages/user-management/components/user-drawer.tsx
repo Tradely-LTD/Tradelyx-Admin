@@ -83,6 +83,14 @@ export default function UserDrawer({ user, canOutreach, onClose, onEdit, onProfi
         <div className="flex flex-wrap gap-2">
           <Btn variant="secondary" size="sm" icon={<Eye size={14} />} onClick={onProfile}>Full profile</Btn>
           <Btn variant="secondary" size="sm" icon={<Edit2 size={14} />} onClick={onEdit}>Edit</Btn>
+          {canOutreach && (
+            <Link
+              to={`/emails/compose?user=${user.id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(user.email)}`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-[13px] font-medium text-ink ring-1 ring-inset ring-rule hover:bg-paper"
+            >
+              <Mail size={14} /> Email
+            </Link>
+          )}
           {user.role === "seller" && <Btn variant="secondary" size="sm" icon={<HandHelping size={14} />} onClick={onOnboard}>Onboard as seller</Btn>}
         </div>
       }

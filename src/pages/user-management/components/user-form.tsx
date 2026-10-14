@@ -69,32 +69,21 @@ function UserForm({ id, onClose }: { id: string; onClose?: () => void }) {
       : undefined,
   });
 
+  /**
+   * Only the fields on this form, as the backend accepts them
+   * (TradelyBackend profile/editableUser.ts). The role goes only when it was
+   * changed: staff accounts keep theirs, set on the Staff page.
+   */
   const processSubmit = (formData: Record<string, any>) => {
-    const {
-      createdAt,
-      updatedAt,
-      isKYCCompleted,
-      roles,
-      profileImage,
-      deviceToken,
-      isCompany,
-      ...rest
-    } = formData;
-
-    try {
-      updateUser({
-        id,
-        data: { ...rest, roles: roles.value },
-      })
-        .unwrap()
-        .then(() => {
-          if (onClose) {
-            onClose();
-          }
-        });
-    } catch (error) {
-      console.error("Failed to update user:", error);
-    }
+    const fields = ["firstName", "lastName", "email", "phoneNo", "streetAddress", "city", "state", "LGA", "zipCode", "operatingCountry"] as const;
+    const data: Record<string, unknown> = Object.fromEntries(fields.map((k) => [k, formData[k] ?? null]));
+    data.isVerified = !!formData.isVerified;
+    const role = formData.roles?.value ?? formData.roles;
+    if (role && role !== userData?.roles) data.roles = role;
+    updateUser({ id, data })
+      .unwrap()
+      .then(() => onClose?.())
+      .catch(() => undefined);
   };
 
   return (
@@ -174,7 +163,6 @@ function UserForm({ id, onClose }: { id: string; onClose?: () => void }) {
                       label="Role"
                       error={errors.roles?.message}
                       options={[
-                        { label: "Admin", value: "admin" },
                         { label: "Seller", value: "seller" },
                         { label: "Buyer", value: "buyer" },
                       ]}

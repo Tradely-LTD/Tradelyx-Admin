@@ -2,9 +2,17 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useDebounce } from "react-use";
 import Pagination from "rc-pagination";
-import { Download, ExternalLink, FileQuestion, Mail, Search, XCircle } from "lucide-react";
+import { toast } from "react-toastify";
+import { Download, ExternalLink, FileQuestion, FileText, Mail, Search, Unlink, XCircle } from "lucide-react";
 
-import { RequestFilter, StaffRequest, useCloseRequestMutation, useGetStaffRequestsQuery } from "./requests-api";
+import {
+  RequestFilter,
+  StaffRequest,
+  useCloseRequestMutation,
+  useGetStaffRequestsQuery,
+  useLazyGetRequestLpoDocumentQuery,
+} from "./requests-api";
+import RemoveLpoDialog from "./RemoveLpoDialog";
 import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
 
 /**
@@ -14,6 +22,11 @@ import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate,
  * posted before that (like "20 tons" with no product) is flagged here. Staff
  * nudge the buyer with a ready-made email linking straight to that request,
  * where the buyer can now edit it, or close a request that can't be saved.
+ *
+ * Requests backed by a purchase order (LPO) carry an "LPO · PO number" pill.
+ * Staff open the document through a fresh 15-minute signed link on each
+ * click, and can take the LPO off (with a reason the buyer sees) when it
+ * isn't genuine; the pill then turns into a gray "LPO removed" one.
  */
 
 const WEB_URL = "https://web.tradelyx.com";
@@ -32,11 +45,39 @@ export default function RequestsPage() {
   const [page, setPage] = useState(1);
   const [closing, setClosing] = useState<StaffRequest | null>(null);
   const [reason, setReason] = useState("");
+  const [removingLpo, setRemovingLpo] = useState<StaffRequest | null>(null);
+  const [openingLpo, setOpeningLpo] = useState<string | null>(null);
   useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 350, [search]);
 
   const { data, isLoading, isFetching } = useGetStaffRequestsQuery({ filter, page, limit: 20, search: debounced || undefined });
   const [closeRequest, { isLoading: closingNow }] = useCloseRequestMutation();
+  const [loadLpoDocument] = useLazyGetRequestLpoDocumentQuery();
   const counts = data?.counts;
+
+  // Open the tab synchronously inside the click so pop-up blockers allow it,
+  // then point it at the signed link once it arrives. Each click asks for a
+  // new link (the lazy query never reuses a cached one).
+  const openLpoDocument = async (r: StaffRequest) => {
+    const tab = window.open("", "_blank");
+    if (!tab) {
+      toast.error("Allow pop-ups for this site to open the LPO.", { position: "top-right" });
+      return;
+    }
+    tab.opener = null;
+    setOpeningLpo(r.id);
+    try {
+      const res = await loadLpoDocument({ id: r.id }).unwrap();
+      const url = res?.data?.url;
+      if (!url || !/^https:\/\//i.test(url)) throw new Error("Bad LPO link");
+      tab.location.href = url;
+    } catch (err) {
+      tab.close();
+      const body = (err as { data?: { message?: string; error?: string } })?.data;
+      toast.error(body?.message || body?.error || "Could not open the LPO. Try again.", { position: "top-right" });
+    } finally {
+      setOpeningLpo(null);
+    }
+  };
 
   const filters: { value: RequestFilter; label: string; count?: number }[] = [
     { value: "needs_detail", label: "Needs detail", count: counts?.needsDetail },
@@ -101,6 +142,13 @@ export default function RequestsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-ink">{r.title || r.productName || "Untitled request"}</p>
                       {r.closedAt ? <Pill tone="gray">Closed</Pill> : <Pill tone="green" dot>Open</Pill>}
+                      {r.lpo?.attached ? (
+                        <Pill tone="blue">LPO{r.lpo.poNumber ? ` · ${r.lpo.poNumber}` : ""}</Pill>
+                      ) : r.lpo?.removedAt ? (
+                        <Pill tone="gray" className="cursor-help">
+                          <span title={`Removed ${formatDate(r.lpo.removedAt, true)}${r.lpo.removedReason ? `: ${r.lpo.removedReason}` : ""}`}>LPO removed</span>
+                        </Pill>
+                      ) : null}
                       {r.problems.map((p) => (
                         <Pill key={p.code} tone="orange" className="cursor-help" >
                           <span title={p.message}>{PROBLEM_LABEL[p.code] ?? p.code}</span>
@@ -116,6 +164,14 @@ export default function RequestsPage() {
                       {r.buyerPhone ? ` · ${r.buyerPhone}` : ""} · posted {formatDate(r.createdAt)} ·{" "}
                       <span className="tnum">{r.quotes}</span> {r.quotes === 1 ? "quote" : "quotes"}
                     </p>
+                    {r.lpo?.attached && (
+                      <p className="mt-1 text-[12px] text-ink-faint">
+                        {r.lpo.ceiling != null && (
+                          <>Ceiling <span className="tnum">{formatNumber(r.lpo.ceiling)}</span> {r.lpo.ceilingCurrency ?? ""} · </>
+                        )}
+                        LPO document links expire after 15 minutes.
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-1.5">
                     <a href={`${WEB_URL}/rfq/${r.id}`} target="_blank" rel="noreferrer">
@@ -130,6 +186,18 @@ export default function RequestsPage() {
                     >
                       <Btn size="sm" variant="ghost" icon={<Download size={14} />}>Download image</Btn>
                     </a>
+                    {r.lpo?.attached && (
+                      <Btn
+                        size="sm"
+                        variant="secondary"
+                        icon={<FileText size={14} />}
+                        loading={openingLpo === r.id}
+                        onClick={() => openLpoDocument(r)}
+                        title="Opens a fresh link; links expire after 15 minutes"
+                      >
+                        LPO document
+                      </Btn>
+                    )}
                     {!r.closedAt && r.problems.length > 0 && (
                       <Link to={`/outreach?template=buyer_request_needs_detail&user=${r.buyerId}&name=${encodeURIComponent(name)}&path=${encodeURIComponent(`/rfq/${r.id}`)}`}>
                         <Btn size="sm" variant="secondary" icon={<Mail size={14} />}>Nudge buyer</Btn>
@@ -138,6 +206,11 @@ export default function RequestsPage() {
                     {!r.closedAt && (
                       <Btn size="sm" variant="danger" icon={<XCircle size={14} />} onClick={() => { setClosing(r); setReason(""); }}>
                         Close
+                      </Btn>
+                    )}
+                    {r.lpo?.attached && (
+                      <Btn size="sm" variant="danger" icon={<Unlink size={14} />} onClick={() => setRemovingLpo(r)}>
+                        Remove LPO
                       </Btn>
                     )}
                   </div>
@@ -182,6 +255,8 @@ export default function RequestsPage() {
           className="mt-1.5 h-10 w-full rounded-lg border-0 bg-white px-3 text-sm text-ink ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-900"
         />
       </Confirm>
+
+      <RemoveLpoDialog request={removingLpo} onClose={() => setRemovingLpo(null)} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 import { canSee, type Access, type Section } from "@/pages/staff/staff-api";
 
@@ -18,7 +18,7 @@ export interface MenuItem {
   roles?: StaffRole[];
   /** Admin-panel section needed (staff permissions); agents are not limited by these */
   section?: Section;
-  /** Hidden from view-only staff (ID documents, staff list) */
+  /** Hidden from view-only staff (ID documents, staff list, disputes) */
   sensitive?: boolean;
   /** Key into the live counts the layout fetches, shown as a badge */
   badge?: "kycPending" | "agentsApplied";
@@ -54,6 +54,12 @@ const ALL_GROUPS: MenuGroup[] = [
       { icon: FileQuestion, label: "Buyer requests", path: "/requests", description: "What buyers asked for; unclear requests flagged", roles: ["admin", "country_admin"], section: "catalog" },
       { icon: Package, label: "Products", path: "/product", description: "Every product listed on TradelyX", section: "catalog" },
       { icon: ShellIcon, label: "Sell offers", path: "/sell-offer", description: "Stock sellers have ready, with price and quantity", section: "catalog" },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { icon: Scale, label: "Disputes", path: "/disputes", description: "Buyers and sellers who disagree about an escrowed order; review and decide refund or release", roles: ["admin"], section: "finance", sensitive: true },
     ],
   },
   {

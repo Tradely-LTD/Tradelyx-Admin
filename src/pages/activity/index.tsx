@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Pagination from "rc-pagination";
-import { Award, BadgeCheck, Bell, Edit3, FileX, History, Megaphone, Package, ShieldCheck, ShieldX, Store, Trash2, UserCog } from "lucide-react";
+import { Award, BadgeCheck, Banknote, Bell, Edit3, FileX, Gavel, History, Megaphone, MessageSquare, Package, PlayCircle, RefreshCw, RotateCcw, ShieldCheck, ShieldX, Store, Trash2, Undo2, UserCog } from "lucide-react";
 
 import { StaffAction, useGetActivityQuery } from "./activity-api";
 import { Card, EmptyState, PageHeader, Skeleton, formatDate, initials } from "@/common/ui/kit";
@@ -23,6 +23,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "notification.", label: "Push notifications" },
   { value: "request.", label: "Buyer requests" },
   { value: "agent.", label: "Agents" },
+  { value: "dispute.", label: "Disputes" },
 ];
 
 const ICON: Record<string, { icon: typeof History; tone: string }> = {
@@ -49,6 +50,13 @@ const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "agent.commission_reversed": { icon: Trash2, tone: "bg-danger-soft text-danger-deep" },
   "agent.person_linked": { icon: UserCog, tone: "bg-sky-50 text-sky-800" },
   "agent.rate_changed": { icon: Edit3, tone: "bg-paper-deep text-ink-soft" },
+  "dispute.review_started": { icon: PlayCircle, tone: "bg-sky-50 text-sky-800" },
+  "dispute.decided": { icon: Gavel, tone: "bg-brand-50 text-brand-900" },
+  "dispute.decision_changed": { icon: RotateCcw, tone: "bg-attention-soft text-attention-deep" },
+  "dispute.payout_started": { icon: Banknote, tone: "bg-brand-50 text-brand-900" },
+  "dispute.payout_retried": { icon: RefreshCw, tone: "bg-attention-soft text-attention-deep" },
+  "dispute.refund_completed": { icon: Undo2, tone: "bg-brand-50 text-brand-900" },
+  "dispute.note_added": { icon: MessageSquare, tone: "bg-paper-deep text-ink-soft" },
 };
 
 export default function ActivityPage() {

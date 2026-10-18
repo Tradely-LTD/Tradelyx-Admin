@@ -9,6 +9,21 @@ import { Methods } from "@/utils/enums";
  */
 export type RequestProblem = { code: string; field: string; message: string };
 
+/**
+ * The buyer's purchase order (LPO) as staff see it on the list. The document
+ * itself is never in the list; it is opened through a short-lived signed link
+ * (getRequestLpoDocument). removedAt/removedReason survive a removal so staff
+ * can see why a request lost its badge.
+ */
+export interface StaffRequestLpo {
+  attached: boolean;
+  poNumber: string | null;
+  ceiling: number | null;
+  ceilingCurrency: string | null;
+  removedAt: string | null;
+  removedReason: string | null;
+}
+
 export interface StaffRequest {
   id: string;
   title: string | null;
@@ -27,9 +42,16 @@ export interface StaffRequest {
   buyerPhone: string | null;
   quotes: number;
   problems: RequestProblem[];
+  lpo: StaffRequestLpo;
 }
 
 export type RequestFilter = "needs_detail" | "open" | "closed" | "all";
+
+/** The backend's own words from a failed call ({ message, error }), else the fallback. */
+const errorMessage = (err: unknown, fallback: string) => {
+  const body = (err as { error?: { data?: { message?: string; error?: string } } })?.error?.data;
+  return body?.message || body?.error || fallback;
+};
 
 export const requestsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -47,12 +69,34 @@ export const requestsApi = baseApi.injectEndpoints({
         try {
           await queryFulfilled;
           toast.success("Request closed", { position: "top-right" });
-        } catch (err: any) {
-          toast.error(err?.error?.data?.error || err?.error?.data?.message || "Could not close the request", { position: "top-right" });
+        } catch (err) {
+          toast.error(errorMessage(err, "Could not close the request"), { position: "top-right" });
+        }
+      },
+    }),
+    getRequestLpoDocument: builder.query<{ success: boolean; data: { url: string; expiresInSeconds: number } }, { id: string }>({
+      query: ({ id }) => ({ url: `/rfq/admin/${id}/lpo/document` }),
+      // Never reuse a cached answer: the signed link expires after 15 minutes
+      keepUnusedDataFor: 0,
+    }),
+    removeRequestLpo: builder.mutation<{ success: boolean; data: { lpoAttached: false; lpo: StaffRequestLpo } }, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({ url: `/rfq/admin/${id}/lpo/remove`, method: Methods.Post, body: { reason } }),
+      invalidatesTags: ["REQUESTS", "ACTIVITY"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("LPO removed", { position: "top-right" });
+        } catch (err) {
+          toast.error(errorMessage(err, "Could not remove the LPO"), { position: "top-right" });
         }
       },
     }),
   }),
 });
 
-export const { useGetStaffRequestsQuery, useCloseRequestMutation } = requestsApi;
+export const {
+  useGetStaffRequestsQuery,
+  useCloseRequestMutation,
+  useLazyGetRequestLpoDocumentQuery,
+  useRemoveRequestLpoMutation,
+} = requestsApi;

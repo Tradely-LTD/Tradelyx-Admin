@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ArrowLeft,
+  BadgeCheck,
   Banknote,
   EyeOff,
   FileText,
@@ -28,6 +29,7 @@ import {
   requestId,
   useAddNoteMutation,
   useChangeDecisionMutation,
+  useCompleteRefundMutation,
   useDecideMutation,
   useGetDisputeQuery,
   useLazyGetEvidenceLinkQuery,
@@ -67,6 +69,8 @@ import { Btn, Card, Confirm, Modal, Pill, Skeleton, formatDate } from "@/common/
 
 const PAYOUT_STARTED = ["payout_pending", "payout_processing", "disbursed"];
 const MAX_PAYOUT_ATTEMPTS = 2;
+/** Refund rows support can still mark sent (REFUND_UNDER_WAY_STATUSES minus refunded). */
+const REFUND_WITH_SUPPORT = ["accepted", "awaiting_account", "awaiting_provider", "processing", "failed"];
 
 export default function DisputeDetailPage() {
   const { id = "" } = useParams();
@@ -111,7 +115,7 @@ function Detail({ id, myId }: { id: string; myId: string | null }) {
   const { data: d, error, isLoading, isFetching, refetch } = useGetDisputeQuery(id, { skip: !id });
   const [loadLink] = useLazyGetEvidenceLinkQuery();
   const [opening, setOpening] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<"review" | "decide" | "change" | "retry" | "note" | null>(null);
+  const [dialog, setDialog] = useState<DialogKind | null>(null);
 
   if (isLoading) {
     return (
@@ -199,6 +203,7 @@ function Detail({ id, myId }: { id: string; myId: string | null }) {
       {dialog === "review" && <ReviewDialog id={d.id} onClose={() => setDialog(null)} />}
       {(dialog === "decide" || dialog === "change") && <DecisionDialog d={d} mode={dialog} onClose={() => setDialog(null)} />}
       {dialog === "retry" && <RetryDialog d={d} onClose={() => setDialog(null)} />}
+      {dialog === "refundSent" && <RefundSentDialog d={d} onClose={() => setDialog(null)} />}
       {dialog === "note" && <NoteDialog d={d} onClose={() => setDialog(null)} />}
     </div>
   );
@@ -208,7 +213,7 @@ function Detail({ id, myId }: { id: string; myId: string | null }) {
 // Actions
 // ---------------------------------------------------------------------------
 
-type DialogKind = "review" | "decide" | "change" | "retry" | "note";
+type DialogKind = "review" | "decide" | "change" | "retry" | "note" | "refundSent";
 
 function Actions({ d, myId, actor, onAction }: { d: AdminDispute; myId: string | null; actor: boolean; onAction: (k: DialogKind) => void }) {
   const open = isOpenStatus(d.status);
@@ -221,7 +226,7 @@ function Actions({ d, myId, actor, onAction }: { d: AdminDispute; myId: string |
   if (!open) next = `Resolved ${formatDate(d.resolvedAt, true)}. Nothing more to do.`;
   else if (!decision && d.status === "open") next = "Start the review to let both parties know a TradelyX arbitrator is looking at it. You can decide once it's under review.";
   else if (!decision) next = "Read both sides and the evidence, then record one decision. It moves the money and both parties are told the reason.";
-  else if (decision.outcome === "refund") next = "Refund decided. Support sends the refund by hand and marks it complete; the dispute then resolves as Refunded. A refund decision is final.";
+  else if (decision.outcome === "refund") next = "Refund decided. Send the refund to the buyer by hand, then use Mark refund sent; the dispute then resolves as Refunded. A refund decision is final.";
   else if (payoutStarted) next = "Release decided and the payout has started. The dispute resolves when the provider confirms it.";
   else next = "Release decided but the seller hasn't been paid yet. Retry the payout, or a different finance admin can change the decision to a refund.";
 
@@ -233,6 +238,7 @@ function Actions({ d, myId, actor, onAction }: { d: AdminDispute; myId: string |
       ? "Payment to the seller has started, so the decision can't be changed."
       : null;
   const showRetry = open && decision?.outcome === "release" && (!payout || payout.status === "payout_failed");
+  const showRefundSent = open && decision?.outcome === "refund" && !!d.refund && REFUND_WITH_SUPPORT.includes(d.refund.status);
   const retryBlock = payoutStuck ? "The payout failed twice and is with support. Pay by hand, or change the decision to a refund." : null;
 
   return (
@@ -252,6 +258,11 @@ function Actions({ d, myId, actor, onAction }: { d: AdminDispute; myId: string |
             {open && !decision && d.status === "under_review" && (
               <Btn icon={<Gavel size={15} />} onClick={() => onAction("decide")}>
                 Decide
+              </Btn>
+            )}
+            {showRefundSent && (
+              <Btn icon={<BadgeCheck size={15} />} onClick={() => onAction("refundSent")}>
+                Mark refund sent
               </Btn>
             )}
             {showRetry && (
@@ -411,6 +422,74 @@ function DecisionDialog({ d, mode, onClose }: { d: AdminDispute; mode: "decide" 
         onConfirm={submit}
       >
         This moves {amount} and can't be undone by you. {mode === "decide" && outcome === "release" && "Only a different finance admin can change a release to a refund, and only before the payout starts."}
+      </Confirm>
+    </>
+  );
+}
+
+function RefundSentDialog({ d, onClose }: { d: AdminDispute; onClose: () => void }) {
+  const [complete, { isLoading }] = useCompleteRefundMutation();
+  const [reference, setReference] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const r = d.refund;
+
+  const submit = async () => {
+    if (isLoading) return;
+    try {
+      await complete({ escrowId: d.escrowId, providerRefundId: reference.trim() || undefined }).unwrap();
+    } catch {
+      /* toasted by the API slice; the dispute reloads */
+    }
+    onClose();
+  };
+
+  return (
+    <>
+      <Modal
+        open
+        onClose={onClose}
+        title="Mark the refund sent"
+        subtitle={`Order #${d.orderRef} · ${money(r?.currency ?? d.order.currency, r?.amount ?? d.order.amount)} to ${d.parties.buyer.name}`}
+        width="max-w-lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Btn variant="secondary" onClick={onClose} disabled={isLoading}>Cancel</Btn>
+            <Btn icon={<BadgeCheck size={15} />} loading={isLoading} onClick={() => setConfirming(true)}>
+              Mark refund sent
+            </Btn>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="rounded-lg bg-attention-soft px-3.5 py-2.5 text-[13px] font-semibold text-attention-deep">
+            Only mark this after the money has actually reached the buyer.
+          </p>
+          {r?.status === "awaiting_account" && (
+            <p className="text-[13px] text-danger-deep">The buyer hasn't given their account details for this refund yet. Check how it was paid before marking it sent.</p>
+          )}
+          <p className="text-[13px] text-ink-soft">
+            The escrow becomes Refunded, the dispute resolves as Refunded, both parties are told and it's recorded in Activity. This can't be undone.
+          </p>
+          <label className="block">
+            <span className="text-[13px] font-semibold text-ink">Bank or transfer reference (optional)</span>
+            <input
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              maxLength={255}
+              className="mt-1.5 h-10 w-full rounded-lg px-3 text-sm text-ink ring-1 ring-inset ring-rule focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </label>
+        </div>
+      </Modal>
+      <Confirm
+        open={confirming}
+        title="Has the money reached the buyer?"
+        confirmLabel="Yes, mark it sent"
+        loading={isLoading}
+        onCancel={() => setConfirming(false)}
+        onConfirm={submit}
+      >
+        Only mark this after the money has actually reached the buyer. The dispute closes as Refunded and both parties are notified.
       </Confirm>
     </>
   );

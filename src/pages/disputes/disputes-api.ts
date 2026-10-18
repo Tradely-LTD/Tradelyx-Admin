@@ -276,6 +276,29 @@ export const disputesApi = baseApi.injectEndpoints({
         }
       },
     }),
+    /**
+     * POST /escrow/:id/admin-refund/complete {providerRefundId?}: support
+     * records a refund sent by hand. The backend resolves the dispute as
+     * Refunded, tells both parties and audits dispute.refund_completed.
+     * Repeating it on a refunded row is a no-op, so a double click is safe.
+     */
+    completeRefund: builder.mutation<{ refund: AdminRefund }, { escrowId: string; providerRefundId?: string }>({
+      query: ({ escrowId, providerRefundId }) => ({
+        url: `/escrow/${escrowId}/admin-refund/complete`,
+        method: Methods.Post,
+        body: providerRefundId ? { providerRefundId } : {},
+      }),
+      transformResponse: (r: { data: { refund: AdminRefund } }) => r.data,
+      invalidatesTags: afterWrite,
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("Refund marked sent; the dispute is resolved as Refunded and both parties have been told", { position: "top-right" });
+        } catch (err) {
+          toast.error(refusalMessage(err, "Could not mark the refund sent"), { position: "top-right" });
+        }
+      },
+    }),
     getEvidenceLink: builder.query<
       { url: string; expiresAt: string | null; legacy: boolean; mime: string | null },
       { id: string; evidenceId: string }
@@ -296,5 +319,6 @@ export const {
   useChangeDecisionMutation,
   useRetryPayoutMutation,
   useAddNoteMutation,
+  useCompleteRefundMutation,
   useLazyGetEvidenceLinkQuery,
 } = disputesApi;

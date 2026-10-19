@@ -9,10 +9,13 @@ import { lastActive } from "@/pages/user-management/components/user-drawer";
 import {
   Access,
   Candidate,
+  OPT_IN_SECTIONS,
   PRESETS,
   SECTIONS,
   Section,
   StaffMember,
+  accessLabel,
+  toggleSection,
   useAddStaffMutation,
   useGetStaffQuery,
   useSearchCandidatesQuery,
@@ -26,12 +29,6 @@ import {
 
 const errorText = (err: any, fallback: string) => err?.data?.error || fallback;
 
-const accessLabel = (access: Access) => {
-  if (access === null) return "Full access";
-  if (!access.length) return "No access";
-  return SECTIONS.filter((s) => access.includes(s.key)).map((s) => s.label).join(", ");
-};
-
 type Draft = { email: string; role: "admin" | "country_admin"; access: Access };
 
 const personName = (p: { firstName: string | null; lastName: string | null; email: string }) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.email;
@@ -39,7 +36,8 @@ const personName = (p: { firstName: string | null; lastName: string | null; emai
 export default function StaffPage() {
   const { loginResponse } = useUserSlice();
   const myId = loginResponse?.user.id;
-  const { data, isLoading, isError, error } = useGetStaffQuery();
+  const { data: staffData, isLoading, isError, error } = useGetStaffQuery();
+  const data = staffData?.staff;
   const [editing, setEditing] = useState<StaffMember | "new" | null>(null);
 
   return (
@@ -112,12 +110,12 @@ export default function StaffPage() {
         )}
       </Card>
 
-      <StaffDrawer target={editing} onClose={() => setEditing(null)} />
+      <StaffDrawer target={editing} grantable={staffData?.sections ?? []} onClose={() => setEditing(null)} />
     </>
   );
 }
 
-function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; onClose: () => void }) {
+function StaffDrawer({ target, grantable, onClose }: { target: StaffMember | "new" | null; grantable: string[]; onClose: () => void }) {
   const isNew = target === "new";
   const [draft, setDraft] = useState<Draft>({ email: "", role: "admin", access: ["people", "catalog"] });
   const [add, { isLoading: adding }] = useAddStaffMutation();
@@ -138,12 +136,16 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
   }, [target, isNew]);
 
   if (!target) return null;
-  const ticked = (key: Section) => draft.access === null || draft.access.includes(key);
-  const toggle = (key: Section) => {
-    const current = draft.access === null ? SECTIONS.map((s) => s.key) : draft.access;
-    const next = current.includes(key) ? current.filter((k) => k !== key) : [...current, key];
-    setDraft({ ...draft, access: next.length === SECTIONS.length ? null : next });
-  };
+  // Opt-in sections are offered only while the backend lists them (their
+  // feature is switched on) and only for admins. Full access (null) never
+  // includes them, so they are ticked only when listed by name.
+  const optIn = OPT_IN_SECTIONS.filter((s) => grantable.includes(s.key) && draft.role === "admin");
+  const ticked = (key: Section) => (draft.access === null ? !OPT_IN_SECTIONS.some((o) => o.key === key) : draft.access.includes(key));
+  const toggle = (key: Section) => setDraft({ ...draft, access: toggleSection(draft.access, key) });
+  /** Opt-in sections the backend would refuse now: country admins never; switched-off features are unknown sections */
+  const dropped = OPT_IN_SECTIONS.filter((s) => draft.access?.includes(s.key) && !optIn.some((o) => o.key === s.key));
+  const accessToSave = (): Access =>
+    draft.access === null || !dropped.length ? draft.access : draft.access.filter((k) => !dropped.some((d) => d.key === k));
   const preset = PRESETS.find((p) => JSON.stringify([...(p.access ?? ["*"])].sort()) === JSON.stringify([...(draft.access ?? ["*"])].sort()));
 
   const save = async () => {
@@ -151,10 +153,10 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
     try {
       if (isNew) {
         if (!picked) return setProblem("Search for the person and choose them from the list.");
-        await add({ userId: picked.id, role: draft.role, permissions: draft.access }).unwrap();
+        await add({ userId: picked.id, role: draft.role, permissions: accessToSave() }).unwrap();
         toast.success("Added. They need to sign out and back in to see the admin panel.", { position: "top-right" });
       } else {
-        await update({ id: target.id, role: draft.role, permissions: draft.access }).unwrap();
+        await update({ id: target.id, role: draft.role, permissions: accessToSave() }).unwrap();
         toast.success("Access changed", { position: "top-right" });
       }
       onClose();
@@ -276,7 +278,25 @@ function StaffDrawer({ target, onClose }: { target: StaffMember | "new" | null; 
             </span>
           </label>
         ))}
+        {optIn.map((s) => (
+          <label key={s.key} className={`flex cursor-pointer gap-3 rounded-xl px-3 py-2.5 ring-1 ring-inset ${ticked(s.key) ? "bg-attention-soft/70 ring-attention/30" : "ring-rule hover:bg-paper"}`}>
+            <input type="checkbox" checked={ticked(s.key)} onChange={() => toggle(s.key)} className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-brand-900" />
+            <span>
+              <span className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
+                {s.label}
+                <span className="rounded-full bg-paper-deep px-1.5 py-px text-[10.5px] font-semibold uppercase tracking-[0.06em] text-ink-soft">Granted by name</span>
+              </span>
+              <span className="block text-[12px] text-ink-soft">{s.detail}</span>
+              <span className="mt-0.5 block text-[12px] text-ink-faint">Not part of Full access or any preset. Can't be combined with View only.</span>
+            </span>
+          </label>
+        ))}
       </fieldset>
+      {!!dropped.length && (
+        <p className="mt-3 rounded-lg bg-attention-soft px-3 py-2 text-[12.5px] text-attention-deep">
+          {dropped.map((d) => d.label).join(", ")} will be removed when you save: {draft.role === "admin" ? "it is switched off right now" : "only admins can have it"}.
+        </p>
+      )}
       <p className="mt-3 text-[12px] text-ink-faint">Everyone on staff can see the dashboard and the activity log.</p>
     </Drawer>
   );

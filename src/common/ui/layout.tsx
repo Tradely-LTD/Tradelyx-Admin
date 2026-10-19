@@ -7,7 +7,8 @@ import { logout, useUserSlice } from "@/pages/auth/authSlice";
 import { useGetKycSubmissionsQuery } from "@/pages/kyc/kyc-api";
 import { useGetAgentsQuery } from "@/pages/agents/agents-api";
 import { findMenuItem, getMenuGroups } from "./menuItems";
-import { can, useGetMyAccessQuery } from "@/pages/staff/staff-api";
+import { can, canReviewConversations, useGetMyAccessQuery } from "@/pages/staff/staff-api";
+import { conversationsApi, useGetConversationReviewSummaryQuery } from "@/pages/conversations/conversations-api";
 import { initials } from "./kit";
 
 const roleLabel: Record<string, string> = { admin: "Administrator", country_admin: "Country admin", agent: "Agent" };
@@ -20,13 +21,24 @@ const Layout = () => {
   const role = user?.roles ?? null;
   // Which sections this staff member can use; the API enforces the same
   const { data: access } = useGetMyAccessQuery(undefined, { skip: role !== "admin" && role !== "country_admin" });
-  const groups = getMenuGroups(role, access);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Live counts for the badges; only admins can read the KYC queue
   const { data: kyc } = useGetKycSubmissionsQuery({ status: "pending", page: 1, limit: 1 }, { skip: role !== "admin" || !can(access, "people"), pollingInterval: 120_000 });
   const { data: applied } = useGetAgentsQuery("applied", { skip: role !== "admin" || !can(access, "growth"), pollingInterval: 300_000 });
-  const badges = { kycPending: kyc?.pagination?.total ?? 0, agentsApplied: applied?.data.length ?? 0 };
+  // Conversation review: only for admins holding it by name. The menu item
+  // appears only once the summary loads, so with the feature switched off
+  // (404) or the permission refused (403) there is no trace of it; polling
+  // stops on an error.
+  const reviewer = canReviewConversations(role, access);
+  const lastSummary = conversationsApi.endpoints.getConversationReviewSummary.useQueryState(undefined, { skip: !reviewer });
+  const refused = [403, 404].includes((lastSummary.error as { status?: number } | undefined)?.status ?? 0);
+  const { data: reviewSummary, isSuccess: reviewOn } = useGetConversationReviewSummaryQuery(undefined, {
+    skip: !reviewer,
+    pollingInterval: refused ? 0 : 120_000,
+  });
+  const groups = getMenuGroups(role, access, reviewer && reviewOn);
+  const badges = { kycPending: kyc?.pagination?.total ?? 0, agentsApplied: applied?.data.length ?? 0, conversationsNew: reviewSummary?.newCount ?? 0 };
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
@@ -66,7 +78,7 @@ const Layout = () => {
                           <item.icon size={17} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? "text-brand-300" : "text-white/50 group-hover:text-white/80"} />
                           <span className="flex-1">{item.label}</span>
                           {count > 0 && (
-                            <span className="tnum rounded-full bg-attention px-1.5 py-px text-[10.5px] font-bold text-white" aria-label={`${count} waiting`}>
+                            <span className="tnum rounded-full bg-attention px-1.5 py-px text-[10.5px] font-bold text-white" aria-label={item.badge === "conversationsNew" ? `${count} new` : `${count} waiting`}>
                               {count > 99 ? "99+" : count}
                             </span>
                           )}

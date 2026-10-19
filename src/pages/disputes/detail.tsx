@@ -887,7 +887,7 @@ function Parties({ d }: { d: AdminDispute }) {
           <MessagesSquare size={15} /> View order chat
         </Link>
       ) : (
-        <Btn variant="secondary" size="sm" className="mt-4 w-full" disabled icon={<MessagesSquare size={15} />} title="Needs the Conversation review permission">
+        <Btn variant="secondary" size="sm" className="mt-4 w-full" disabled icon={<MessagesSquare size={15} />} title="Arrives with the chat review feature">
           View order chat
         </Btn>
       )}

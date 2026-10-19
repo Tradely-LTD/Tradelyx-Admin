@@ -1,5 +1,5 @@
 import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardList, Contact, Eye, FileText, Flag, Lock, RefreshCw, Scale } from "lucide-react";
 
@@ -47,12 +47,16 @@ import { NoAccess, ReviewerGate } from "./reviewer-gate";
 export default function ConversationThreadPage() {
   const { userA = "", userB = "" } = useParams();
   return (
-    <>
-      <Link to="/conversations" className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-soft hover:text-ink">
-        <ArrowLeft size={15} /> Flagged & reported conversations
-      </Link>
-      <ReviewerGate>{() => <Thread key={`${userA}|${userB}`} userA={userA} userB={userB} />}</ReviewerGate>
-    </>
+    <ReviewerGate>
+      {() => (
+        <>
+          <Link to="/conversations" className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-soft hover:text-ink">
+            <ArrowLeft size={15} /> Flagged & reported conversations
+          </Link>
+          <Thread key={`${userA}|${userB}`} userA={userA} userB={userB} />
+        </>
+      )}
+    </ReviewerGate>
   );
 }
 
@@ -221,10 +225,9 @@ function Thread({ userA, userB }: { userA: string; userB: string }) {
 
 function ThreadError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const r = refusalOf(error);
-  if (r?.status === 403 || r?.status === 404) {
-    // 404 is also the feature being switched off: say nothing more
-    return <NoAccess>{r.status === 403 && r.data?.message ? r.data.message : undefined}</NoAccess>;
-  }
+  // The thread route has no 404 of its own: 404 is the feature switched off since the page opened
+  if (r?.status === 404) return <Navigate replace to="/" />;
+  if (r?.status === 403) return <NoAccess>{r.data?.message || undefined}</NoAccess>;
   const invalid = r?.status === 400;
   return (
     <Card>

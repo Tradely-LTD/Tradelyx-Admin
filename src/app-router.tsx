@@ -20,6 +20,8 @@ import AgentsPage from "./pages/agents";
 import DisputesPage from "./pages/disputes";
 import DisputeDetailPage from "./pages/disputes/detail";
 import StaffPage from "./pages/staff";
+import ConversationsPage from "./pages/conversations";
+import ConversationThreadPage from "./pages/conversations/thread";
 import ProspectsPage from "./pages/prospects";
 
 function AppRouter() {
@@ -50,6 +52,8 @@ function AppRouter() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="disputes" element={<DisputesPage />} />
           <Route path="disputes/:id" element={<DisputeDetailPage />} />
+          <Route path="conversations" element={<ConversationsPage />} />
+          <Route path="conversations/:userA/:userB" element={<ConversationThreadPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="prospects" element={<ProspectsPage />} />
           <Route path="emails" element={<EmailLandingPage />} />

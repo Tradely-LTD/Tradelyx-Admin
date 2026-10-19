@@ -7,7 +7,7 @@ import { baseApi } from "@/store/baseApi";
 export interface StaffAction {
   id: string;
   action: string;
-  targetType: "product" | "sell_offer" | "user" | "certification" | "campaign" | "notification" | "request" | "prospect" | "dispute";
+  targetType: "product" | "sell_offer" | "user" | "certification" | "campaign" | "notification" | "request" | "prospect" | "dispute" | "conversation";
   targetId: string | null;
   summary: string;
   details: Record<string, unknown> | null;

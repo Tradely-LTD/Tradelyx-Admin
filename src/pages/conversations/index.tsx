@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Pagination from "rc-pagination";
 import { MessageSquareWarning } from "lucide-react";
 
@@ -40,15 +40,20 @@ const FLAG_FILTERS: { value: FlagType | ""; label: string }[] = [
 ];
 
 export default function ConversationsPage() {
+  // The header is inside the gate: while the feature is off nothing here renders
   return (
-    <>
-      <PageHeader
-        eyebrow="Trust & safety"
-        title="Flagged & reported conversations"
-        description="Buyer–seller conversations a participant reported, or where someone shared contact details to take the deal off TradelyX. Opening one is read-only and recorded in Activity. Nobody is told when you look."
-      />
-      <ReviewerGate>{() => <Queue />}</ReviewerGate>
-    </>
+    <ReviewerGate>
+      {() => (
+        <>
+          <PageHeader
+            eyebrow="Trust & safety"
+            title="Flagged & reported conversations"
+            description="Buyer–seller conversations a participant reported, or where someone shared contact details to take the deal off TradelyX. Opening one is read-only and recorded in Activity. Nobody is told when you look."
+          />
+          <Queue />
+        </>
+      )}
+    </ReviewerGate>
   );
 }
 
@@ -94,7 +99,9 @@ function Queue() {
   };
 
   const refusal = refusalOf(error);
-  if (refusal?.status === 403 || refusal?.status === 404) return <NoAccess title="You don't have access to conversation review" />;
+  // 404: switched off since the page opened; leave like any unknown URL
+  if (refusal?.status === 404) return <Navigate replace to="/" />;
+  if (refusal?.status === 403) return <NoAccess title="You don't have access to conversation review" />;
 
   return (
     <>

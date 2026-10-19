@@ -28,6 +28,9 @@ import {
 } from "lucide-react";
 
 import { StaffAction, useGetActivityQuery } from "./activity-api";
+import { useUserSlice } from "@/pages/auth/authSlice";
+import { canReviewConversations, useGetMyAccessQuery } from "@/pages/staff/staff-api";
+import { useGetConversationReviewSummaryQuery } from "@/pages/conversations/conversations-api";
 import { Card, EmptyState, PageHeader, Skeleton, formatDate, initials } from "@/common/ui/kit";
 
 /**
@@ -49,9 +52,14 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "request.", label: "Buyer requests" },
   { value: "agent.", label: "Agents" },
   { value: "dispute.", label: "Disputes" },
-  // Prefix match: conversation.viewed / .view_refused / .contact_revealed and conversation_item.reviewed
-  { value: "conversation", label: "Conversation review" },
 ];
+
+/**
+ * Prefix match: conversation.viewed / .view_refused / .contact_revealed and
+ * conversation_item.reviewed. Offered only while conversation review answers
+ * (its summary loads), so with the feature switched off there is no trace.
+ */
+const CONVERSATION_FILTER = { value: "conversation", label: "Conversation review" };
 
 const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "product.verified": { icon: BadgeCheck, tone: "bg-brand-50 text-brand-900" },
@@ -107,6 +115,11 @@ export default function ActivityPage() {
   const [action, setAction] = useState("");
   const [page, setPage] = useState(1);
   const { data, isLoading, isFetching } = useGetActivityQuery({ page, limit: 25, action: action || undefined });
+  const { loginResponse } = useUserSlice();
+  const role = loginResponse?.user?.roles ?? null;
+  const { data: access } = useGetMyAccessQuery(undefined, { skip: role !== "admin" });
+  const { isSuccess: reviewOn } = useGetConversationReviewSummaryQuery(undefined, { skip: !canReviewConversations(role, access) });
+  const filters = reviewOn ? [...FILTERS, CONVERSATION_FILTER] : FILTERS;
 
   return (
     <>
@@ -117,7 +130,7 @@ export default function ActivityPage() {
       />
 
       <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Filter by kind">
-        {FILTERS.map((f) => (
+        {filters.map((f) => (
           <button
             key={f.value}
             onClick={() => {

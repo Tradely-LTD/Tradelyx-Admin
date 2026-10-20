@@ -54,6 +54,10 @@ import {
   money,
 } from "./labels";
 import { Btn, Card, Confirm, Modal, Pill, Skeleton, formatDate } from "@/common/ui/kit";
+import { useUserSlice } from "@/pages/auth/authSlice";
+import { canReviewConversations, useGetMyAccessQuery } from "@/pages/staff/staff-api";
+import { useGetConversationReviewSummaryQuery } from "@/pages/conversations/conversations-api";
+import { threadPath } from "@/pages/conversations/labels";
 
 /**
  * One dispute, for a finance admin: the order and its money, both sides'
@@ -855,6 +859,18 @@ function OrderFacts({ d }: { d: AdminDispute }) {
 }
 
 function Parties({ d }: { d: AdminDispute }) {
+  // "View order chat" opens the buyer–seller conversation in conversation
+  // review (the dispute is its access basis). Only for admins holding
+  // Conversation review by name, and only while that feature answers (its
+  // summary loads; switched off it is a 404). Everyone else sees it disabled.
+  const { loginResponse } = useUserSlice();
+  const role = loginResponse?.user?.roles ?? null;
+  const { data: access } = useGetMyAccessQuery(undefined, { skip: role !== "admin" });
+  const reviewer = canReviewConversations(role, access);
+  const { isSuccess: reviewOn } = useGetConversationReviewSummaryQuery(undefined, { skip: !reviewer });
+  const buyer = d.parties.buyer.id;
+  const seller = d.parties.seller.id;
+  const chatLink = reviewer && reviewOn && buyer && seller && buyer !== seller ? threadPath(buyer, seller) : null;
   return (
     <Section title="Parties">
       <div className="space-y-2.5">
@@ -866,8 +882,8 @@ function Parties({ d }: { d: AdminDispute }) {
           </div>
         ))}
       </div>
-      {d.chatLink && d.chatLink.startsWith("/") && !d.chatLink.startsWith("//") ? (
-        <Link to={d.chatLink} className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold text-brand-900 ring-1 ring-inset ring-rule hover:bg-paper">
+      {chatLink ? (
+        <Link to={chatLink} className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold text-brand-900 ring-1 ring-inset ring-rule hover:bg-paper">
           <MessagesSquare size={15} /> View order chat
         </Link>
       ) : (

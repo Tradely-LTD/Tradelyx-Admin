@@ -8,7 +8,7 @@ export type Access = Section[] | null;
 export const SECTIONS: { key: Section; label: string; detail: string }[] = [
   { key: "people", label: "People", detail: "Users, KYC review and certificates. Sees ID documents." },
   { key: "catalog", label: "Marketplace", detail: "Products, sell offers and buyer requests" },
-  { key: "finance", label: "Finance", detail: "Escrow refunds, agent commissions and payouts" },
+  { key: "finance", label: "Finance", detail: "Escrow refunds, dispute decisions, agent commissions and payouts" },
   { key: "growth", label: "Growth", detail: "Prospects, outreach, push notifications, direct email, agents and referrals" },
   { key: "staff", label: "Staff", detail: "Add staff and change what they can do" },
   { key: "view", label: "View only", detail: "Open every other section to look, change nothing. Not KYC documents or staff." },

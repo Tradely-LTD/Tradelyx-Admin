@@ -13,6 +13,7 @@ import {
   useLazyGetRequestLpoDocumentQuery,
 } from "./requests-api";
 import RemoveLpoDialog from "./RemoveLpoDialog";
+import { ReadingSummaryCard } from "./ReadingSummaryCard";
 import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
 
 /**
@@ -93,6 +94,8 @@ export default function RequestsPage() {
         title="Buyer requests"
         description="Every request buyers have posted. Unclear ones are flagged: nudge the buyer to add detail (they can now edit their request), or close one that can't be saved."
       />
+
+      <ReadingSummaryCard />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter">

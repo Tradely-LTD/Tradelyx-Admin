@@ -1,4 +1,4 @@
-import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, Search, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, PackageCheck, Search, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 
@@ -66,6 +66,7 @@ const ALL_GROUPS: MenuGroup[] = [
   {
     label: "Finance",
     items: [
+      { icon: PackageCheck, label: "Orders", path: "/orders", description: "Every paid order: where it stands, its tracking, and which need someone to call", roles: ["admin"], section: "finance" },
       { icon: Scale, label: "Disputes", path: "/disputes", description: "Buyers and sellers who disagree about an escrowed order; review and decide refund or release", roles: ["admin"], section: "finance", sensitive: true },
     ],
   },

@@ -1,6 +1,6 @@
-import { Award, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
-import { canSee, type Access, type Section } from "@/pages/staff/staff-api";
+import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 
 /**
  * The sidebar, grouped by the job a staff member is doing. `roles` limits an
@@ -18,10 +18,16 @@ export interface MenuItem {
   roles?: StaffRole[];
   /** Admin-panel section needed (staff permissions); agents are not limited by these */
   section?: Section;
-  /** Hidden from view-only staff (ID documents, staff list) */
+  /** Hidden from view-only staff (ID documents, staff list, disputes) */
   sensitive?: boolean;
+  /**
+   * An opt-in section, granted by name (never by full access). The layout
+   * decides: the item shows only when the staff member holds it and the
+   * feature answers (its summary loads; switched off it is a 404).
+   */
+  optIn?: OptInSection;
   /** Key into the live counts the layout fetches, shown as a badge */
-  badge?: "kycPending" | "agentsApplied";
+  badge?: "kycPending" | "agentsApplied" | "conversationsNew";
 }
 
 export interface MenuGroup {
@@ -57,6 +63,26 @@ const ALL_GROUPS: MenuGroup[] = [
     ],
   },
   {
+    label: "Finance",
+    items: [
+      { icon: Scale, label: "Disputes", path: "/disputes", description: "Buyers and sellers who disagree about an escrowed order; review and decide refund or release", roles: ["admin"], section: "finance", sensitive: true },
+    ],
+  },
+  {
+    label: "Trust & safety",
+    items: [
+      {
+        icon: MessageSquareWarning,
+        label: "Flagged & reported conversations",
+        path: "/conversations",
+        description: "Buyer–seller conversations a participant reported or that shared contact details; read-only, every view logged",
+        roles: ["admin"],
+        optIn: "conversations",
+        badge: "conversationsNew",
+      },
+    ],
+  },
+  {
     label: "Communication",
     items: [
       { icon: Target, label: "Prospects", path: "/prospects", description: "Businesses to bring onto TradelyX, contacted one at a time", roles: ["admin", "country_admin", "agent"], section: "growth" },
@@ -76,11 +102,18 @@ const ALL_GROUPS: MenuGroup[] = [
 export const isStaffRole = (role?: string | null): role is StaffRole =>
   role === "admin" || role === "country_admin" || role === "agent";
 
-/** `access` is the signed-in staff member's sections (undefined while loading = show by role). */
-export const getMenuGroups = (role?: string | null, access?: Access): MenuGroup[] => {
+/**
+ * `access` is the signed-in staff member's sections (undefined while loading =
+ * show by role). `conversationReview`: the layout has confirmed this person
+ * may review conversations and the feature is on; opt-in items need it.
+ */
+export const getMenuGroups = (role?: string | null, access?: Access, conversationReview = false): MenuGroup[] => {
   if (!isStaffRole(role)) return [];
   const sectionOk = (i: MenuItem) => role === "agent" || !i.section || canSee(access, i.section, i.sensitive);
-  return ALL_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => (!i.roles || i.roles.includes(role)) && sectionOk(i)) })).filter((g) => g.items.length);
+  const optInOk = (i: MenuItem) => !i.optIn || (i.optIn === "conversations" && conversationReview);
+  return ALL_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => (!i.roles || i.roles.includes(role)) && sectionOk(i) && optInOk(i)) })).filter(
+    (g) => g.items.length
+  );
 };
 
 /** The menu item a path belongs to, for the page title. Sub-paths match their parent. */

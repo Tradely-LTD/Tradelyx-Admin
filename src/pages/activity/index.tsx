@@ -1,8 +1,36 @@
 import { useState } from "react";
 import Pagination from "rc-pagination";
-import { Award, BadgeCheck, Bell, Edit3, FileX, History, Megaphone, Package, ShieldCheck, ShieldX, Store, Trash2, UserCog } from "lucide-react";
+import {
+  Award,
+  BadgeCheck,
+  Banknote,
+  Bell,
+  ClipboardCheck,
+  Contact,
+  Edit3,
+  Eye,
+  EyeOff,
+  FileX,
+  Gavel,
+  History,
+  Megaphone,
+  MessageSquare,
+  Package,
+  PlayCircle,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  ShieldX,
+  Store,
+  Trash2,
+  Undo2,
+  UserCog,
+} from "lucide-react";
 
 import { StaffAction, useGetActivityQuery } from "./activity-api";
+import { useUserSlice } from "@/pages/auth/authSlice";
+import { canReviewConversations, useGetMyAccessQuery } from "@/pages/staff/staff-api";
+import { useGetConversationReviewSummaryQuery } from "@/pages/conversations/conversations-api";
 import { Card, EmptyState, PageHeader, Skeleton, formatDate, initials } from "@/common/ui/kit";
 
 /**
@@ -23,7 +51,15 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "notification.", label: "Push notifications" },
   { value: "request.", label: "Buyer requests" },
   { value: "agent.", label: "Agents" },
+  { value: "dispute.", label: "Disputes" },
 ];
+
+/**
+ * Prefix match: conversation.viewed / .view_refused / .contact_revealed and
+ * conversation_item.reviewed. Offered only while conversation review answers
+ * (its summary loads), so with the feature switched off there is no trace.
+ */
+const CONVERSATION_FILTER = { value: "conversation", label: "Conversation review" };
 
 const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "product.verified": { icon: BadgeCheck, tone: "bg-brand-50 text-brand-900" },
@@ -49,12 +85,41 @@ const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "agent.commission_reversed": { icon: Trash2, tone: "bg-danger-soft text-danger-deep" },
   "agent.person_linked": { icon: UserCog, tone: "bg-sky-50 text-sky-800" },
   "agent.rate_changed": { icon: Edit3, tone: "bg-paper-deep text-ink-soft" },
+  "dispute.review_started": { icon: PlayCircle, tone: "bg-sky-50 text-sky-800" },
+  "dispute.decided": { icon: Gavel, tone: "bg-brand-50 text-brand-900" },
+  "dispute.decision_changed": { icon: RotateCcw, tone: "bg-attention-soft text-attention-deep" },
+  "dispute.payout_started": { icon: Banknote, tone: "bg-brand-50 text-brand-900" },
+  "dispute.payout_retried": { icon: RefreshCw, tone: "bg-attention-soft text-attention-deep" },
+  "dispute.refund_completed": { icon: Undo2, tone: "bg-brand-50 text-brand-900" },
+  "dispute.note_added": { icon: MessageSquare, tone: "bg-paper-deep text-ink-soft" },
+  "conversation.viewed": { icon: Eye, tone: "bg-sky-50 text-sky-800" },
+  "conversation.view_refused": { icon: EyeOff, tone: "bg-danger-soft text-danger-deep" },
+  "conversation.contact_revealed": { icon: Contact, tone: "bg-attention-soft text-attention-deep" },
+  "conversation_item.reviewed": { icon: ClipboardCheck, tone: "bg-brand-50 text-brand-900" },
+};
+
+/** Why a conversation view was refused (details.reason), in words */
+const REFUSAL_REASON: Record<string, string> = {
+  no_basis: "No dispute, report or flag links this conversation",
+  participant: "The staff member is in this conversation",
+};
+
+/** Conversation entries carry ids and reasons only (never message text); show the reason in words. */
+const reasonOf = (a: StaffAction) => {
+  const reason = typeof a.details?.reason === "string" ? a.details.reason : null;
+  if (!reason) return null;
+  return a.action === "conversation.view_refused" ? REFUSAL_REASON[reason] ?? reason : `"${reason}"`;
 };
 
 export default function ActivityPage() {
   const [action, setAction] = useState("");
   const [page, setPage] = useState(1);
   const { data, isLoading, isFetching } = useGetActivityQuery({ page, limit: 25, action: action || undefined });
+  const { loginResponse } = useUserSlice();
+  const role = loginResponse?.user?.roles ?? null;
+  const { data: access } = useGetMyAccessQuery(undefined, { skip: role !== "admin" });
+  const { isSuccess: reviewOn } = useGetConversationReviewSummaryQuery(undefined, { skip: !canReviewConversations(role, access) });
+  const filters = reviewOn ? [...FILTERS, CONVERSATION_FILTER] : FILTERS;
 
   return (
     <>
@@ -65,7 +130,7 @@ export default function ActivityPage() {
       />
 
       <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Filter by kind">
-        {FILTERS.map((f) => (
+        {filters.map((f) => (
           <button
             key={f.value}
             onClick={() => {
@@ -108,7 +173,7 @@ export default function ActivityPage() {
 
 export function ActivityRow({ a, compact }: { a: StaffAction; compact?: boolean }) {
   const meta = ICON[a.action] ?? { icon: History, tone: "bg-paper-deep text-ink-soft" };
-  const reason = typeof a.details?.reason === "string" ? a.details.reason : null;
+  const reason = reasonOf(a);
   return (
     <li className={`flex items-start gap-3.5 ${compact ? "py-2.5" : "px-5 py-3.5"}`}>
       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${meta.tone}`}>
@@ -116,7 +181,7 @@ export function ActivityRow({ a, compact }: { a: StaffAction; compact?: boolean 
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-medium text-ink">{a.summary}</p>
-        {reason && <p className="mt-0.5 text-[12.5px] text-ink-soft">"{reason}"</p>}
+        {reason && <p className={`mt-0.5 text-[12.5px] ${a.action === "conversation.view_refused" ? "text-danger-deep" : "text-ink-soft"}`}>{reason}</p>}
         <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-faint">
           <span className="grid h-4 w-4 place-items-center rounded-full bg-paper-deep text-[8px] font-bold text-ink-soft">
             {initials(a.actorName?.split(" ")[0], a.actorName?.split(" ")[1])}

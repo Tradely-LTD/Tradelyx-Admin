@@ -23,6 +23,7 @@ import StaffPage from "./pages/staff";
 import ConversationsPage from "./pages/conversations";
 import ConversationThreadPage from "./pages/conversations/thread";
 import ProspectsPage from "./pages/prospects";
+import SearchesPage from "./pages/searches";
 
 function AppRouter() {
   return (
@@ -56,6 +57,7 @@ function AppRouter() {
           <Route path="conversations/:userA/:userB" element={<ConversationThreadPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="prospects" element={<ProspectsPage />} />
+          <Route path="searches" element={<SearchesPage />} />
           <Route path="emails" element={<EmailLandingPage />} />
           <Route path="emails/compose" element={<EmailComposePage />} />
           <Route path="*" element={<Navigate replace to="/" />} />

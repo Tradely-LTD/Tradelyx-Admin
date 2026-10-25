@@ -1,4 +1,4 @@
-import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, Search, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 
@@ -58,6 +58,7 @@ const ALL_GROUPS: MenuGroup[] = [
     label: "Marketplace",
     items: [
       { icon: FileQuestion, label: "Buyer requests", path: "/requests", description: "What buyers asked for; unclear requests flagged", roles: ["admin", "country_admin"], section: "catalog" },
+      { icon: Search, label: "Searches", path: "/searches", description: "What people search for on the marketplace, and what they don't find", roles: ["admin"], section: "growth" },
       { icon: Package, label: "Products", path: "/product", description: "Every product listed on TradelyX", section: "catalog" },
       { icon: ShellIcon, label: "Sell offers", path: "/sell-offer", description: "Stock sellers have ready, with price and quantity", section: "catalog" },
     ],

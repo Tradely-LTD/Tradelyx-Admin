@@ -53,6 +53,21 @@ const errorMessage = (err: unknown, fallback: string) => {
   return body?.message || body?.error || fallback;
 };
 
+/** GET /rfq/admin/reading/summary: AI request posting, for staff (story 5.4). */
+export type ReadingSummary = {
+  days: number;
+  documents: number;
+  ok: number;
+  unreadable: number;
+  failed: number;
+  products: number;
+  requestsPosted: number;
+  fieldsFilled: number;
+  fieldsChanged: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export const requestsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getStaffRequests: builder.query<
@@ -73,6 +88,9 @@ export const requestsApi = baseApi.injectEndpoints({
           toast.error(errorMessage(err, "Could not close the request"), { position: "top-right" });
         }
       },
+    }),
+    getReadingSummary: builder.query<{ data: ReadingSummary }, number>({
+      query: (days) => ({ url: "/rfq/admin/reading/summary", params: { days } }),
     }),
     getRequestLpoDocument: builder.query<{ success: boolean; data: { url: string; expiresInSeconds: number } }, { id: string }>({
       query: ({ id }) => ({ url: `/rfq/admin/${id}/lpo/document` }),
@@ -96,6 +114,7 @@ export const requestsApi = baseApi.injectEndpoints({
 
 export const {
   useGetStaffRequestsQuery,
+  useGetReadingSummaryQuery,
   useCloseRequestMutation,
   useLazyGetRequestLpoDocumentQuery,
   useRemoveRequestLpoMutation,

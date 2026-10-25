@@ -20,6 +20,8 @@ import RequestsPage from "./pages/requests";
 import AgentsPage from "./pages/agents";
 import DisputesPage from "./pages/disputes";
 import DisputeDetailPage from "./pages/disputes/detail";
+import OrdersPage from "./pages/orders";
+import OrderDetailPage from "./pages/orders/detail";
 import StaffPage from "./pages/staff";
 import ConversationsPage from "./pages/conversations";
 import ConversationThreadPage from "./pages/conversations/thread";
@@ -55,6 +57,8 @@ function AppRouter() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="disputes" element={<DisputesPage />} />
           <Route path="disputes/:id" element={<DisputeDetailPage />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="conversations" element={<ConversationsPage />} />
           <Route path="conversations/:userA/:userB" element={<ConversationThreadPage />} />
           <Route path="staff" element={<StaffPage />} />

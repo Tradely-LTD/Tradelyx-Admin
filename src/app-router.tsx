@@ -9,6 +9,7 @@ import ProductManagement from "./pages/products";
 import SellOfferManagement from "./pages/selloffer";
 import NotificationManagement from "./pages/notifications";
 import ReferralManagement from "./pages/referrals";
+import ReferralRewardsPage from "./pages/referral-rewards";
 import EmailLandingPage from "./pages/email";
 import EmailComposePage from "./pages/email/compose";
 import KycReview from "./pages/kyc";
@@ -44,6 +45,7 @@ function AppRouter() {
           <Route path="product" element={<ProductManagement />} />
           <Route path="sell-offer" element={<SellOfferManagement />} />
           <Route path="referrals" element={<ReferralManagement />} />
+          <Route path="referral-rewards" element={<ReferralRewardsPage />} />
           <Route path="kyc" element={<KycReview />} />
           <Route path="certificates" element={<CertificateReview />} />
           <Route path="notifications" element={<NotificationManagement />} />

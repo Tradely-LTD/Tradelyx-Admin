@@ -1,4 +1,5 @@
 import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, PackageCheck, Search, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
+import { Gift } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 
@@ -52,6 +53,7 @@ const ALL_GROUPS: MenuGroup[] = [
       { icon: Handshake, label: "Agents", path: "/agents", description: "Applications, what each agent has brought in and earned, payouts", roles: ["admin"], section: "growth", badge: "agentsApplied" },
       // Admins see every referrer and can make one an agent; other roles see their list
       { icon: Share2, label: "Referrals", path: "/referrals", description: "Everyone whose referral code brought people in" },
+      { icon: Gift, label: "Referral rewards", path: "/referral-rewards", description: "₦500 per referred person who passes KYC: review, then pay referrers", roles: ["admin"], section: "growth" },
     ],
   },
   {

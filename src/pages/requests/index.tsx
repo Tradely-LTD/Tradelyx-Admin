@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useDebounce } from "react-use";
 import Pagination from "rc-pagination";
 import { toast } from "react-toastify";
-import { Download, ExternalLink, FileQuestion, FileText, Mail, Search, Unlink, XCircle } from "lucide-react";
+import { Download, ExternalLink, FileQuestion, FileText, Mail, Pencil, Plus, Search, Unlink, XCircle } from "lucide-react";
 
 import {
   RequestFilter,
@@ -13,6 +13,7 @@ import {
   useLazyGetRequestLpoDocumentQuery,
 } from "./requests-api";
 import RemoveLpoDialog from "./RemoveLpoDialog";
+import RequestFormDrawer from "./RequestFormDrawer";
 import { ReadingSummaryCard } from "./ReadingSummaryCard";
 import { Btn, Card, Confirm, EmptyState, PageHeader, Pill, Skeleton, formatDate, formatNumber } from "@/common/ui/kit";
 
@@ -48,6 +49,8 @@ export default function RequestsPage() {
   const [reason, setReason] = useState("");
   const [removingLpo, setRemovingLpo] = useState<StaffRequest | null>(null);
   const [openingLpo, setOpeningLpo] = useState<string | null>(null);
+  // Post for a buyer (form open, no request) or edit one
+  const [form, setForm] = useState<{ open: boolean; request: StaffRequest | null }>({ open: false, request: null });
   useDebounce(() => { setDebounced(search.trim()); setPage(1); }, 350, [search]);
 
   const { data, isLoading, isFetching } = useGetStaffRequestsQuery({ filter, page, limit: 20, search: debounced || undefined });
@@ -92,7 +95,8 @@ export default function RequestsPage() {
       <PageHeader
         eyebrow="Marketplace"
         title="Buyer requests"
-        description="Every request buyers have posted. Unclear ones are flagged: nudge the buyer to add detail (they can now edit their request), or close one that can't be saved."
+        description="Every request buyers have posted. Unclear ones are flagged: nudge the buyer to add detail, fix it for them, or close one that can't be saved. You can also post a request for a buyer."
+        actions={<Btn icon={<Plus size={16} />} onClick={() => setForm({ open: true, request: null })}>Post for a buyer</Btn>}
       />
 
       <ReadingSummaryCard />
@@ -145,6 +149,7 @@ export default function RequestsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-ink">{r.title || r.productName || "Untitled request"}</p>
                       {r.closedAt ? <Pill tone="gray">Closed</Pill> : <Pill tone="green" dot>Open</Pill>}
+                      {r.postedBy && <Pill tone="blue">Posted by staff</Pill>}
                       {r.lpo?.attached ? (
                         <Pill tone="blue">LPO{r.lpo.poNumber ? ` · ${r.lpo.poNumber}` : ""}</Pill>
                       ) : r.lpo?.removedAt ? (
@@ -199,6 +204,11 @@ export default function RequestsPage() {
                         title="Opens a fresh link; links expire after 15 minutes"
                       >
                         LPO document
+                      </Btn>
+                    )}
+                    {!r.closedAt && (
+                      <Btn size="sm" variant="secondary" icon={<Pencil size={14} />} onClick={() => setForm({ open: true, request: r })}>
+                        Edit
                       </Btn>
                     )}
                     {!r.closedAt && r.problems.length > 0 && (
@@ -260,6 +270,7 @@ export default function RequestsPage() {
       </Confirm>
 
       <RemoveLpoDialog request={removingLpo} onClose={() => setRemovingLpo(null)} />
+      <RequestFormDrawer open={form.open} request={form.request} onClose={() => setForm({ open: false, request: null })} />
     </>
   );
 }

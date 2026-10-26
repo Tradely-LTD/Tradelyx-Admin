@@ -34,6 +34,12 @@ export interface StaffRequest {
   quantity: string | null;
   unit: string | null;
   deliveryCountry: string | null;
+  deliveryLocation: string | null;
+  budget: string | null;
+  budgetCurrency: string | null;
+  expiryDate: string | null;
+  /** Set when staff posted it for the buyer */
+  postedBy: string | null;
   createdAt: string;
   closedAt: string | null;
   buyerId: string;
@@ -89,6 +95,31 @@ export const requestsApi = baseApi.injectEndpoints({
         }
       },
     }),
+    // Staff help a buyer (TradelyBackend rfq/staffRequests.ts): posted under the buyer's name, live straight away
+    postRequestForBuyer: builder.mutation<{ rfq: { id: string } }, Record<string, unknown> & { buyerId: string }>({
+      query: (body) => ({ url: "/rfq/postrfq", method: Methods.Post, body }),
+      invalidatesTags: ["REQUESTS", "ACTIVITY"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("Request posted for the buyer", { position: "top-right" });
+        } catch (err) {
+          toast.error(errorMessage(err, "Could not post the request"), { position: "top-right" });
+        }
+      },
+    }),
+    editStaffRequest: builder.mutation<unknown, { id: string; changes: Record<string, unknown> }>({
+      query: ({ id, changes }) => ({ url: `/rfq/admin/${id}`, method: Methods.Put, body: changes }),
+      invalidatesTags: ["REQUESTS", "ACTIVITY"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          toast.success("Request updated; the buyer has been told", { position: "top-right" });
+        } catch (err) {
+          toast.error(errorMessage(err, "Could not update the request"), { position: "top-right" });
+        }
+      },
+    }),
     getReadingSummary: builder.query<{ data: ReadingSummary }, number>({
       query: (days) => ({ url: "/rfq/admin/reading/summary", params: { days } }),
     }),
@@ -118,4 +149,6 @@ export const {
   useCloseRequestMutation,
   useLazyGetRequestLpoDocumentQuery,
   useRemoveRequestLpoMutation,
+  usePostRequestForBuyerMutation,
+  useEditStaffRequestMutation,
 } = requestsApi;

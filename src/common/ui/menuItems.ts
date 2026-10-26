@@ -1,5 +1,6 @@
 import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, PackageCheck, Search, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 import { Gift } from "lucide-react";
+import { Flame, TrendingUp } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 import { PhoneCall } from "lucide-react";
@@ -62,6 +63,7 @@ const ALL_GROUPS: MenuGroup[] = [
     items: [
       { icon: FileQuestion, label: "Buyer requests", path: "/requests", description: "What buyers asked for; unclear requests flagged", roles: ["admin", "country_admin"], section: "catalog" },
       { icon: Search, label: "Searches", path: "/searches", description: "What people search for on the marketplace, and what they don't find", roles: ["admin"], section: "growth" },
+      { icon: TrendingUp, label: "Demand", path: "/demand", description: "What buyers want by category and country; requests nobody quoted, searches that found nothing", roles: ["admin", "country_admin"], section: "growth" },
       { icon: Package, label: "Products", path: "/product", description: "Every product listed on TradelyX", section: "catalog" },
       { icon: ShellIcon, label: "Sell offers", path: "/sell-offer", description: "Stock sellers have ready, with price and quantity", section: "catalog" },
     ],
@@ -91,6 +93,7 @@ const ALL_GROUPS: MenuGroup[] = [
     label: "Communication",
     items: [
       { icon: PhoneCall, label: "Calls", path: "/calls", description: "Who to phone today and what to ask; created from unpaid quotes, unanswered messages and more", roles: ["admin", "country_admin", "agent"], section: "growth" },
+      { icon: Flame, label: "Likely buyers", path: "/likely-buyers", description: "Buyers scored by what they did: who's close to ordering, and why", roles: ["admin", "country_admin"], section: "growth" },
       { icon: Target, label: "Prospects", path: "/prospects", description: "Businesses to bring onto TradelyX, contacted one at a time", roles: ["admin", "country_admin", "agent"], section: "growth" },
       { icon: Megaphone, label: "Outreach", path: "/outreach", description: "Ready-made emails that get people to finish setting up", roles: ["admin"], section: "growth" },
       { icon: Mail, label: "Direct email", path: "/emails", description: "Write to one person or a hand-picked list, and the send history", roles: ["admin"], section: "growth" },

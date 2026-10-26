@@ -12,6 +12,8 @@ export default {
         // Kept for the screens not yet moved onto the tokens below
         primary: "#029150",
         brand: {
+          // bg-brand / text-brand: the brand green (900). Without it those classes rendered nothing
+          DEFAULT: "#009051",
           950: "#00301b",
           900: "#009051",
           800: "#1a9b62",

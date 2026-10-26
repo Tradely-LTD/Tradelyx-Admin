@@ -8,7 +8,7 @@ import { Methods } from "@/utils/enums";
  * activity (unpaid quotes, empty requests, unanswered messages, stuck KYC,
  * lapsed orders) or by staff. Agents only ever get their own.
  */
-export type TaskKind = "quote_unpaid" | "no_quotes" | "message_unanswered" | "kyc_stuck" | "order_lapsed" | "manual";
+export type TaskKind = "quote_unpaid" | "no_quotes" | "message_unanswered" | "kyc_stuck" | "order_lapsed" | "hot_buyer" | "manual";
 export type Outcome = "reached" | "no_answer" | "call_back" | "not_interested" | "wrong_number";
 export type TaskView = "mine" | "unassigned" | "all";
 

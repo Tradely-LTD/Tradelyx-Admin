@@ -18,6 +18,7 @@ const KIND: Record<TaskKind, { label: string; tone: Tone }> = {
   message_unanswered: { label: "Message unanswered", tone: "red" },
   kyc_stuck: { label: "ID check stuck", tone: "orange" },
   order_lapsed: { label: "Order lapsed", tone: "red" },
+  hot_buyer: { label: "Likely buyer", tone: "green" },
   manual: { label: "Added by staff", tone: "gray" },
 };
 

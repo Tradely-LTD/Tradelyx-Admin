@@ -2,6 +2,7 @@ import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake,
 import { Gift } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
+import { PhoneCall } from "lucide-react";
 
 /**
  * The sidebar, grouped by the job a staff member is doing. `roles` limits an
@@ -89,6 +90,7 @@ const ALL_GROUPS: MenuGroup[] = [
   {
     label: "Communication",
     items: [
+      { icon: PhoneCall, label: "Calls", path: "/calls", description: "Who to phone today and what to ask; created from unpaid quotes, unanswered messages and more", roles: ["admin", "country_admin", "agent"], section: "growth" },
       { icon: Target, label: "Prospects", path: "/prospects", description: "Businesses to bring onto TradelyX, contacted one at a time", roles: ["admin", "country_admin", "agent"], section: "growth" },
       { icon: Megaphone, label: "Outreach", path: "/outreach", description: "Ready-made emails that get people to finish setting up", roles: ["admin"], section: "growth" },
       { icon: Mail, label: "Direct email", path: "/emails", description: "Write to one person or a hand-picked list, and the send history", roles: ["admin"], section: "growth" },

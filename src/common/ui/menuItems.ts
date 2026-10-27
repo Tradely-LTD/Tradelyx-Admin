@@ -2,6 +2,7 @@ import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake,
 import { Gift } from "lucide-react";
 import { Flame, TrendingUp } from "lucide-react";
 import { Filter } from "lucide-react";
+import { Globe, UserX } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 import { PhoneCall } from "lucide-react";
@@ -44,6 +45,7 @@ const ALL_GROUPS: MenuGroup[] = [
     label: "Overview",
     items: [
       { icon: BarChart2, label: "Dashboard", path: "/", description: "What needs attention today, and how the platform is growing" },
+      { icon: Globe, label: "Visitors", path: "/visitors", description: "Everyone who opens the website, signed up or not, and how many go on to sign up", roles: ["admin", "country_admin"], section: "growth" },
       { icon: Filter, label: "Funnel", path: "/funnel", description: "Sign-ups each week, and how far they get: ID checks, requests, quotes, paid, released", roles: ["admin", "country_admin"], section: "growth" },
       { icon: History, label: "Activity", path: "/activity", description: "What staff have done, to whom and when", roles: ["admin"] },
     ],
@@ -52,6 +54,7 @@ const ALL_GROUPS: MenuGroup[] = [
     label: "People",
     items: [
       { icon: Users, label: "Users", path: "/users", description: "Everyone on TradelyX, and how far each person has got with setting up", section: "people" },
+      { icon: UserX, label: "Unfinished sign-ups", path: "/unfinished-signups", description: "People who started signing up and stopped: call them or add them to Prospects", roles: ["admin", "country_admin"], section: "growth" },
       { icon: ShieldCheck, label: "KYC review", path: "/kyc", description: "Approve or reject identity documents", roles: ["admin"], section: "people", sensitive: true, badge: "kycPending" },
       { icon: Award, label: "Certificates", path: "/certificates", description: "Verify the licences and certificates sellers show on their stores", roles: ["admin"], section: "people" },
       { icon: Handshake, label: "Agents", path: "/agents", description: "Applications, what each agent has brought in and earned, payouts", roles: ["admin"], section: "growth", badge: "agentsApplied" },

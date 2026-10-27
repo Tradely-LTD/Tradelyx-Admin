@@ -28,6 +28,7 @@ import ConversationThreadPage from "./pages/conversations/thread";
 import ProspectsPage from "./pages/prospects";
 import CallsPage from "./pages/calls";
 import SearchesPage from "./pages/searches";
+import FunnelPage from "./pages/funnel";
 import LikelyBuyersPage from "./pages/insights/LikelyBuyersPage";
 import DemandPage from "./pages/insights/DemandPage";
 
@@ -68,6 +69,7 @@ function AppRouter() {
           <Route path="prospects" element={<ProspectsPage />} />
           <Route path="calls" element={<CallsPage />} />
           <Route path="searches" element={<SearchesPage />} />
+          <Route path="funnel" element={<FunnelPage />} />
           <Route path="likely-buyers" element={<LikelyBuyersPage />} />
           <Route path="demand" element={<DemandPage />} />
           <Route path="emails" element={<EmailLandingPage />} />

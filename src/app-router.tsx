@@ -29,6 +29,8 @@ import ProspectsPage from "./pages/prospects";
 import CallsPage from "./pages/calls";
 import SearchesPage from "./pages/searches";
 import FunnelPage from "./pages/funnel";
+import UnfinishedSignupsPage from "./pages/growth/UnfinishedSignupsPage";
+import VisitorsPage from "./pages/growth/VisitorsPage";
 import LikelyBuyersPage from "./pages/insights/LikelyBuyersPage";
 import DemandPage from "./pages/insights/DemandPage";
 
@@ -70,6 +72,8 @@ function AppRouter() {
           <Route path="calls" element={<CallsPage />} />
           <Route path="searches" element={<SearchesPage />} />
           <Route path="funnel" element={<FunnelPage />} />
+          <Route path="unfinished-signups" element={<UnfinishedSignupsPage />} />
+          <Route path="visitors" element={<VisitorsPage />} />
           <Route path="likely-buyers" element={<LikelyBuyersPage />} />
           <Route path="demand" element={<DemandPage />} />
           <Route path="emails" element={<EmailLandingPage />} />

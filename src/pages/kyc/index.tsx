@@ -21,7 +21,8 @@ import {
  */
 
 const DOC_LABELS: Record<string, string> = {
-  nin_slip: "NIN slip",
+  nin_slip: "NIN slip (Nigeria)",
+  national_id: "National ID card",
   passport: "International passport",
   drivers_license: "Driver's licence",
   voters_card: "Voter's card",

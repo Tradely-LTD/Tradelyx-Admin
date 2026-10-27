@@ -1,6 +1,7 @@
 import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake, History, BellIcon, KeyRound, Mail, Target, Megaphone, Package, PackageCheck, Search, ShellIcon, ShieldCheck, Users, Share2 } from "lucide-react";
 import { Gift } from "lucide-react";
 import { Flame, TrendingUp } from "lucide-react";
+import { Filter } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 import { PhoneCall } from "lucide-react";
@@ -43,6 +44,7 @@ const ALL_GROUPS: MenuGroup[] = [
     label: "Overview",
     items: [
       { icon: BarChart2, label: "Dashboard", path: "/", description: "What needs attention today, and how the platform is growing" },
+      { icon: Filter, label: "Funnel", path: "/funnel", description: "Sign-ups each week, and how far they get: ID checks, requests, quotes, paid, released", roles: ["admin", "country_admin"], section: "growth" },
       { icon: History, label: "Activity", path: "/activity", description: "What staff have done, to whom and when", roles: ["admin"] },
     ],
   },

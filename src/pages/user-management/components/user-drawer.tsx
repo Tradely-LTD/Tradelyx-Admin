@@ -6,6 +6,7 @@ import { useGetActivityQuery } from "@/pages/activity/activity-api";
 import { ActivityRow } from "@/pages/activity";
 import { Btn, Drawer, Pill, Skeleton, formatDate, initials } from "@/common/ui/kit";
 import type { User } from "../user-api";
+import MessagingSwitch from "./messaging-switch";
 
 /** Which ready-made email fixes each unfinished step (TradelyBackend outreach/templates.ts) */
 const NUDGE: Record<string, string> = {
@@ -109,6 +110,8 @@ export default function UserDrawer({ user, canOutreach, onClose, onEdit, onProfi
         <Fact icon={Activity} label="Last active" value={lastActive(data?.lastActiveAt ?? user.lastActiveAt)} />
         {user.companyName && <Fact icon={Building2} label="Company" value={user.companyName} />}
       </dl>
+
+      <MessagingSwitch userId={user.id} name={name} />
 
       {canOutreach && (
         <section className="mt-7">

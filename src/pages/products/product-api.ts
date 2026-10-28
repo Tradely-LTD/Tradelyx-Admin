@@ -147,6 +147,28 @@ interface CreateProductPayload {
 
 interface UpdateProductPayload extends Partial<CreateProductPayload> {}
 
+/** GET /listings/reading/admin/summary: AI listing posting, for staff (listing story 5.5). */
+export type ListingReadingSummary = {
+  days: number;
+  readings: number;
+  created: number;
+  improved: number;
+  products: number;
+  sellOffers: number;
+  ok: number;
+  unreadable: number;
+  failed: number;
+  found: number;
+  listingsPosted: number;
+  fieldsFilled: number;
+  fieldsChanged: number;
+  photoWarnings: number;
+  warnedPosted: number;
+  warnedHeldBack: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createProduct: builder.mutation<ProductResponse, CreateProductPayload>({
@@ -208,6 +230,10 @@ export const productApi = baseApi.injectEndpoints({
         params,
       }),
       providesTags: ["PRODUCTS"],
+    }),
+
+    getListingReadingSummary: builder.query<{ data: ListingReadingSummary }, number>({
+      query: (days) => ({ url: "/listings/reading/admin/summary", params: { days } }),
     }),
 
     getProductStats: builder.query<ProductStats, void>({
@@ -319,6 +345,7 @@ export const {
   useDeleteProductByIdMutation,
   useSetProductVerifiedMutation,
   useGetProductStatsQuery,
+  useGetListingReadingSummaryQuery,
   useRequestProductChangesMutation,
   useScreenProductMutation,
   useScreenPendingProductsMutation,

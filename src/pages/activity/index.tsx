@@ -13,6 +13,10 @@ import {
   FileX,
   Gavel,
   History,
+  KeyRound,
+  ListMinus,
+  ListPlus,
+  MapPin,
   Megaphone,
   MessageSquare,
   Package,
@@ -23,14 +27,18 @@ import {
   ShieldX,
   Store,
   Trash2,
+  SearchX,
+  SlidersHorizontal,
   Undo2,
   UserCog,
+  XCircle,
 } from "lucide-react";
 
 import { StaffAction, useGetActivityQuery } from "./activity-api";
 import { useUserSlice } from "@/pages/auth/authSlice";
 import { canReviewConversations, useGetMyAccessQuery } from "@/pages/staff/staff-api";
 import { useGetConversationReviewSummaryQuery } from "@/pages/conversations/conversations-api";
+import { reasonLabel as leadRejectReason } from "@/pages/lead-review/labels";
 import { Card, EmptyState, PageHeader, Skeleton, formatDate, initials } from "@/common/ui/kit";
 
 /**
@@ -52,6 +60,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "request.", label: "Buyer requests" },
   { value: "agent.", label: "Agents" },
   { value: "dispute.", label: "Disputes" },
+  { value: "lead_review.", label: "Lead review" },
 ];
 
 /**
@@ -96,6 +105,18 @@ const ICON: Record<string, { icon: typeof History; tone: string }> = {
   "conversation.view_refused": { icon: EyeOff, tone: "bg-danger-soft text-danger-deep" },
   "conversation.contact_revealed": { icon: Contact, tone: "bg-attention-soft text-attention-deep" },
   "conversation_item.reviewed": { icon: ClipboardCheck, tone: "bg-brand-50 text-brand-900" },
+  "lead_review.access_granted": { icon: KeyRound, tone: "bg-brand-50 text-brand-900" },
+  "lead_review.access_removed": { icon: KeyRound, tone: "bg-danger-soft text-danger-deep" },
+  "lead_review.fetch_started": { icon: MapPin, tone: "bg-sky-50 text-sky-800" },
+  "lead_review.fetch_finished": { icon: MapPin, tone: "bg-brand-50 text-brand-900" },
+  "lead_review.fetch_blocked": { icon: SearchX, tone: "bg-attention-soft text-attention-deep" },
+  "lead_review.approved": { icon: BadgeCheck, tone: "bg-brand-50 text-brand-900" },
+  "lead_review.rejected": { icon: XCircle, tone: "bg-danger-soft text-danger-deep" },
+  "lead_review.undone": { icon: Undo2, tone: "bg-attention-soft text-attention-deep" },
+  "lead_review.restored": { icon: RotateCcw, tone: "bg-sky-50 text-sky-800" },
+  "lead_review.rule_added": { icon: ListPlus, tone: "bg-paper-deep text-ink-soft" },
+  "lead_review.rule_removed": { icon: ListMinus, tone: "bg-paper-deep text-ink-soft" },
+  "lead_review.threshold_changed": { icon: SlidersHorizontal, tone: "bg-paper-deep text-ink-soft" },
 };
 
 /** Why a conversation view was refused (details.reason), in words */
@@ -108,6 +129,11 @@ const REFUSAL_REASON: Record<string, string> = {
 const reasonOf = (a: StaffAction) => {
   const reason = typeof a.details?.reason === "string" ? a.details.reason : null;
   if (!reason) return null;
+  // Lead review rejections carry a reason key (and the note for "Other")
+  if (a.action.startsWith("lead_review.")) {
+    const note = typeof a.details?.note === "string" ? ` · "${a.details.note}"` : "";
+    return `${leadRejectReason(reason)}${a.details?.auto === true ? " (found at approval)" : ""}${note}`;
+  }
   return a.action === "conversation.view_refused" ? REFUSAL_REASON[reason] ?? reason : `"${reason}"`;
 };
 

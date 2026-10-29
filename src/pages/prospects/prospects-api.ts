@@ -10,6 +10,7 @@ export const SOURCES = {
   agent_bounty: "Agent bounty",
   referral: "Referral",
   demo_request: "Demo request",
+  gmaps: "Google Maps",
   manual: "Added by hand",
   other: "Other",
 } as const;

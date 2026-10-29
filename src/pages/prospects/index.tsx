@@ -13,6 +13,7 @@ import {
   ImportRow,
   ProspectSource,
   ProspectStatus,
+  MANUAL_SOURCES,
   SOURCES,
   sourceLabel,
   useAssignProspectsMutation,
@@ -436,7 +437,7 @@ function AddProspects({ onClose }: { onClose: () => void }) {
         <label className="text-[13px] font-semibold text-ink">
           Found on
           <select value={importSource} onChange={(e) => setImportSource(e.target.value as ProspectSource)} className="mt-1.5 h-10 w-full cursor-pointer rounded-lg border-0 bg-white px-3 text-[13px] font-normal ring-1 ring-inset ring-rule">
-            {Object.entries(SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            {Object.entries(MANUAL_SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
         <label className="text-[13px] font-semibold text-ink">

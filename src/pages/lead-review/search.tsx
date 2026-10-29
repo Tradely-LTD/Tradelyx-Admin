@@ -69,7 +69,11 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
   }, [leadsQ.data]);
 
   const decideMode = tab === "unreviewed" || tab === "hidden";
-  const current: Lead | undefined = decideMode ? leads[0] : undefined;
+  // Purged leads (details deleted under the 12-month rule) can't be decided or
+  // restored, so they never become the card the keys act on; otherwise the
+  // Hidden queue, which has no Skip, would be stuck behind one.
+  const current: Lead | undefined = decideMode ? leads.find((l) => !l.purged) : undefined;
+  const purgedOnly = decideMode && !current ? leads.filter((l) => l.purged) : [];
 
   // Keep a page ahead (G5, the 300-lead queue)
   useEffect(() => {
@@ -191,7 +195,7 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
   const args = (lead: Lead) => ({ lead, searchId, tab });
 
   const decideApprove = async (kind: "buyer" | "seller") => {
-    if (!current || busy) return;
+    if (!current || current.purged || busy) return;
     const lead = current;
     try {
       await approve({ ...args(lead), kind }).unwrap();
@@ -202,7 +206,7 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
   };
 
   const decideReject = async (reason: RejectReason, note?: string) => {
-    if (!current || busy) return;
+    if (!current || current.purged || busy) return;
     const lead = current;
     setRejecting(false);
     try {
@@ -223,6 +227,7 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
   };
 
   const doRestore = async (lead: Lead) => {
+    if (lead.purged) return;
     try {
       await restore(args(lead)).unwrap();
       toast.success("Restored. It's in Unreviewed now.", { position: "bottom-center", autoClose: 3000 });
@@ -245,7 +250,7 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
       if (l && Date.now() < l.until && !undoState.isLoading) doUndo(l.leadId, l.toastId);
       return;
     }
-    if (!current) return;
+    if (!current || current.purged) return;
     if (action === "buyer") decideApprove("buyer");
     else if (action === "seller") decideApprove("seller");
     else if (action === "reject") setRejecting(true);
@@ -417,7 +422,13 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
                 )}
                 <KeyLegend tab={tab} canUndo={!!undoable} onUndo={() => undoable && doUndo(undoable.leadId, undoable.toastId)} onMaps={openMaps} onHelp={() => setHelpOpen((v) => !v)} />
               </div>
-              <UpNext leads={leads.slice(1, 1 + UP_NEXT)} more={Math.max(0, counts[tab] - 1 - UP_NEXT)} hidden={tab === "hidden"} onRestore={doRestore} restoring={restoreState.isLoading} />
+              <UpNext leads={leads.filter((l) => l.id !== current.id).slice(0, UP_NEXT)} more={Math.max(0, counts[tab] - 1 - UP_NEXT)} hidden={tab === "hidden"} onRestore={doRestore} restoring={restoreState.isLoading} />
+            </div>
+          ) : purgedOnly.length ? (
+            <div className="space-y-3">
+              {purgedOnly.map((l) => (
+                <LeadCard key={l.id} lead={l} isStaff={isStaff} reasons={reasons} />
+              ))}
             </div>
           ) : hasNextPage || isFetchingNextPage ? (
             <Skeleton className="h-72" />
@@ -572,11 +583,11 @@ function UpNext({ leads, more, hidden, onRestore, restoring }: { leads: Lead[]; 
           <li key={l.id} className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 shadow-card">
             <div className="min-w-0">
               <p dir="auto" className="truncate text-[13px] font-semibold text-ink">
-                {l.name ?? "Details deleted"}
+                {l.purged || !l.name ? "Details deleted" : l.name}
               </p>
               <p className="truncate text-[12px] text-ink-faint">{hidden ? l.hiddenReason : l.category ?? "No category"}</p>
             </div>
-            {hidden && (
+            {hidden && !l.purged && (
               <button type="button" disabled={restoring} onClick={() => onRestore(l)} className="shrink-0 cursor-pointer rounded-md px-1.5 py-1 text-[12px] font-semibold text-brand-900 hover:bg-brand-50 disabled:opacity-50">
                 Restore
               </button>

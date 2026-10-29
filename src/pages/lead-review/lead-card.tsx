@@ -103,6 +103,12 @@ export default function LeadCard({ lead, current, isStaff, reasons, onOpenProspe
         {actions}
       </div>
 
+      {lead.purged && (lead.status === "unreviewed" || lead.status === "hidden") && (
+        <p role="note" className="mt-4 rounded-lg bg-paper px-3.5 py-2.5 text-[13px] font-medium text-ink-soft">
+          Details deleted under the 12-month rule — can't be decided.
+        </p>
+      )}
+
       <Decision lead={lead} isStaff={isStaff} reasons={reasons} onOpenProspect={onOpenProspect} />
     </Card>
   );

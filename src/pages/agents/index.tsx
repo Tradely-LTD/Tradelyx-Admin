@@ -20,6 +20,7 @@ import {
 } from "./agents-api";
 import { useGetUsersQuery } from "../user-management/user-api";
 import { Btn, Card, Confirm, Drawer, EmptyState, PageHeader, Pill, Skeleton, Tabs, formatDate, formatNumber, initials } from "@/common/ui/kit";
+import LeadReviewAccessSwitch from "@/pages/lead-review/access-switch";
 
 /**
  * The Agent Program for staff.
@@ -388,6 +389,9 @@ function AgentDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             </div>
             <p className="mt-1 text-[12px] text-ink-faint">Leave empty for the default. Applies to orders released from now on.</p>
           </section>
+
+          {/* The one permission an agent can be given (B2); hidden unless you manage staff. Disabled with the reason when their account can't sign in to the admin panel. */}
+          <LeadReviewAccessSwitch userId={a.id} />
 
           <section>
             <h3 className="mb-2 text-[14px] font-bold text-ink">Payout details</h3>

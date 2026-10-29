@@ -15,6 +15,7 @@ import {
 import ProductForm from "./components/product-form";
 import ProductPreview from "./components/product-preview";
 import RequestChanges from "./components/request-changes";
+import { ListingReadingCard } from "./components/listing-reading-card";
 import Modal from "@/common/modal/modal";
 import TableDropdown from "@/common/dropdown";
 import { useUserSlice } from "../auth/authSlice";
@@ -206,6 +207,8 @@ export default function ProductManagement() {
           </div>
         </div>
       )}
+
+      <ListingReadingCard />
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

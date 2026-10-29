@@ -26,6 +26,8 @@ import StaffPage from "./pages/staff";
 import ConversationsPage from "./pages/conversations";
 import ConversationThreadPage from "./pages/conversations/thread";
 import ProspectsPage from "./pages/prospects";
+import LeadReviewPage from "./pages/lead-review";
+import LeadQueuePage from "./pages/lead-review/search";
 import CallsPage from "./pages/calls";
 import SearchesPage from "./pages/searches";
 import FunnelPage from "./pages/funnel";
@@ -69,6 +71,8 @@ function AppRouter() {
           <Route path="conversations/:userA/:userB" element={<ConversationThreadPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="prospects" element={<ProspectsPage />} />
+          <Route path="lead-review" element={<LeadReviewPage />} />
+          <Route path="lead-review/:searchId" element={<LeadQueuePage />} />
           <Route path="calls" element={<CallsPage />} />
           <Route path="searches" element={<SearchesPage />} />
           <Route path="funnel" element={<FunnelPage />} />

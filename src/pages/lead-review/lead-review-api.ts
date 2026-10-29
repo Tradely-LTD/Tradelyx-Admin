@@ -203,7 +203,8 @@ const otherTabs = (searchId: string, but: LeadTab) => (["unreviewed", "hidden", 
  * it turned out to be a duplicate, or it is no longer visible), so the card
  * stays gone instead of coming back.
  */
-const LEAD_GONE = new Set(["ALREADY_DECIDED", "DUPLICATE", "NOT_FOUND", "NOT_UNREVIEWED", "NOT_HIDDEN"]);
+// PURGED: its details were deleted under the 12-month rule; it can no longer be decided
+const LEAD_GONE = new Set(["ALREADY_DECIDED", "DUPLICATE", "NOT_FOUND", "NOT_UNREVIEWED", "NOT_HIDDEN", "PURGED"]);
 
 export type DecisionArgs = { lead: Lead; searchId: string; tab: LeadTab };
 export type LeadsArgs = { searchId: string; status: LeadTab };
@@ -280,7 +281,16 @@ export const leadReviewApi = baseApi.injectEndpoints({
         params: { status: queryArg.status, limit: PAGE_SIZE, ...(pageParam ? { cursor: pageParam } : {}) },
       }),
       providesTags: (_r, _e, arg) => [leadsTag(arg.searchId, arg.status)],
-      onQueryStarted: watchRefusal,
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch (err) {
+          if (isLeadReviewRefusal(err)) markNoAccess(dispatch);
+          // A stale or malformed cursor (400 BAD_CURSOR): start the list again from
+          // the first page, which has no cursor, so this can't repeat
+          else if (codeOf(err) === "BAD_CURSOR") dispatch(baseApi.util.invalidateTags([leadsTag(arg.searchId, arg.status)]));
+        }
+      },
     }),
 
     /** New search ({ phrase, location, country }) or Fetch more ({ searchId }). 202 with the search and its fetch. */

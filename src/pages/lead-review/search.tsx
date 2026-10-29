@@ -177,6 +177,8 @@ function Queue({ me, searchId }: { me: LeadReviewMe; searchId: string }) {
       });
     } else if (code === "ALREADY_DECIDED") {
       toast.info(messageOf(err, "Someone already decided this lead."), { position: "bottom-center" });
+    } else if (code === "PURGED") {
+      toast.info("This business's details were deleted under the 12-month rule.", { position: "bottom-center" });
     } else if (code === "NOT_FOUND") {
       toast.info("This lead is no longer available.", { position: "bottom-center" });
     } else if (code === "NOT_UNREVIEWED" || code === "NOT_HIDDEN") {

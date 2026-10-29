@@ -3,6 +3,7 @@ import { ArrowUpRight, EyeOff, Globe, MapPin, Phone, Rocket, SkipForward, Star, 
 import { twMerge } from "tailwind-merge";
 
 import { Card, Pill, formatDate, formatNumber } from "@/common/ui/kit";
+import { useUserSlice } from "@/pages/auth/authSlice";
 import type { Lead } from "./lead-review-api";
 import { type RejectReason, formatPhone, reasonLabel, safeHttpUrl, safeMapsUrl, websiteLabel } from "./labels";
 
@@ -136,9 +137,13 @@ function Badges({ lead }: { lead: Lead }) {
 }
 
 function Decision({ lead, isStaff, reasons, onOpenProspect }: Pick<Props, "lead" | "isStaff" | "reasons" | "onOpenProspect">) {
+  const { loginResponse } = useUserSlice();
   if (lead.status !== "approved" && lead.status !== "rejected") return null;
   const who = lead.decidedBy?.name ?? (lead.autoRejected ? "TradelyX" : "Someone");
   const when = lead.decidedAt ? formatDate(lead.decidedAt, true) : "";
+  // The prospect is assigned to whoever approved it (J4): an agent can open
+  // it only if they approved it; staff can open any (Prospects visibility).
+  const canOpenApproved = isStaff || (!!lead.decidedBy && lead.decidedBy.id === loginResponse?.user?.id);
   const linkBtn = (id: string, label: string) =>
     onOpenProspect ? (
       <button type="button" onClick={() => onOpenProspect(id)} className="cursor-pointer font-semibold text-brand-900 hover:underline">
@@ -156,7 +161,7 @@ function Decision({ lead, isStaff, reasons, onOpenProspect }: Pick<Props, "lead"
             by {who}
             {when && ` · ${when}`}
           </span>
-          {lead.prospectId && <> · {linkBtn(lead.prospectId, "Open prospect")}</>}
+          {lead.prospectId && canOpenApproved && <> · {linkBtn(lead.prospectId, "Open prospect")}</>}
         </p>
       ) : (
         <>

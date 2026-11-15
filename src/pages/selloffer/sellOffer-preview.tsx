@@ -25,11 +25,11 @@ type Offer = {
   companyLogo?: string | null;
   firstName?: string | null;
   lastName?: string | null;
-  quantityAndUnit?: { quantity?: string; unit?: string } | null;
-  basePrice?: { amount?: string | number; currency?: string } | null;
-  packageType?: string | null;
-  packageDescription?: string | null;
-  paymentType?: string | null;
+  quantityAndUnit?: unknown;
+  basePrice?: unknown;
+  packageType?: unknown;
+  packageDescription?: unknown;
+  paymentType?: unknown;
   offerValidityDate?: string | null;
   originLocation?: string | { city?: string; state?: string; country?: string } | null;
   landMark?: string | null;
@@ -40,13 +40,62 @@ type Offer = {
   createdAt?: string | null;
 };
 
-const place = (o: Offer["originLocation"]) =>
-  !o ? null : typeof o === "string" ? o : [o.city, o.state, o.country].filter(Boolean).join(", ") || null;
+/*
+ * The JSON columns hold whatever each client sent over the years: the web and
+ * the app send objects (paymentType is { title, value }), this panel's own form
+ * sends JSON strings, and old rows hold plain text. Rendering one of those
+ * objects as a React child crashed the whole popup ("Oops. An error occured
+ * unexpectedly"), so every value goes through these readers and comes out as
+ * text.
+ */
+type Json = Record<string, unknown>;
 
-const price = (p: Offer["basePrice"]) => {
-  if (!p?.amount) return null;
-  const n = Number(p.amount);
-  return `${p.currency ?? ""}${Number.isFinite(n) ? formatNumber(n) : p.amount}`;
+const parsed = (v: unknown): unknown => {
+  if (typeof v !== "string") return v;
+  const s = v.trim();
+  if (!s.startsWith("{") && !s.startsWith("[")) return v;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return v;
+  }
+};
+
+/** Any stored value as display text; objects show their label-like field. */
+const text = (v: unknown): string => {
+  const x = parsed(v);
+  if (x == null) return "";
+  if (typeof x === "string" || typeof x === "number" || typeof x === "boolean") return String(x);
+  if (Array.isArray(x)) return x.map(text).filter(Boolean).join(", ");
+  if (typeof x === "object") {
+    const o = x as Json;
+    return text(o.title ?? o.label ?? o.name ?? o.value ?? "");
+  }
+  return "";
+};
+
+const obj = (v: unknown): Json | null => {
+  const x = parsed(v);
+  return x && typeof x === "object" && !Array.isArray(x) ? (x as Json) : null;
+};
+
+const place = (v: Offer["originLocation"]) => {
+  const o = obj(v);
+  if (!o) return text(v) || null;
+  return [o.city, o.state, o.country].map(text).filter(Boolean).join(", ") || null;
+};
+
+const price = (v: unknown) => {
+  const p = obj(v);
+  const amount = p ? text(p.amount) : "";
+  if (!amount) return null;
+  const n = Number(amount);
+  return `${text(p?.currency)}${Number.isFinite(n) ? formatNumber(n) : amount}`;
+};
+
+const quantity = (v: unknown) => {
+  const q = obj(v);
+  return q ? [text(q.quantity), text(q.unit)].filter(Boolean).join(" ") : text(v);
 };
 
 export default function SellOfferPreview({ offerId, onClose }: { offerId: string; onClose: () => void }) {
@@ -138,13 +187,13 @@ export default function SellOfferPreview({ offerId, onClose }: { offerId: string
 
             <dl className="grid grid-cols-2 gap-x-5 gap-y-4">
               <Fact icon={Wallet} label="Price" value={price(offer.basePrice) ?? "On request"} />
-              <Fact icon={Package} label="Quantity" value={[offer.quantityAndUnit?.quantity, offer.quantityAndUnit?.unit].filter(Boolean).join(" ") || "—"} />
+              <Fact icon={Package} label="Quantity" value={quantity(offer.quantityAndUnit) || "—"} />
               <Fact icon={MapPin} label="Ships from" value={place(offer.originLocation) ?? "—"} />
               <Fact icon={Calendar} label="Valid until" value={formatDate(offer.offerValidityDate)} />
-              <Fact icon={Package} label="Packaging" value={[offer.packageType, offer.packageDescription].filter(Boolean).join(": ") || "—"} />
-              <Fact icon={Wallet} label="Payment" value={offer.paymentType || "—"} />
+              <Fact icon={Package} label="Packaging" value={[text(offer.packageType), text(offer.packageDescription)].filter(Boolean).join(": ") || "—"} />
+              <Fact icon={Wallet} label="Payment" value={text(offer.paymentType) || "—"} />
             </dl>
-            {offer.landMark && <p className="text-[12.5px] text-ink-soft">Landmark: {offer.landMark}</p>}
+            {text(offer.landMark) && <p className="text-[12.5px] text-ink-soft">Landmark: {text(offer.landMark)}</p>}
 
             {offer.detailedDescription && (
               <div>
@@ -155,8 +204,8 @@ export default function SellOfferPreview({ offerId, onClose }: { offerId: string
 
             {!!offer.tags?.length && (
               <div className="flex flex-wrap gap-1.5">
-                {offer.tags.map((t) => (
-                  <span key={t} className="rounded-full bg-paper-deep px-2.5 py-0.5 text-[12px] font-medium text-ink-soft">{t}</span>
+                {offer.tags.map(text).filter(Boolean).map((t, i) => (
+                  <span key={`${t}-${i}`} className="rounded-full bg-paper-deep px-2.5 py-0.5 text-[12px] font-medium text-ink-soft">{t}</span>
                 ))}
               </div>
             )}

@@ -6,9 +6,10 @@ import { LogOut, Menu, X } from "lucide-react";
 import { logout, useUserSlice } from "@/pages/auth/authSlice";
 import { useGetKycSubmissionsQuery } from "@/pages/kyc/kyc-api";
 import { useGetAgentsQuery } from "@/pages/agents/agents-api";
-import { findMenuItem, getMenuGroups } from "./menuItems";
+import { findMenuItem, getMenuGroups, isStaffRole } from "./menuItems";
 import { can, canReviewConversations, useGetMyAccessQuery } from "@/pages/staff/staff-api";
 import { conversationsApi, useGetConversationReviewSummaryQuery } from "@/pages/conversations/conversations-api";
+import { useGetLeadReviewMeQuery } from "@/pages/lead-review/lead-review-api";
 import { initials } from "./kit";
 
 const roleLabel: Record<string, string> = { admin: "Administrator", country_admin: "Country admin", agent: "Agent" };
@@ -37,7 +38,17 @@ const Layout = () => {
     skip: !reviewer,
     pollingInterval: refused ? 0 : 120_000,
   });
-  const groups = getMenuGroups(role, access, reviewer && reviewOn);
+  // Lead review is granted by name, to staff and agents alike, so ask for
+  // every admin-panel role (B3). Asked again when the window gets focus, so a
+  // grant or removal shows without signing out (A8).
+  const { data: leadReview, refetch: refetchLeadReview } = useGetLeadReviewMeQuery(undefined, { skip: !isStaffRole(role) });
+  useEffect(() => {
+    if (!isStaffRole(role)) return;
+    const onFocus = () => refetchLeadReview();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [role, refetchLeadReview]);
+  const groups = getMenuGroups(role, access, reviewer && reviewOn, leadReview?.access === true);
   const badges = { kycPending: kyc?.pagination?.total ?? 0, agentsApplied: applied?.data.length ?? 0, conversationsNew: reviewSummary?.newCount ?? 0 };
 
   useEffect(() => setMobileOpen(false), [location.pathname]);

@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 import { Btn, Card, Drawer, EmptyState, PageHeader, Pill, Skeleton, initials } from "@/common/ui/kit";
 import { useUserSlice } from "@/pages/auth/authSlice";
 import { lastActive } from "@/pages/user-management/components/user-drawer";
+import LeadReviewAccessSwitch, { LeadReviewAccessCard } from "@/pages/lead-review/access-switch";
+import { useGetLeadReviewAccessListQuery, useGetLeadReviewMeQuery } from "@/pages/lead-review/lead-review-api";
 import {
   Access,
   Candidate,
@@ -39,6 +41,12 @@ export default function StaffPage() {
   const { data: staffData, isLoading, isError, error } = useGetStaffQuery();
   const data = staffData?.staff;
   const [editing, setEditing] = useState<StaffMember | "new" | null>(null);
+  // Lead review is granted by name in its own list, not a section: shown beside them
+  const { data: leadReview } = useGetLeadReviewMeQuery();
+  const managesLeadReview = leadReview?.canManageAccess === true;
+  const { data: leadReviewHolders } = useGetLeadReviewAccessListQuery(undefined, { skip: !managesLeadReview });
+  const holdsLeadReview = new Set((leadReviewHolders ?? []).map((h) => h.userId));
+  const [ownLeadReview, setOwnLeadReview] = useState(false);
 
   return (
     <>
@@ -92,11 +100,18 @@ export default function StaffPage() {
                       </td>
                       <td className="max-w-[280px] px-3 py-3 text-ink-soft">
                         <span className={s.staffPermissions === null ? "font-semibold text-brand-900" : s.staffPermissions.length ? "" : "text-danger-deep"}>{accessLabel(s.staffPermissions)}</span>
+                        {holdsLeadReview.has(s.id) && <Pill tone="green" className="ml-2">Lead review</Pill>}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 text-ink-soft">{lastActive(s.lastActiveAt)}</td>
                       <td className="px-3 py-3 text-right">
                         {me ? (
-                          <span className="text-[12px] text-ink-faint">Ask another admin</span>
+                          <span className="inline-flex flex-col items-end gap-1">
+                            <span className="text-[12px] text-ink-faint">Ask another admin</span>
+                            {/* Self-grant of Lead review is allowed and audited (founder OQ2) */}
+                            {managesLeadReview && (
+                              <Btn size="sm" variant="ghost" onClick={() => setOwnLeadReview(true)}>Your Lead review</Btn>
+                            )}
+                          </span>
                         ) : (
                           <Btn size="sm" variant="secondary" onClick={() => setEditing(s)}>Change access</Btn>
                         )}
@@ -110,7 +125,14 @@ export default function StaffPage() {
         )}
       </Card>
 
+      <LeadReviewAccessCard />
+
       <StaffDrawer target={editing} grantable={staffData?.sections ?? []} onClose={() => setEditing(null)} />
+      {myId && (
+        <Drawer open={ownLeadReview} onClose={() => setOwnLeadReview(false)} title="Your Lead review access" subtitle="You can give it to yourself or remove it; either way it's recorded in the activity log.">
+          <LeadReviewAccessSwitch userId={myId} />
+        </Drawer>
+      )}
     </>
   );
 }
@@ -298,6 +320,14 @@ function StaffDrawer({ target, grantable, onClose }: { target: StaffMember | "ne
         </p>
       )}
       <p className="mt-3 text-[12px] text-ink-faint">Everyone on staff can see the dashboard and the activity log.</p>
+
+      {!isNew && (
+        <div className="mt-6 border-t border-rule pt-5">
+          <p className="mb-1.5 text-[13px] font-semibold text-ink">Separate from the sections</p>
+          <LeadReviewAccessSwitch userId={target.id} />
+          <p className="mt-1.5 text-[12px] text-ink-faint">Saved as soon as you switch it, not with Save. Changes nothing else they can use.</p>
+        </div>
+      )}
     </Drawer>
   );
 }

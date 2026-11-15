@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Instagram, Mail, MessageCircle, MessageSquareReply, StickyNote, Send } from "lucide-react";
 import { toast } from "react-toastify";
 
-import { Btn, Drawer, Pill, Skeleton, formatDate } from "@/common/ui/kit";
+import { Btn, Drawer, EmptyState, Pill, Skeleton, formatDate } from "@/common/ui/kit";
 import ExpleeConversation, { TradelyxEmail } from "./explee-conversation";
 import { emailSubject, firstMessage, waNumber } from "./messages";
-import { Channel, ProspectDetail, SOURCES, useAddProspectEventMutation, useEditProspectMutation, useGetProspectQuery, useMarkContactedMutation } from "./prospects-api";
+import { Channel, MANUAL_SOURCES, ProspectDetail, SOURCES, useAddProspectEventMutation, useEditProspectMutation, useGetProspectQuery, useMarkContactedMutation } from "./prospects-api";
 
 /**
  * One prospect: fix their details, send a message you can edit first, log
@@ -18,10 +18,26 @@ const field = "w-full rounded-lg border-0 bg-white px-3 text-[13.5px] text-ink s
 const CHANNEL_LABEL: Record<string, string> = { instagram: "Instagram", whatsapp: "WhatsApp", email: "Email", call: "Call", explee: "Explee email" };
 
 export default function ProspectDrawer({ id, initialChannel, onClose }: { id: string; initialChannel?: Channel; onClose: () => void }) {
-  const { data: p, isLoading } = useGetProspectQuery(id);
+  const { data: p, isLoading, isError, error, refetch } = useGetProspectQuery(id);
+  const status = (error as { status?: number } | undefined)?.status;
   return (
     <Drawer open onClose={onClose} title={p?.businessName ?? "Prospect"} subtitle={p ? [p.kind === "buyer" ? "Buyer" : "Seller", p.assigneeName && `with ${p.assigneeName}`].filter(Boolean).join(" · ") : undefined} width="max-w-[600px]">
-      {isLoading || !p ? <Skeleton className="h-64" /> : <Body key={p.id} p={p} initialChannel={initialChannel} />}
+      {isError && !p ? (
+        // Opened from elsewhere (e.g. Lead review): it may be gone or assigned to someone else
+        <EmptyState title={status === 404 || status === 403 ? "This prospect isn't available" : "Couldn't load this prospect"}>
+          {status === 404 || status === 403 ? (
+            "It was removed, or it's assigned to someone else."
+          ) : (
+            <button type="button" onClick={() => refetch()} className="cursor-pointer font-semibold text-brand-900 hover:underline">
+              Try again
+            </button>
+          )}
+        </EmptyState>
+      ) : isLoading || !p ? (
+        <Skeleton className="h-64" />
+      ) : (
+        <Body key={p.id} p={p} initialChannel={initialChannel} />
+      )}
     </Drawer>
   );
 }
@@ -171,8 +187,9 @@ function Details({ p }: { p: ProspectDetail }) {
         <label className="block text-[12.5px] font-semibold text-ink">
           Found on
           <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className={`${field} mt-1 h-9 cursor-pointer font-normal`}>
-            {Object.entries(SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            {!(f.source in SOURCES) && <option value={f.source}>{f.source}</option>}
+            {/* Hand edits can't pick Google Maps; a prospect that came from it keeps showing it */}
+            {Object.entries(MANUAL_SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            {!(f.source in MANUAL_SOURCES) && <option value={f.source}>{SOURCES[f.source as keyof typeof SOURCES] ?? f.source}</option>}
           </select>
         </label>
       </div>

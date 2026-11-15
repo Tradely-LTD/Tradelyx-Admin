@@ -10,10 +10,17 @@ export const SOURCES = {
   agent_bounty: "Agent bounty",
   referral: "Referral",
   demo_request: "Demo request",
+  gmaps: "Google Maps",
   manual: "Added by hand",
   other: "Other",
 } as const;
 export type ProspectSource = keyof typeof SOURCES;
+/**
+ * Sources a person may pick by hand (add, import, edit). Google Maps
+ * prospects come only from Lead review approvals, so a hand-added one can't
+ * claim it; the label still shows and the list filter still offers it.
+ */
+export const MANUAL_SOURCES = Object.fromEntries(Object.entries(SOURCES).filter(([k]) => k !== "gmaps")) as Partial<Record<ProspectSource, string>>;
 export const sourceLabel = (s: string) => SOURCES[s as ProspectSource] ?? s;
 
 export type Prospect = {

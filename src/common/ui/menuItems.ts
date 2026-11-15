@@ -2,7 +2,7 @@ import { Award, MessageSquareWarning, Scale, BarChart2, FileQuestion, Handshake,
 import { Gift } from "lucide-react";
 import { Flame, TrendingUp } from "lucide-react";
 import { Filter } from "lucide-react";
-import { Globe, UserX } from "lucide-react";
+import { Globe, MapPin, UserX } from "lucide-react";
 
 import { canSee, type Access, type OptInSection, type Section } from "@/pages/staff/staff-api";
 import { PhoneCall } from "lucide-react";
@@ -31,6 +31,11 @@ export interface MenuItem {
    * feature answers (its summary loads; switched off it is a 404).
    */
   optIn?: OptInSection;
+  /**
+   * Lead review: granted by name in its own table, not a section (agents can
+   * hold it too). Shown only when GET /lead-review/me says this person holds it.
+   */
+  leadReview?: boolean;
   /** Key into the live counts the layout fetches, shown as a badge */
   badge?: "kycPending" | "agentsApplied" | "conversationsNew";
 }
@@ -99,6 +104,14 @@ const ALL_GROUPS: MenuGroup[] = [
     items: [
       { icon: PhoneCall, label: "Calls", path: "/calls", description: "Who to phone today and what to ask; created from unpaid quotes, unanswered messages and more", roles: ["admin", "country_admin", "agent"], section: "growth" },
       { icon: Flame, label: "Likely buyers", path: "/likely-buyers", description: "Buyers scored by what they did: who's close to ordering, and why", roles: ["admin", "country_admin"], section: "growth" },
+      {
+        icon: MapPin,
+        label: "Lead review",
+        path: "/lead-review",
+        description: "Businesses found on Google Maps: approve or reject each before it becomes a prospect",
+        roles: ["admin", "country_admin", "agent"],
+        leadReview: true,
+      },
       { icon: Target, label: "Prospects", path: "/prospects", description: "Businesses to bring onto TradelyX, contacted one at a time", roles: ["admin", "country_admin", "agent"], section: "growth" },
       { icon: Megaphone, label: "Outreach", path: "/outreach", description: "Ready-made emails that get people to finish setting up", roles: ["admin"], section: "growth" },
       { icon: Mail, label: "Direct email", path: "/emails", description: "Write to one person or a hand-picked list, and the send history", roles: ["admin"], section: "growth" },
@@ -120,12 +133,14 @@ export const isStaffRole = (role?: string | null): role is StaffRole =>
  * `access` is the signed-in staff member's sections (undefined while loading =
  * show by role). `conversationReview`: the layout has confirmed this person
  * may review conversations and the feature is on; opt-in items need it.
+ * `leadReview`: GET /lead-review/me answered `access: true` (false while loading).
  */
-export const getMenuGroups = (role?: string | null, access?: Access, conversationReview = false): MenuGroup[] => {
+export const getMenuGroups = (role?: string | null, access?: Access, conversationReview = false, leadReview = false): MenuGroup[] => {
   if (!isStaffRole(role)) return [];
   const sectionOk = (i: MenuItem) => role === "agent" || !i.section || canSee(access, i.section, i.sensitive);
   const optInOk = (i: MenuItem) => !i.optIn || (i.optIn === "conversations" && conversationReview);
-  return ALL_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => (!i.roles || i.roles.includes(role)) && sectionOk(i) && optInOk(i)) })).filter(
+  const leadReviewOk = (i: MenuItem) => !i.leadReview || leadReview;
+  return ALL_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => (!i.roles || i.roles.includes(role)) && sectionOk(i) && optInOk(i) && leadReviewOk(i)) })).filter(
     (g) => g.items.length
   );
 };

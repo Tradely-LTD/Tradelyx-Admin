@@ -21,6 +21,8 @@ const defaultTags = [
   "AGENTS",
   "DISPUTES",
   "CONVERSATION_REVIEW",
+  "LEAD_REVIEW",
+  "LEAD_REVIEW_ME",
 ] as const;
 type DefaultTags = (typeof defaultTags)[number];
 
